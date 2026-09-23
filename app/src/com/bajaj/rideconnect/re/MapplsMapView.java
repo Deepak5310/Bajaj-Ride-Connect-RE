@@ -261,6 +261,7 @@ public class MapplsMapView extends FrameLayout {
                 "    } catch(e) {}\n" +
                 "  }\n" +
                 "\n" +
+                "  var destMarker = null;\n" +
                 "  function drawRouteLine(coordsJson) {\n" +
                 "    if (!map) return;\n" +
                 "    try {\n" +
@@ -298,12 +299,41 @@ public class MapplsMapView extends FrameLayout {
                 "          }\n" +
                 "        });\n" +
                 "      }\n" +
+                "      if (coords && coords.length > 0 && typeof mappls.Marker !== 'undefined') {\n" +
+                "        var endPt = coords[coords.length - 1];\n" +
+                "        if (destMarker && destMarker.setPosition) {\n" +
+                "          destMarker.setPosition({lng: endPt[0], lat: endPt[1]});\n" +
+                "        } else {\n" +
+                "          var pinEl = document.createElement('div');\n" +
+                "          pinEl.style.width = '24px'; pinEl.style.height = '24px';\n" +
+                "          pinEl.style.borderRadius = '50%'; pinEl.style.background = '#EF4444';\n" +
+                "          pinEl.style.border = '3px solid #FFFFFF'; pinEl.style.boxShadow = '0 0 10px rgba(239,68,68,0.9)';\n" +
+                "          destMarker = new mappls.Marker({ map: map, position: {lng: endPt[0], lat: endPt[1]}, element: pinEl });\n" +
+                "        }\n" +
+                "      }\n" +
+                "    } catch(e) {}\n" +
+                "  }\n" +
+                "\n" +
+                "  function fitRouteBounds(coordsJson) {\n" +
+                "    if (!map) return;\n" +
+                "    try {\n" +
+                "      var coords = JSON.parse(coordsJson);\n" +
+                "      if (!coords || coords.length === 0) return;\n" +
+                "      var minX = coords[0][0], minY = coords[0][1], maxX = coords[0][0], maxY = coords[0][1];\n" +
+                "      for (var i = 1; i < coords.length; i++) {\n" +
+                "        if (coords[i][0] < minX) minX = coords[i][0];\n" +
+                "        if (coords[i][0] > maxX) maxX = coords[i][0];\n" +
+                "        if (coords[i][1] < minY) minY = coords[i][1];\n" +
+                "        if (coords[i][1] > maxY) maxY = coords[i][1];\n" +
+                "      }\n" +
+                "      map.fitBounds([[minX, minY], [maxX, maxY]], { padding: 80, duration: 600 });\n" +
                 "    } catch(e) {}\n" +
                 "  }\n" +
                 "\n" +
                 "  function clearRouteLine() {\n" +
                 "    if (!map) return;\n" +
                 "    try {\n" +
+                "      if (destMarker && destMarker.remove) { destMarker.remove(); destMarker = null; }\n" +
                 "      if (map.getLayer && map.getLayer(routeLayerId)) map.removeLayer(routeLayerId);\n" +
                 "      if (map.getSource && map.getSource(routeSourceId)) map.removeSource(routeSourceId);\n" +
                 "    } catch(e) {}\n" +
@@ -349,6 +379,24 @@ public class MapplsMapView extends FrameLayout {
                     arr.put(p);
                 }
                 String script = "drawRouteLine('" + arr.toString() + "');";
+                webView.evaluateJavascript(script, null);
+            } catch (Exception ignored) {}
+        });
+    }
+
+    public void fitRouteBounds(List<double[]> coordinatesLngLat) {
+        if (!isMapLoaded || coordinatesLngLat == null || coordinatesLngLat.isEmpty()) return;
+
+        mainHandler.post(() -> {
+            try {
+                JSONArray arr = new JSONArray();
+                for (double[] point : coordinatesLngLat) {
+                    JSONArray p = new JSONArray();
+                    p.put(point[0]); // Lng
+                    p.put(point[1]); // Lat
+                    arr.put(p);
+                }
+                String script = "fitRouteBounds('" + arr.toString() + "');";
                 webView.evaluateJavascript(script, null);
             } catch (Exception ignored) {}
         });

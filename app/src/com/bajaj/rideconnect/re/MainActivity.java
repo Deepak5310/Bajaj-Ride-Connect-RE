@@ -152,6 +152,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private ImageView ivTurnArrow;
     private TextView tvTurnDist;
     private TextView tvTurnDesc;
+    private View layoutNextStepPreview;
+    private TextView tvNextStepDesc;
     private View cardSpeedHud;
     private TextView tvCurrentSpeed;
     private TextView tvSpeedLimit;
@@ -160,9 +162,22 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private ImageView btnLayers;
     private ImageView btnZoomIn;
     private ImageView btnZoomOut;
+    private View cardBottomNav;
     private TextView tvNavEta;
     private TextView tvNavSub;
     private Button btnNavEnd;
+
+    // Route Preview HUD
+    private View cardRoutePreview;
+    private TextView tvPreviewDestName;
+    private TextView tvPreviewDestAddress;
+    private ImageView btnCancelRoutePreview;
+    private TextView tvPreviewDuration;
+    private TextView tvPreviewDistance;
+    private TextView tvPreviewSub;
+    private Button btnStartNavNow;
+    private MapplsApiClient.RouteResult pendingPreviewRoute = null;
+    private String pendingDestName = "";
 
     // Mappls Engine & Cockpit Controls
     private MapplsMapView mapplsMapView;
@@ -314,10 +329,34 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (intent.hasExtra("query")) {
             String q = intent.getStringExtra("query");
             if (etSearchQuery != null && q != null) {
+                showDestinationSearch();
                 etSearchQuery.postDelayed(() -> {
                     etSearchQuery.setText(q);
                     etSearchQuery.setSelection(q.length());
-                }, 500);
+                }, 300);
+            }
+        }
+        String cmd = intent.getStringExtra("cmd");
+        if (cmd != null) {
+            if ("search".equalsIgnoreCase(cmd)) {
+                String query = intent.getStringExtra("query");
+                showDestinationSearch();
+                if (query != null && etSearchQuery != null) {
+                    etSearchQuery.setText(query);
+                    etSearchQuery.setSelection(query.length());
+                }
+            } else if ("select_first".equalsIgnoreCase(cmd)) {
+                if (!searchPlaceList.isEmpty()) {
+                    MapplsApiClient.PlaceResult selected = searchPlaceList.get(0);
+                    hideDestinationSearch();
+                    previewRoute(selected);
+                }
+            } else if ("start_nav".equalsIgnoreCase(cmd)) {
+                startActiveNavigation();
+            } else if ("end_nav".equalsIgnoreCase(cmd)) {
+                endActiveNavigation();
+            } else if ("recenter".equalsIgnoreCase(cmd)) {
+                centerMapOnCurrentLocation();
             }
         }
     }
@@ -449,6 +488,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         ivTurnArrow = findViewById(R.id.ivTurnArrow);
         tvTurnDist = findViewById(R.id.tvTurnDist);
         tvTurnDesc = findViewById(R.id.tvTurnDesc);
+        layoutNextStepPreview = findViewById(R.id.layoutNextStepPreview);
+        tvNextStepDesc = findViewById(R.id.tvNextStepDesc);
         cardSpeedHud = findViewById(R.id.cardSpeedHud);
         tvCurrentSpeed = findViewById(R.id.tvCurrentSpeed);
         tvSpeedLimit = findViewById(R.id.tvSpeedLimit);
@@ -457,9 +498,20 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         btnLayers = findViewById(R.id.btnLayers);
         btnZoomIn = findViewById(R.id.btnZoomIn);
         btnZoomOut = findViewById(R.id.btnZoomOut);
+        cardBottomNav = findViewById(R.id.cardBottomNav);
         tvNavEta = findViewById(R.id.tvNavEta);
         tvNavSub = findViewById(R.id.tvNavSub);
         btnNavEnd = findViewById(R.id.btnNavEnd);
+
+        // Route Preview HUD
+        cardRoutePreview = findViewById(R.id.cardRoutePreview);
+        tvPreviewDestName = findViewById(R.id.tvPreviewDestName);
+        tvPreviewDestAddress = findViewById(R.id.tvPreviewDestAddress);
+        btnCancelRoutePreview = findViewById(R.id.btnCancelRoutePreview);
+        tvPreviewDuration = findViewById(R.id.tvPreviewDuration);
+        tvPreviewDistance = findViewById(R.id.tvPreviewDistance);
+        tvPreviewSub = findViewById(R.id.tvPreviewSub);
+        btnStartNavNow = findViewById(R.id.btnStartNavNow);
 
         mapplsMapView = findViewById(R.id.mapplsMapView);
         btnMapSearch = findViewById(R.id.btnMapSearch);
@@ -574,9 +626,17 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         btnVoiceNav.setOnClickListener(v -> {
             isVoiceMuted = !isVoiceMuted;
-            btnVoiceNav.setAlpha(isVoiceMuted ? 0.4f : 1.0f);
+            btnVoiceNav.setImageResource(isVoiceMuted ? R.drawable.ic_volume_off : R.drawable.ic_volume_up);
+            btnVoiceNav.setAlpha(isVoiceMuted ? 0.6f : 1.0f);
             Toast.makeText(this, isVoiceMuted ? "Voice Guidance Muted" : "Voice Guidance Active", Toast.LENGTH_SHORT).show();
         });
+
+        if (btnStartNavNow != null) {
+            btnStartNavNow.setOnClickListener(v -> startActiveNavigation());
+        }
+        if (btnCancelRoutePreview != null) {
+            btnCancelRoutePreview.setOnClickListener(v -> cancelRoutePreview());
+        }
 
         btnLayers.setOnClickListener(v -> {
             isSatelliteLayer = !isSatelliteLayer;
@@ -593,7 +653,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (mapplsMapView != null) mapplsMapView.zoomOut();
         });
 
-        btnNavEnd.setOnClickListener(v -> endActiveNavigation());
+        if (btnNavEnd != null) {
+            btnNavEnd.setOnClickListener(v -> endActiveNavigation());
+        }
 
         // Top Status Quick Connect
         viewTopBtStatusDot.setOnClickListener(v -> toggleBleConnection());
@@ -836,7 +898,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         View[] tactileViews = new View[]{
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
-                btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnMapSearch
+                btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview
         };
         for (View view : tactileViews) {
             if (view != null) view.setOnTouchListener(tactileTouch);
@@ -1189,8 +1251,17 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     TextView tvName = convertView.findViewById(R.id.tvPlaceName);
                     TextView tvAddr = convertView.findViewById(R.id.tvPlaceAddress);
                     TextView tvPin = convertView.findViewById(R.id.tvPlacePin);
+                    TextView tvDist = convertView.findViewById(R.id.tvPlaceDistance);
+
                     tvName.setText(item.name);
                     tvAddr.setText(item.address);
+                    String distStr = item.getFormattedDistance();
+                    if (distStr != null && !distStr.isEmpty()) {
+                        tvDist.setText(distStr);
+                        tvDist.setVisibility(View.VISIBLE);
+                    } else {
+                        tvDist.setVisibility(View.GONE);
+                    }
                     if (item.mapplsPin != null && !item.mapplsPin.isEmpty()) {
                         tvPin.setText(item.mapplsPin);
                         tvPin.setVisibility(View.VISIBLE);
@@ -1206,10 +1277,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             lvSearchResults.setOnItemClickListener((parent, view, position, id) -> {
                 MapplsApiClient.PlaceResult selected = searchPlaceList.get(position);
                 hideDestinationSearch();
-                startMapplsNavigation(selected.name, selected.lat, selected.lng);
+                previewRoute(selected);
             });
         }
-
         Runnable searchRunnable = () -> {
             if (etSearchQuery == null) return;
             String query = etSearchQuery.getText().toString().trim();
@@ -1328,6 +1398,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             hideDestinationSearch();
             return;
         }
+        if (cardRoutePreview != null && cardRoutePreview.getVisibility() == View.VISIBLE) {
+            cancelRoutePreview();
+            return;
+        }
+        if (currentActiveRoute != null) {
+            endActiveNavigation();
+            return;
+        }
         if (drawerBackdrop != null && drawerBackdrop.getVisibility() == View.VISIBLE) {
             closeDrawer();
             return;
@@ -1335,13 +1413,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         super.onBackPressed();
     }
 
-    private void startMapplsNavigation(String destName, double destLat, double destLng) {
-        Toast.makeText(this, "Calculating Mappls route to " + destName + "...", Toast.LENGTH_SHORT).show();
-        MapplsApiClient.getInstance().getDirections(currentRiderLat, currentRiderLng, destLat, destLng, new MapplsApiClient.RouteCallback() {
+    private void previewRoute(MapplsApiClient.PlaceResult selected) {
+        if (selected == null) return;
+        Toast.makeText(this, "Calculating route to " + selected.name + "...", Toast.LENGTH_SHORT).show();
+        MapplsApiClient.getInstance().getDirections(currentRiderLat, currentRiderLng, selected.lat, selected.lng, selected.mapplsPin, new MapplsApiClient.RouteCallback() {
             @Override
             public void onSuccess(MapplsApiClient.RouteResult route) {
-                currentActiveRoute = route;
-                currentRouteStepIndex = 0;
+                pendingPreviewRoute = route;
+                pendingDestName = selected.name;
 
                 List<double[]> points = decodePolyline(route.geometryPolyline, true);
                 if (points.isEmpty()) {
@@ -1351,14 +1430,41 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
                 if (mapplsMapView != null) {
                     mapplsMapView.plotRoute(points);
+                    mapplsMapView.fitRouteBounds(points);
                 }
 
-                if (!route.steps.isEmpty()) {
-                    MapplsApiClient.RouteStep step0 = route.steps.get(0);
-                    updateRouteStepDisplay(step0, route.totalDistanceMeters, route.totalDurationSeconds);
+                if (tvPreviewDestName != null) tvPreviewDestName.setText(selected.name);
+                if (tvPreviewDestAddress != null) tvPreviewDestAddress.setText(selected.address);
+
+                int totalMin = (int) Math.round(route.totalDurationSeconds / 60.0);
+                String durStr;
+                if (totalMin >= 60) {
+                    int hrs = totalMin / 60;
+                    int mins = totalMin % 60;
+                    durStr = hrs + " hr " + mins + " min";
+                } else {
+                    durStr = totalMin + " min";
+                }
+                if (tvPreviewDuration != null) tvPreviewDuration.setText(durStr);
+
+                String distStr;
+                if (route.totalDistanceMeters >= 1000) {
+                    distStr = String.format(Locale.getDefault(), " • %.0f km", route.totalDistanceMeters / 1000.0);
+                } else {
+                    distStr = " • " + (int) route.totalDistanceMeters + " m";
+                }
+                if (tvPreviewDistance != null) tvPreviewDistance.setText(distStr);
+
+                Calendar cal = Calendar.getInstance();
+                cal.add(Calendar.SECOND, (int) route.totalDurationSeconds);
+                SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                if (tvPreviewSub != null) {
+                    tvPreviewSub.setText(String.format(Locale.getDefault(), "Fastest route • ETA %s", sdf.format(cal.getTime())));
                 }
 
-                Toast.makeText(MainActivity.this, "Mappls Navigation Active • Streaming to Cluster", Toast.LENGTH_SHORT).show();
+                if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.VISIBLE);
+                if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.GONE);
+                if (cardBottomNav != null) cardBottomNav.setVisibility(View.GONE);
             }
 
             @Override
@@ -1368,9 +1474,46 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         });
     }
 
+    private void startActiveNavigation() {
+        if (pendingPreviewRoute == null) return;
+        currentActiveRoute = pendingPreviewRoute;
+        currentRouteStepIndex = 0;
+
+        if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
+        if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.VISIBLE);
+        if (cardBottomNav != null) cardBottomNav.setVisibility(View.VISIBLE);
+
+        centerMapOnCurrentLocation();
+
+        if (!currentActiveRoute.steps.isEmpty()) {
+            MapplsApiClient.RouteStep step0 = currentActiveRoute.steps.get(0);
+            updateRouteStepDisplay(step0, currentActiveRoute.totalDistanceMeters, currentActiveRoute.totalDurationSeconds);
+        }
+
+        Toast.makeText(this, "Mappls Navigation Active to " + pendingDestName, Toast.LENGTH_SHORT).show();
+    }
+
+    private void cancelRoutePreview() {
+        pendingPreviewRoute = null;
+        if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
+        if (mapplsMapView != null) mapplsMapView.clearRoute();
+        centerMapOnCurrentLocation();
+    }
+
     private void updateRouteStepDisplay(MapplsApiClient.RouteStep step, double remDistMeters, double remDurSec) {
         runOnUiThread(() -> {
-            if (tvTurnDesc != null) tvTurnDesc.setText(step.instruction);
+            if (cardTurnInstruction != null && cardTurnInstruction.getVisibility() != View.VISIBLE) {
+                cardTurnInstruction.setVisibility(View.VISIBLE);
+            }
+            if (cardBottomNav != null && cardBottomNav.getVisibility() != View.VISIBLE) {
+                cardBottomNav.setVisibility(View.VISIBLE);
+            }
+
+            if (tvTurnDesc != null) {
+                String desc = (step.instruction != null && !step.instruction.isEmpty())
+                        ? step.instruction : step.street;
+                tvTurnDesc.setText(desc);
+            }
             if (tvTurnDist != null) {
                 if (step.distanceMeters < 1000) {
                     tvTurnDist.setText((int) step.distanceMeters + " m");
@@ -1378,9 +1521,41 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     tvTurnDist.setText(String.format(Locale.getDefault(), "%.1f km", step.distanceMeters / 1000.0));
                 }
             }
+
+            if (ivTurnArrow != null) {
+                int iconRes = R.drawable.ic_turn_right_nav;
+                if (step.maneuverID == 8) {
+                    iconRes = R.drawable.ic_nav_puck;
+                } else if (step.maneuverID == 19 || step.maneuverID == 20 || step.maneuverID == 15) {
+                    iconRes = R.drawable.ic_turn_left_nav;
+                } else if (step.maneuverID == 0) {
+                    iconRes = R.drawable.ic_straight_nav;
+                }
+                ivTurnArrow.setImageResource(iconRes);
+            }
+
+            if (layoutNextStepPreview != null && tvNextStepDesc != null) {
+                if (currentActiveRoute != null && currentRouteStepIndex + 1 < currentActiveRoute.steps.size()) {
+                    MapplsApiClient.RouteStep nextStep = currentActiveRoute.steps.get(currentRouteStepIndex + 1);
+                    String nextDist = nextStep.distanceMeters < 1000
+                            ? (int) nextStep.distanceMeters + " m"
+                            : String.format(Locale.getDefault(), "%.1f km", nextStep.distanceMeters / 1000.0);
+                    tvNextStepDesc.setText("Then " + nextDist + " • " + (nextStep.instruction.isEmpty() ? nextStep.street : nextStep.instruction));
+                    layoutNextStepPreview.setVisibility(View.VISIBLE);
+                } else {
+                    layoutNextStepPreview.setVisibility(View.GONE);
+                }
+            }
+
             if (tvNavEta != null) {
-                int durMin = (int) Math.round(remDurSec / 60.0);
-                tvNavEta.setText(durMin + " min");
+                int totalMin = (int) Math.round(remDurSec / 60.0);
+                if (totalMin >= 60) {
+                    int hrs = totalMin / 60;
+                    int mins = totalMin % 60;
+                    tvNavEta.setText(hrs + " hr " + mins + " min");
+                } else {
+                    tvNavEta.setText(totalMin + " min");
+                }
             }
             if (tvNavSub != null) {
                 double km = remDistMeters / 1000.0;
@@ -1394,10 +1569,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     private void endActiveNavigation() {
         currentActiveRoute = null;
+        pendingPreviewRoute = null;
         currentRouteStepIndex = 0;
-        if (mapplsMapView != null) {
-            mapplsMapView.clearRoute();
-        }
+        if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.GONE);
+        if (cardBottomNav != null) cardBottomNav.setVisibility(View.GONE);
+        if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
+        if (mapplsMapView != null) mapplsMapView.clearRoute();
+        centerMapOnCurrentLocation();
         updateCockpitNavigation("IDLE", "Navigation Idle", 0.0, 0.0, 12, 0, false, "No Active Route");
         Toast.makeText(this, "Navigation Ended", Toast.LENGTH_SHORT).show();
     }
@@ -1473,6 +1651,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (!bleManager.isConnected()) {
             bleManager.startScanOrConnect();
         }
+        handleIntent(getIntent());
     }
 
     @Override

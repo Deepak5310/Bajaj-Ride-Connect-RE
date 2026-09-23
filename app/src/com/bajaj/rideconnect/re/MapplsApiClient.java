@@ -69,15 +69,27 @@ public class MapplsApiClient {
         public final String name;
         public final String address;
         public final String mapplsPin;
-        public final double lat;
-        public final double lng;
+        public double lat;
+        public double lng;
+        public final double distanceMeters;
+        public final String type;
 
-        public PlaceResult(String name, String address, String mapplsPin, double lat, double lng) {
+        public PlaceResult(String name, String address, String mapplsPin, double lat, double lng, double distanceMeters, String type) {
             this.name = name;
             this.address = address;
             this.mapplsPin = mapplsPin;
             this.lat = lat;
             this.lng = lng;
+            this.distanceMeters = distanceMeters;
+            this.type = type;
+        }
+
+        public String getFormattedDistance() {
+            if (distanceMeters <= 0) return "";
+            if (distanceMeters < 1000) {
+                return (int) distanceMeters + " m";
+            }
+            return String.format(java.util.Locale.US, "%.1f km", distanceMeters / 1000.0);
         }
 
         @Override
@@ -112,6 +124,8 @@ public class MapplsApiClient {
         public final double totalDurationSeconds;
         public final String geometryPolyline;
         public final List<RouteStep> steps;
+        public double destLat = 0.0;
+        public double destLng = 0.0;
 
         public RouteResult(double totalDistanceMeters, double totalDurationSeconds,
                            String geometryPolyline, List<RouteStep> steps) {
@@ -199,10 +213,12 @@ public class MapplsApiClient {
                                     JSONObject loc = locs.getJSONObject(i);
                                     String name = loc.optString("placeName", "");
                                     String addr = loc.optString("placeAddress", "");
-                                    String pin = loc.optString("mapplsPin", "");
+                                    String pin = loc.optString("eLoc", loc.optString("mapplsPin", ""));
                                     double lat = loc.optDouble("latitude", 0.0);
                                     double lng = loc.optDouble("longitude", 0.0);
-                                    results.add(new PlaceResult(name, addr, pin, lat, lng));
+                                    double dist = loc.optDouble("distance", 0.0);
+                                    String type = loc.optString("type", "POI");
+                                    results.add(new PlaceResult(name, addr, pin, lat, lng, dist, type));
                                 }
                             }
                             mainHandler.post(() -> callback.onSuccess(results));
@@ -224,12 +240,16 @@ public class MapplsApiClient {
     }
 
     public void getDirections(double startLat, double startLng, double destLat, double destLng, RouteCallback callback) {
+        getDirections(startLat, startLng, destLat, destLng, null, callback);
+    }
+
+    public void getDirections(double startLat, double startLng, double destLat, double destLng, String destEloc, RouteCallback callback) {
         executor.execute(() -> {
             try {
                 // Try biking profile first, fallback to driving
-                RouteResult res = requestRoute("biking", startLat, startLng, destLat, destLng);
+                RouteResult res = requestRoute("biking", startLat, startLng, destLat, destLng, destEloc);
                 if (res == null) {
-                    res = requestRoute("driving", startLat, startLng, destLat, destLng);
+                    res = requestRoute("driving", startLat, startLng, destLat, destLng, destEloc);
                 }
                 if (res != null) {
                     RouteResult finalRes = res;
@@ -244,12 +264,17 @@ public class MapplsApiClient {
         });
     }
 
-    private RouteResult requestRoute(String profile, double startLat, double startLng, double destLat, double destLng) {
+    private RouteResult requestRoute(String profile, double startLat, double startLng, double destLat, double destLng, String destEloc) {
         try {
-            String coords = String.format(java.util.Locale.US, "%.6f,%.6f;%.6f,%.6f", startLng, startLat, destLng, destLat);
+            String coords;
+            if (destEloc != null && !destEloc.trim().isEmpty()) {
+                coords = String.format(java.util.Locale.US, "%.6f,%.6f;%s", startLng, startLat, destEloc.trim());
+            } else {
+                coords = String.format(java.util.Locale.US, "%.6f,%.6f;%.6f,%.6f", startLng, startLat, destLng, destLat);
+            }
             String urlStr = "https://apis.mappls.com/advancedmaps/v1/" + MAPPLS_REST_KEY
                     + "/route_adv/" + profile + "/" + coords
-                    + "?steps=true&overview=full&geometries=polyline6";
+                    + "?steps=true&overview=full&geometries=polyline6&alternatives=true";
 
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
