@@ -400,6 +400,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 openDrawer();
             } else if ("close_drawer".equalsIgnoreCase(cmd)) {
                 closeDrawer();
+            } else if ("toggle_orientation".equalsIgnoreCase(cmd)) {
+                if (btnCompass != null) {
+                    btnCompass.performClick();
+                }
             }
         }
     }
@@ -534,6 +538,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         layoutNextStepPreview = findViewById(R.id.layoutNextStepPreview);
         tvNextStepDesc = findViewById(R.id.tvNextStepDesc);
         cardSpeedHud = findViewById(R.id.cardSpeedHud);
+        if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
         tvCurrentSpeed = findViewById(R.id.tvCurrentSpeed);
         tvSpeedLimit = findViewById(R.id.tvSpeedLimit);
         btnCompass = findViewById(R.id.btnCompass);
@@ -704,10 +709,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (btnCompass != null) {
             btnCompass.setOnClickListener(v -> {
                 if (mapplsMapView != null) {
-                    mapplsMapView.resetNorth();
+                    mapplsMapView.toggleOrientation();
+                } else {
+                    btnCompass.animate().rotation(0f).setDuration(350).start();
+                    Toast.makeText(this, "2D North-Up View", Toast.LENGTH_SHORT).show();
                 }
-                btnCompass.animate().rotation(0f).setDuration(350).start();
-                Toast.makeText(this, "Map oriented North", Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -741,6 +747,21 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 public void onMapBearingChanged(double bearing) {
                     if (btnCompass != null) {
                         btnCompass.setRotation((float) -bearing);
+                    }
+                }
+
+                @Override
+                public void onOrientationModeChanged(boolean is3D, double bearing) {
+                    if (btnCompass != null) {
+                        if (is3D) {
+                            btnCompass.setBackgroundResource(R.drawable.bg_circle_action_active);
+                            btnCompass.animate().rotation((float) -bearing).setDuration(350).start();
+                            Toast.makeText(MainActivity.this, "Cockpit 3D Perspective (Heading Up)", Toast.LENGTH_SHORT).show();
+                        } else {
+                            btnCompass.setBackgroundResource(R.drawable.bg_circle_action);
+                            btnCompass.animate().rotation(0f).setDuration(350).start();
+                            Toast.makeText(MainActivity.this, "2D North-Up View", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
             });
@@ -1758,6 +1779,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.VISIBLE);
                 if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.GONE);
                 if (cardBottomNav != null) cardBottomNav.setVisibility(View.GONE);
+                if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
             }
 
             @Override
@@ -1775,6 +1797,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
         if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.VISIBLE);
         if (cardBottomNav != null) cardBottomNav.setVisibility(View.VISIBLE);
+        if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.VISIBLE);
 
         if (mapplsMapView != null) {
             mapplsMapView.setNavigating(true);
@@ -1795,6 +1818,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private void cancelRoutePreview() {
         pendingPreviewRoute = null;
         if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
+        if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
         if (mapplsMapView != null) {
             mapplsMapView.clearRoute();
             mapplsMapView.centerOnCurrentLocation();
@@ -1810,6 +1834,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             }
             if (cardBottomNav != null && cardBottomNav.getVisibility() != View.VISIBLE) {
                 cardBottomNav.setVisibility(View.VISIBLE);
+            }
+            if (cardSpeedHud != null && cardSpeedHud.getVisibility() != View.VISIBLE) {
+                cardSpeedHud.setVisibility(View.VISIBLE);
             }
 
             if (tvTurnDesc != null) {
@@ -1877,6 +1904,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.GONE);
         if (cardBottomNav != null) cardBottomNav.setVisibility(View.GONE);
         if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
+        if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
         if (mapplsMapView != null) {
             mapplsMapView.setNavigating(false);
             mapplsMapView.clearRoute();

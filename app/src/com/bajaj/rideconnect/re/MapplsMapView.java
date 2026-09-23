@@ -46,6 +46,7 @@ public class MapplsMapView extends FrameLayout {
         void onMapDragged();
         void onMapRecentered();
         void onMapBearingChanged(double bearing);
+        void onOrientationModeChanged(boolean is3D, double bearing);
     }
 
     private OnMapReadyCallback mapReadyCallback;
@@ -150,6 +151,15 @@ public class MapplsMapView extends FrameLayout {
                 mainHandler.post(() -> {
                     if (mapInteractionListener != null) {
                         mapInteractionListener.onMapBearingChanged(bearing);
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void onOrientationModeChanged(boolean is3D, double bearing) {
+                mainHandler.post(() -> {
+                    if (mapInteractionListener != null) {
+                        mapInteractionListener.onOrientationModeChanged(is3D, bearing);
                     }
                 });
             }
@@ -299,6 +309,7 @@ public class MapplsMapView extends FrameLayout {
                 "  var curBearing = 0;\n" +
                 "  var isUserInteracting = false;\n" +
                 "  var isNavigating = false;\n" +
+                "  var is3DMode = false;\n" +
                 "\n" +
                 "  function setNavigating(nav) {\n" +
                 "    isNavigating = nav;\n" +
@@ -319,7 +330,8 @@ public class MapplsMapView extends FrameLayout {
                 "      if (!isUserInteracting) {\n" +
                 "        map.easeTo({\n" +
                 "          center: [lng, lat],\n" +
-                "          bearing: isNavigating ? bearing : map.getBearing(),\n" +
+                "          bearing: (isNavigating || is3DMode) ? bearing : map.getBearing(),\n" +
+                "          pitch: is3DMode ? 55 : (isNavigating ? 45 : 0),\n" +
                 "          duration: 350\n" +
                 "        });\n" +
                 "      }\n" +
@@ -333,7 +345,8 @@ public class MapplsMapView extends FrameLayout {
                 "      map.flyTo({\n" +
                 "        center: [curRiderLng, curRiderLat],\n" +
                 "        zoom: 16,\n" +
-                "        bearing: curBearing,\n" +
+                "        bearing: (is3DMode || isNavigating) ? curBearing : 0,\n" +
+                "        pitch: is3DMode ? 55 : (isNavigating ? 45 : 0),\n" +
                 "        speed: 1.3\n" +
                 "      });\n" +
                 "      if (window.AndroidBridge && window.AndroidBridge.onMapRecentered) {\n" +
@@ -342,14 +355,47 @@ public class MapplsMapView extends FrameLayout {
                 "    } catch(e) {}\n" +
                 "  }\n" +
                 "\n" +
+                "  function toggleOrientation() {\n" +
+                "    if (!map) return;\n" +
+                "    try {\n" +
+                "      var currentBearing = map.getBearing();\n" +
+                "      if (Math.abs(currentBearing) > 5 && !is3DMode) {\n" +
+                "        is3DMode = false;\n" +
+                "        map.easeTo({ bearing: 0, pitch: 0, duration: 400 });\n" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onOrientationModeChanged) {\n" +
+                "          window.AndroidBridge.onOrientationModeChanged(false, 0);\n" +
+                "        }\n" +
+                "      } else if (!is3DMode) {\n" +
+                "        is3DMode = true;\n" +
+                "        var targetBearing = (typeof curBearing !== 'undefined' && curBearing !== 0) ? curBearing : map.getBearing();\n" +
+                "        map.easeTo({ bearing: targetBearing, pitch: 55, duration: 500 });\n" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onOrientationModeChanged) {\n" +
+                "          window.AndroidBridge.onOrientationModeChanged(true, targetBearing);\n" +
+                "        }\n" +
+                "      } else {\n" +
+                "        is3DMode = false;\n" +
+                "        map.easeTo({ bearing: 0, pitch: 0, duration: 400 });\n" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onOrientationModeChanged) {\n" +
+                "          window.AndroidBridge.onOrientationModeChanged(false, 0);\n" +
+                "        }\n" +
+                "      }\n" +
+                "    } catch(e) {\n" +
+                "      console.error('toggleOrientation error: ' + e);\n" +
+                "    }\n" +
+                "  }\n" +
+                "\n" +
                 "  function resetNorth() {\n" +
                 "    if (!map) return;\n" +
+                "    is3DMode = false;\n" +
                 "    try {\n" +
                 "      map.easeTo({\n" +
                 "        bearing: 0,\n" +
                 "        pitch: 0,\n" +
                 "        duration: 400\n" +
                 "      });\n" +
+                "      if (window.AndroidBridge && window.AndroidBridge.onOrientationModeChanged) {\n" +
+                "        window.AndroidBridge.onOrientationModeChanged(false, 0);\n" +
+                "      }\n" +
                 "      if (window.AndroidBridge && window.AndroidBridge.onMapBearingChanged) {\n" +
                 "        window.AndroidBridge.onMapBearingChanged(0);\n" +
                 "      }\n" +
@@ -532,6 +578,11 @@ public class MapplsMapView extends FrameLayout {
     public void resetNorth() {
         if (!isMapLoaded) return;
         mainHandler.post(() -> webView.evaluateJavascript("resetNorth();", null));
+    }
+
+    public void toggleOrientation() {
+        if (!isMapLoaded) return;
+        mainHandler.post(() -> webView.evaluateJavascript("toggleOrientation();", null));
     }
 
     public void setNavigating(boolean navigating) {
