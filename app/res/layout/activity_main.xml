@@ -14,134 +14,19 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Top Status Bar -->
-        <LinearLayout
-            android:id="@+id/layoutTopBar"
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:background="#0E1015">
-
-            <!-- GPS Target Indicator -->
-            <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:src="@drawable/ic_nav_puck"
-                android:layout_marginEnd="8dp" />
-
-            <!-- Motorcycle Brand Silhouette -->
-            <ImageView
-                android:layout_width="26dp"
-                android:layout_height="18dp"
-                android:src="@drawable/ic_bike_pulsar"
-                android:layout_marginEnd="6dp" />
-
-            <!-- Dynamic Bike Brand Text -->
-            <TextView
-                android:id="@+id/tvTopBikeName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="BAJAJ PULSAR"
-                android:textColor="#F8FAFC"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.08"
-                android:layout_marginEnd="12dp" />
-
-            <!-- Bluetooth Connection Status Pill -->
-            <View
-                android:id="@+id/viewTopBtStatusDot"
-                android:layout_width="7dp"
-                android:layout_height="7dp"
-                android:background="@drawable/bg_pulse_dot"
-                android:layout_marginEnd="6dp" />
-
-            <TextView
-                android:id="@+id/tvTopBtStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Connected"
-                android:textColor="#10B981"
-                android:textSize="11sp"
-                android:layout_marginEnd="12dp" />
-
-            <!-- Live Signal -->
-            <TextView
-                android:id="@+id/tvTopSignal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📶 4G"
-                android:textColor="#94A3B8"
-                android:textSize="11sp"
-                android:layout_marginEnd="12dp" />
-
-            <!-- Live Battery -->
-            <TextView
-                android:id="@+id/tvTopBattery"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔋 85%"
-                android:textColor="#10B981"
-                android:textSize="11sp"
-                android:layout_marginEnd="12dp" />
-
-            <!-- Live System Clock -->
-            <TextView
-                android:id="@+id/tvTopClock"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="10:24"
-                android:textColor="#F8FAFC"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <!-- Spacer -->
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
-            <!-- Notification Bell Icon -->
-            <ImageView
-                android:id="@+id/btnTopNotifications"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_notification_bell"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:layout_marginEnd="8dp" />
-
-            <!-- Drawer Toggle Button (Hamburger / Menu) -->
-            <ImageView
-                android:id="@+id/btnOpenDrawer"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_drawer_menu"
-                android:background="@drawable/bg_chip_action"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true" />
-        </LinearLayout>
-
-        <!-- Main Workspace (Split: Left 25% | Right 75%) -->
+        <!-- Main Workspace (Split: Left 26% | Right 74%) -->
         <LinearLayout
             android:id="@+id/layoutWorkspace"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="match_parent"
             android:orientation="horizontal"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
-            android:paddingTop="6dp"
+            android:paddingTop="8dp"
             android:paddingBottom="8dp">
 
             <!-- ========================================================= -->
-            <!-- LEFT PANEL: MEDIA / CALLS / SMS / BIKE (25-28%)          -->
+            <!-- LEFT PANEL: MEDIA PLAYER ONLY (26%)                       -->
             <!-- ========================================================= -->
             <LinearLayout
                 android:id="@+id/layoutLeftPanel"
@@ -152,432 +37,152 @@
                 android:background="@drawable/bg_cockpit_frosted"
                 android:padding="12dp">
 
-                <!-- Tab Content Stage -->
-                <FrameLayout
-                    android:id="@+id/layoutTabContent"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1">
-
-                    <!-- TAB 1: MEDIA VIEW (Default Active) -->
-                    <LinearLayout
-                        android:id="@+id/viewTabMedia"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center_horizontal"
-                        android:visibility="visible">
-
-                        <!-- Album Artwork Container -->
-                        <FrameLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="1"
-                            android:gravity="center">
-
-                            <ImageView
-                                android:id="@+id/ivAlbumArt"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent"
-                                android:scaleType="centerInside"
-                                android:src="@drawable/ic_album_art_placeholder" />
-                        </FrameLayout>
-
-                        <!-- Song Name -->
-                        <TextView
-                            android:id="@+id/tvMediaTrack"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="No Media Playing"
-                            android:textColor="#F8FAFC"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:singleLine="true"
-                            android:ellipsize="marquee"
-                            android:marqueeRepeatLimit="marquee_forever"
-                            android:layout_marginTop="8dp" />
-
-                        <!-- Artist & Music Source -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:layout_marginTop="2dp">
-
-                            <TextView
-                                android:id="@+id/tvMediaArtist"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Start playback on phone"
-                                android:textColor="#94A3B8"
-                                android:textSize="12sp"
-                                android:singleLine="true"
-                                android:ellipsize="end" />
-
-                            <TextView
-                                android:id="@+id/tvMediaSource"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Standby"
-                                android:textColor="#10B981"
-                                android:textSize="10sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <!-- Progress Bar Line -->
-                        <ProgressBar
-                            android:id="@+id/pbMediaTrack"
-                            style="?android:attr/progressBarStyleHorizontal"
-                            android:layout_width="match_parent"
-                            android:layout_height="4dp"
-                            android:progressDrawable="@drawable/pb_custom_track"
-                            android:progress="0"
-                            android:max="100"
-                            android:layout_marginTop="8dp" />
-
-                        <!-- Time Row -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:layout_marginTop="3dp">
-
-                            <TextView
-                                android:id="@+id/tvMediaElapsed"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="0:00"
-                                android:textColor="#64748B"
-                                android:textSize="10sp" />
-
-                            <TextView
-                                android:id="@+id/tvMediaDuration"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="0:00"
-                                android:textColor="#64748B"
-                                android:textSize="10sp" />
-                        </LinearLayout>
-
-                        <!-- Media Controls Row (Previous | Play/Pause | Next) -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center"
-                            android:layout_marginTop="6dp"
-                            android:layout_marginBottom="4dp">
-
-                            <!-- Previous Track Button -->
-                            <ImageView
-                                android:id="@+id/btnMediaPrev"
-                                android:layout_width="44dp"
-                                android:layout_height="44dp"
-                                android:src="@drawable/ic_media_prev"
-                                android:background="?android:attr/selectableItemBackgroundBorderless"
-                                android:padding="10dp"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:layout_marginEnd="12dp" />
-
-                            <!-- Large Circular Play/Pause Button -->
-                            <ImageView
-                                android:id="@+id/btnMediaPlayPause"
-                                android:layout_width="52dp"
-                                android:layout_height="52dp"
-                                android:src="@drawable/ic_media_pause"
-                                android:background="@drawable/bg_play_button"
-                                android:padding="12dp"
-                                android:clickable="true"
-                                android:focusable="true" />
-
-                            <!-- Next Track Button -->
-                            <ImageView
-                                android:id="@+id/btnMediaNext"
-                                android:layout_width="44dp"
-                                android:layout_height="44dp"
-                                android:src="@drawable/ic_media_next"
-                                android:background="?android:attr/selectableItemBackgroundBorderless"
-                                android:padding="10dp"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:layout_marginStart="12dp" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- TAB 2: CALLS VIEW (Optional/Alternate Tab) -->
-                    <LinearLayout
-                        android:id="@+id/viewTabCalls"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:visibility="gone">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="📞 INCOMING CALL"
-                            android:textColor="#F59E0B"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvCallerName"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Mom"
-                            android:textColor="#F8FAFC"
-                            android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="8dp" />
-
-                        <TextView
-                            android:id="@+id/tvCallerNumber"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="+91 98765 43210"
-                            android:textColor="#94A3B8"
-                            android:textSize="12sp"
-                            android:layout_marginTop="2dp" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center"
-                            android:layout_marginTop="20dp">
-
-                            <Button
-                                android:id="@+id/btnCallReject"
-                                android:layout_width="wrap_content"
-                                android:layout_height="40dp"
-                                android:text="Decline"
-                                android:textColor="#FFFFFF"
-                                android:background="@drawable/bg_chip_danger"
-                                android:layout_marginEnd="10dp" />
-
-                            <Button
-                                android:id="@+id/btnCallAccept"
-                                android:layout_width="wrap_content"
-                                android:layout_height="40dp"
-                                android:text="Answer"
-                                android:textColor="#FFFFFF"
-                                android:background="@drawable/bg_badge_connected" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- TAB 3: SMS VIEW -->
-                    <LinearLayout
-                        android:id="@+id/viewTabSms"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:visibility="gone">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="💬 MESSAGES"
-                            android:textColor="#38BDF8"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvSmsSender"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="No New Messages"
-                            android:textColor="#F8FAFC"
-                            android:textSize="14sp"
-                            android:layout_marginTop="8dp" />
-
-                        <TextView
-                            android:id="@+id/tvSmsPreview"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Notifications will appear during ride"
-                            android:textColor="#64748B"
-                            android:textSize="11sp"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
-
-                    <!-- TAB 4: BIKE VIEW -->
-                    <LinearLayout
-                        android:id="@+id/viewTabBike"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:visibility="gone">
-
-                        <ImageView
-                            android:layout_width="110dp"
-                            android:layout_height="65dp"
-                            android:adjustViewBounds="true"
-                            android:scaleType="fitCenter"
-                            android:src="@drawable/ic_bike_ns400z" />
-
-                        <TextView
-                            android:id="@+id/tvBikeTabName"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Bajaj Pulsar NS400Z"
-                            android:textColor="#F8FAFC"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:layout_marginTop="6dp" />
-
-                        <TextView
-                            android:id="@+id/tvBikeTabRange"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Estimated Range: 312 km"
-                            android:textColor="#10B981"
-                            android:textSize="12sp"
-                            android:layout_marginTop="4dp" />
-
-                        <TextView
-                            android:id="@+id/tvBikeTabStatus"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Cluster: Connected (GATT OK)"
-                            android:textColor="#94A3B8"
-                            android:textSize="11sp"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
-                </FrameLayout>
-
-                <!-- Thin Separator -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1E2330"
-                    android:layout_marginTop="4dp"
-                    android:layout_marginBottom="6dp" />
-
-                <!-- Bottom Quick Tabs Bar (Media | Calls | SMS | Bike) -->
+                <!-- MEDIA PLAYER VIEW -->
                 <LinearLayout
-                    android:id="@+id/layoutQuickTabs"
+                    android:id="@+id/viewTabMedia"
                     android:layout_width="match_parent"
-                    android:layout_height="38dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal"
+                    android:visibility="visible">
 
-                    <!-- Tab Media -->
-                    <LinearLayout
-                        android:id="@+id/tabMedia"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                    <!-- Album Artwork Container -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
                         android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="@drawable/bg_tab_pill_active"
-                        android:clickable="true"
-                        android:focusable="true">
+                        android:gravity="center">
 
                         <ImageView
-                            android:id="@+id/ivTabMediaIcon"
-                            android:layout_width="14dp"
-                            android:layout_height="14dp"
-                            android:src="@drawable/ic_tab_media" />
+                            android:id="@+id/ivAlbumArt"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerInside"
+                            android:src="@drawable/ic_album_art_placeholder" />
+                    </FrameLayout>
+
+                    <!-- Song Name -->
+                    <TextView
+                        android:id="@+id/tvMediaTrack"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="No Media Playing"
+                        android:textColor="#F8FAFC"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:singleLine="true"
+                        android:ellipsize="marquee"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:layout_marginTop="8dp" />
+
+                    <!-- Artist & Music Source -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="2dp">
 
                         <TextView
-                            android:id="@+id/tvTabMediaLabel"
+                            android:id="@+id/tvMediaArtist"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Start playback on phone"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp"
+                            android:singleLine="true"
+                            android:ellipsize="end" />
+
+                        <TextView
+                            android:id="@+id/tvMediaSource"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/tab_media"
-                            android:textColor="#38BDF8"
-                            android:textSize="9sp"
+                            android:text="Standby"
+                            android:textColor="#10B981"
+                            android:textSize="10sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Tab Calls -->
-                    <LinearLayout
-                        android:id="@+id/tabCalls"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="@drawable/bg_tab_pill_inactive"
-                        android:clickable="true"
-                        android:focusable="true">
+                    <!-- Progress Bar Line -->
+                    <ProgressBar
+                        android:id="@+id/pbMediaTrack"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="4dp"
+                        android:progressDrawable="@drawable/pb_custom_track"
+                        android:progress="0"
+                        android:max="100"
+                        android:layout_marginTop="8dp" />
 
-                        <ImageView
-                            android:id="@+id/ivTabCallsIcon"
-                            android:layout_width="14dp"
-                            android:layout_height="14dp"
-                            android:src="@drawable/ic_tab_calls" />
+                    <!-- Time Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="3dp">
 
                         <TextView
-                            android:id="@+id/tvTabCallsLabel"
+                            android:id="@+id/tvMediaElapsed"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="0:00"
+                            android:textColor="#64748B"
+                            android:textSize="10sp" />
+
+                        <TextView
+                            android:id="@+id/tvMediaDuration"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/tab_calls"
+                            android:text="0:00"
                             android:textColor="#64748B"
-                            android:textSize="9sp"
-                            android:textStyle="bold" />
+                            android:textSize="10sp" />
                     </LinearLayout>
 
-                    <!-- Tab SMS -->
+                    <!-- Media Controls Row (Previous | Play/Pause | Next) -->
                     <LinearLayout
-                        android:id="@+id/tabSms"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
                         android:gravity="center"
-                        android:background="@drawable/bg_tab_pill_inactive"
-                        android:clickable="true"
-                        android:focusable="true">
+                        android:layout_marginTop="6dp"
+                        android:layout_marginBottom="4dp">
 
+                        <!-- Previous Track Button -->
                         <ImageView
-                            android:id="@+id/ivTabSmsIcon"
-                            android:layout_width="14dp"
-                            android:layout_height="14dp"
-                            android:src="@drawable/ic_tab_sms" />
+                            android:id="@+id/btnMediaPrev"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:src="@drawable/ic_media_prev"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:padding="10dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="12dp" />
 
-                        <TextView
-                            android:id="@+id/tvTabSmsLabel"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/tab_sms"
-                            android:textColor="#64748B"
-                            android:textSize="9sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <!-- Tab Bike -->
-                    <LinearLayout
-                        android:id="@+id/tabBike"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="@drawable/bg_tab_pill_inactive"
-                        android:clickable="true"
-                        android:focusable="true">
-
+                        <!-- Large Circular Play/Pause Button -->
                         <ImageView
-                            android:id="@+id/ivTabBikeIcon"
-                            android:layout_width="14dp"
-                            android:layout_height="14dp"
-                            android:src="@drawable/ic_tab_bike" />
+                            android:id="@+id/btnMediaPlayPause"
+                            android:layout_width="52dp"
+                            android:layout_height="52dp"
+                            android:src="@drawable/ic_media_pause"
+                            android:background="@drawable/bg_play_button"
+                            android:padding="12dp"
+                            android:clickable="true"
+                            android:focusable="true" />
 
-                        <TextView
-                            android:id="@+id/tvTabBikeLabel"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/tab_bike"
-                            android:textColor="#64748B"
-                            android:textSize="9sp"
-                            android:textStyle="bold" />
+                        <!-- Next Track Button -->
+                        <ImageView
+                            android:id="@+id/btnMediaNext"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:src="@drawable/ic_media_next"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:padding="10dp"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginStart="12dp" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
@@ -762,6 +367,18 @@
                     android:layout_marginEnd="12dp"
                     android:orientation="vertical"
                     android:gravity="center">
+
+                    <!-- Drawer Menu Button (Cockpit Menu) -->
+                    <ImageView
+                        android:id="@+id/btnOpenDrawer"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:src="@drawable/ic_drawer_menu"
+                        android:background="@drawable/bg_circle_action"
+                        android:padding="9dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginBottom="8dp" />
 
                     <!-- Compass -->
                     <ImageView
@@ -1310,9 +927,11 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🔋 85%  10:24"
+                android:text="COCKPIT MENU"
                 android:textColor="#94A3B8"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                android:letterSpacing="0.08"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <!-- Drawer Scrollable Content -->
@@ -1352,15 +971,16 @@
                     android:textStyle="bold"
                     android:layout_marginTop="8dp" />
 
-                <!-- Connection Status -->
+                <!-- Connection Status & Clock Row -->
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="2dp">
+                    android:layout_marginTop="3dp">
 
                     <View
+                        android:id="@+id/viewDrawerBtStatusDot"
                         android:layout_width="8dp"
                         android:layout_height="8dp"
                         android:background="@drawable/bg_pulse_dot"
@@ -1370,20 +990,92 @@
                         android:id="@+id/tvDrawerBtStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Connected"
+                        android:text="Connected (BLE OK)"
                         android:textColor="#10B981"
                         android:textSize="12sp" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/tvDrawerClock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="10:24 AM"
+                        android:textColor="#94A3B8"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Range Row -->
-                <TextView
-                    android:id="@+id/tvDrawerRange"
-                    android:layout_width="wrap_content"
+                <!-- Telemetry Pills (Battery, Signal, Range) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="⛽ Range  312 km"
-                    android:textColor="#CBD5E1"
-                    android:textSize="13sp"
-                    android:layout_marginTop="6dp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="10dp">
+
+                    <!-- Battery Pill -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="@drawable/bg_chip_action"
+                        android:layout_marginEnd="6dp">
+
+                        <TextView
+                            android:id="@+id/tvDrawerBattery"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🔋 85%"
+                            android:textColor="#10B981"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Cellular Signal Pill -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="@drawable/bg_chip_action"
+                        android:layout_marginEnd="6dp">
+
+                        <TextView
+                            android:id="@+id/tvDrawerSignal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📶 4G"
+                            android:textColor="#38BDF8"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Fuel Range Pill -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="32dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:background="@drawable/bg_chip_action">
+
+                        <TextView
+                            android:id="@+id/tvDrawerRange"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="⛽ 312 km"
+                            android:textColor="#E2E8F0"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"

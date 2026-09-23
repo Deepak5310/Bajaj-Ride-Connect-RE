@@ -321,7 +321,11 @@ public class MediaStateListener {
         dispatchMediaUpdate();
 
         if (bleManager != null) {
-            bleManager.sendMedia(currentTitle, currentArtist, currentAlbum, currentPosSec, currentDurSec, state);
+            boolean sent = bleManager.sendMedia(currentTitle, currentArtist, currentAlbum, currentPosSec, currentDurSec, state);
+            if (!sent) {
+                // Schedule a retry after a short delay
+                handler.postDelayed(() -> syncMetadata(), 1000);
+            }
         }
     }
 

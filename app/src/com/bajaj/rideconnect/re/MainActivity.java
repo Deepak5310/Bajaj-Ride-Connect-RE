@@ -81,14 +81,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQ_CODE = 101;
 
-    // Top Status Bar
-    private TextView tvTopBikeName;
-    private View viewTopBtStatusDot;
-    private TextView tvTopBtStatus;
-    private TextView tvTopSignal;
-    private TextView tvTopBattery;
-    private TextView tvTopClock;
-    private ImageView btnTopNotifications;
+    // Top Drawer Button
     private ImageView btnOpenDrawer;
 
     // Main Split Layout
@@ -97,27 +90,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private View layoutMapContainer;
     private boolean isMapFullscreen = false;
 
-    // Left Panel Tabs
-    private LinearLayout tabMedia;
-    private LinearLayout tabCalls;
-    private LinearLayout tabSms;
-    private LinearLayout tabBike;
-    private ImageView ivTabMediaIcon;
-    private TextView tvTabMediaLabel;
-    private ImageView ivTabCallsIcon;
-    private TextView tvTabCallsLabel;
-    private ImageView ivTabSmsIcon;
-    private TextView tvTabSmsLabel;
-    private ImageView ivTabBikeIcon;
-    private TextView tvTabBikeLabel;
-
-    // Tab Views
-    private View viewTabMedia;
-    private View viewTabCalls;
-    private View viewTabSms;
-    private View viewTabBike;
-
     // Media Controls & Info (Left Panel)
+    private View viewTabMedia;
     private ImageView ivAlbumArt;
     private TextView tvMediaTrack;
     private TextView tvMediaArtist;
@@ -136,21 +110,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private TextView tvPillArtist;
     private ImageView btnPillPlayPause;
     private ImageView btnPillNext;
-
-    // Calls Tab Views
-    private TextView tvCallerName;
-    private TextView tvCallerNumber;
-    private Button btnCallReject;
-    private Button btnCallAccept;
-
-    // SMS Tab Views
-    private TextView tvSmsSender;
-    private TextView tvSmsPreview;
-
-    // Bike Tab Views
-    private TextView tvBikeTabName;
-    private TextView tvBikeTabRange;
-    private TextView tvBikeTabStatus;
 
     // Navigation Map & HUD
     private View cardTurnInstruction;
@@ -212,13 +171,17 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private ArrayAdapter<MapplsApiClient.PlaceResult> searchAdapter;
     private final Handler searchDebounceHandler = new Handler(Looper.getMainLooper());
 
-    // Right Slide-out Drawer
+    // Right Slide-out Drawer & Cockpit Telemetry
     private View drawerBackdrop;
     private View drawerPanel;
     private ImageView btnDrawerClose;
     private ImageView ivDrawerBikeImage;
     private TextView tvDrawerBikeName;
+    private View viewDrawerBtStatusDot;
     private TextView tvDrawerBtStatus;
+    private TextView tvDrawerClock;
+    private TextView tvDrawerBattery;
+    private TextView tvDrawerSignal;
     private TextView tvDrawerRange;
     private View itemRideStats;
     private View itemService;
@@ -245,8 +208,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private final Runnable clockRunnable = new Runnable() {
         @Override
         public void run() {
-            if (tvTopClock != null) {
-                tvTopClock.setText(clockFormat.format(new Date()));
+            if (tvDrawerClock != null) {
+                tvDrawerClock.setText(clockFormat.format(new Date()));
             }
             clockHandler.postDelayed(this, 10000);
         }
@@ -394,6 +357,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 showRideStatsDialog();
             } else if ("open_service".equalsIgnoreCase(cmd)) {
                 showServiceDialog();
+            } else if ("open_bike_info".equalsIgnoreCase(cmd)) {
+                showBikeInfoDialog();
             } else if ("open_about".equalsIgnoreCase(cmd)) {
                 showAboutDialog();
             } else if ("open_drawer".equalsIgnoreCase(cmd)) {
@@ -460,14 +425,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void initViews() {
-        // Top Bar
-        tvTopBikeName = findViewById(R.id.tvTopBikeName);
-        viewTopBtStatusDot = findViewById(R.id.viewTopBtStatusDot);
-        tvTopBtStatus = findViewById(R.id.tvTopBtStatus);
-        tvTopSignal = findViewById(R.id.tvTopSignal);
-        tvTopBattery = findViewById(R.id.tvTopBattery);
-        tvTopClock = findViewById(R.id.tvTopClock);
-        btnTopNotifications = findViewById(R.id.btnTopNotifications);
+        // Drawer Menu Button (Action Stack)
         btnOpenDrawer = findViewById(R.id.btnOpenDrawer);
 
         // Layout Containers
@@ -475,25 +433,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         viewSplitDivider = findViewById(R.id.viewSplitDivider);
         layoutMapContainer = findViewById(R.id.layoutMapContainer);
 
-        // Tabs
-        tabMedia = findViewById(R.id.tabMedia);
-        tabCalls = findViewById(R.id.tabCalls);
-        tabSms = findViewById(R.id.tabSms);
-        tabBike = findViewById(R.id.tabBike);
-        ivTabMediaIcon = findViewById(R.id.ivTabMediaIcon);
-        tvTabMediaLabel = findViewById(R.id.tvTabMediaLabel);
-        ivTabCallsIcon = findViewById(R.id.ivTabCallsIcon);
-        tvTabCallsLabel = findViewById(R.id.tvTabCallsLabel);
-        ivTabSmsIcon = findViewById(R.id.ivTabSmsIcon);
-        tvTabSmsLabel = findViewById(R.id.tvTabSmsLabel);
-        ivTabBikeIcon = findViewById(R.id.ivTabBikeIcon);
-        tvTabBikeLabel = findViewById(R.id.tvTabBikeLabel);
-
-        // Tab Views
+        // Media View
         viewTabMedia = findViewById(R.id.viewTabMedia);
-        viewTabCalls = findViewById(R.id.viewTabCalls);
-        viewTabSms = findViewById(R.id.viewTabSms);
-        viewTabBike = findViewById(R.id.viewTabBike);
 
         // Media Controls
         ivAlbumArt = findViewById(R.id.ivAlbumArt);
@@ -514,21 +455,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         tvPillArtist = findViewById(R.id.tvPillArtist);
         btnPillPlayPause = findViewById(R.id.btnPillPlayPause);
         btnPillNext = findViewById(R.id.btnPillNext);
-
-        // Calls Tab
-        tvCallerName = findViewById(R.id.tvCallerName);
-        tvCallerNumber = findViewById(R.id.tvCallerNumber);
-        btnCallReject = findViewById(R.id.btnCallReject);
-        btnCallAccept = findViewById(R.id.btnCallAccept);
-
-        // SMS Tab
-        tvSmsSender = findViewById(R.id.tvSmsSender);
-        tvSmsPreview = findViewById(R.id.tvSmsPreview);
-
-        // Bike Tab
-        tvBikeTabName = findViewById(R.id.tvBikeTabName);
-        tvBikeTabRange = findViewById(R.id.tvBikeTabRange);
-        tvBikeTabStatus = findViewById(R.id.tvBikeTabStatus);
 
         // Navigation HUD
         cardTurnInstruction = findViewById(R.id.cardTurnInstruction);
@@ -576,13 +502,17 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         lvSearchResults = findViewById(R.id.lvSearchResults);
         btnSearchCancel = findViewById(R.id.btnSearchCancel);
 
-        // Drawer
+        // Drawer & Cockpit Telemetry
         drawerBackdrop = findViewById(R.id.drawerBackdrop);
         drawerPanel = findViewById(R.id.drawerPanel);
         btnDrawerClose = findViewById(R.id.btnDrawerClose);
         ivDrawerBikeImage = findViewById(R.id.ivDrawerBikeImage);
         tvDrawerBikeName = findViewById(R.id.tvDrawerBikeName);
+        viewDrawerBtStatusDot = findViewById(R.id.viewDrawerBtStatusDot);
         tvDrawerBtStatus = findViewById(R.id.tvDrawerBtStatus);
+        tvDrawerClock = findViewById(R.id.tvDrawerClock);
+        tvDrawerBattery = findViewById(R.id.tvDrawerBattery);
+        tvDrawerSignal = findViewById(R.id.tvDrawerSignal);
         tvDrawerRange = findViewById(R.id.tvDrawerRange);
         itemRideStats = findViewById(R.id.itemRideStats);
         itemService = findViewById(R.id.itemService);
@@ -597,12 +527,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void setupListeners() {
-        // Quick Tabs Switcher
-        tabMedia.setOnClickListener(v -> switchTab(0));
-        tabCalls.setOnClickListener(v -> switchTab(1));
-        tabSms.setOnClickListener(v -> switchTab(2));
-        tabBike.setOnClickListener(v -> switchTab(3));
-
         // Media Controls (Left Panel)
         btnMediaPlayPause.setOnClickListener(v -> toggleMediaPlayback());
         btnMediaPrev.setOnClickListener(v -> skipMediaPrevious());
@@ -632,7 +556,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         });
         itemBikeInfo.setOnClickListener(v -> {
             closeDrawer();
-            switchTab(3);
+            showBikeInfoDialog();
         });
         itemProfile.setOnClickListener(v -> {
             closeDrawer();
@@ -667,17 +591,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         // Disconnect & Clean Exit Button
         btnDrawerDisconnect.setOnClickListener(v -> terminateAppSession());
-
-        // Notification Bell
-        btnTopNotifications.setOnClickListener(v -> openNotificationSettings());
-
-        // Calls Tab Controls
-        if (btnCallAccept != null) {
-            btnCallAccept.setOnClickListener(v -> answerIncomingCall());
-        }
-        if (btnCallReject != null) {
-            btnCallReject.setOnClickListener(v -> rejectIncomingCall());
-        }
 
         // Map HUD Controls
         if (btnCurrentLocation != null) {
@@ -806,9 +719,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             btnNavEnd.setOnClickListener(v -> endActiveNavigation());
         }
 
-        // Top Status Quick Connect
-        viewTopBtStatusDot.setOnClickListener(v -> toggleBleConnection());
-        tvTopBtStatus.setOnClickListener(v -> toggleBleConnection());
+        // Bluetooth Quick Connect Toggle in Drawer
+        if (viewDrawerBtStatusDot != null) viewDrawerBtStatusDot.setOnClickListener(v -> toggleBleConnection());
+        if (tvDrawerBtStatus != null) tvDrawerBtStatus.setOnClickListener(v -> toggleBleConnection());
     }
 
     private void speakVoiceGuidance(String message) {
@@ -917,6 +830,23 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             } catch (Exception ignored) {}
         });
         builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void showBikeInfoDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("🏍️ Vehicle Information");
+        builder.setMessage(
+            "• Model: Bajaj Pulsar NS400Z\n" +
+            "• Engine: 373cc Liquid-Cooled DOHC 4V\n" +
+            "• Max Power: 40 PS @ 8,800 RPM\n" +
+            "• Max Torque: 35 Nm @ 6,500 RPM\n" +
+            "• Transmission: 6-Speed Assist & Slipper Clutch\n" +
+            "• Ride Modes: Road | Rain | Sport | Off-Road\n" +
+            "• Cluster: " + (bleManager != null && bleManager.isConnected() ? "Connected (BLE OK)" : "Disconnected") + "\n" +
+            "• Estimated Range: ~312 km (Eco Mode)"
+        );
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
         builder.show();
     }
 
@@ -1042,25 +972,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
     }
 
-    private void switchTab(int tabIndex) {
-        viewTabMedia.setVisibility(tabIndex == 0 ? View.VISIBLE : View.GONE);
-        viewTabCalls.setVisibility(tabIndex == 1 ? View.VISIBLE : View.GONE);
-        viewTabSms.setVisibility(tabIndex == 2 ? View.VISIBLE : View.GONE);
-        viewTabBike.setVisibility(tabIndex == 3 ? View.VISIBLE : View.GONE);
-
-        updateTabAppearance(tabMedia, ivTabMediaIcon, tvTabMediaLabel, tabIndex == 0);
-        updateTabAppearance(tabCalls, ivTabCallsIcon, tvTabCallsLabel, tabIndex == 1);
-        updateTabAppearance(tabSms, ivTabSmsIcon, tvTabSmsLabel, tabIndex == 2);
-        updateTabAppearance(tabBike, ivTabBikeIcon, tvTabBikeLabel, tabIndex == 3);
-    }
-
-    private void updateTabAppearance(LinearLayout tab, ImageView icon, TextView label, boolean active) {
-        tab.setBackgroundResource(active ? R.drawable.bg_tab_pill_active : R.drawable.bg_tab_pill_inactive);
-        int color = active ? 0xFF38BDF8 : 0xFF64748B;
-        label.setTextColor(color);
-        icon.setColorFilter(color);
-    }
-
     public void setMapFullscreen(boolean fullscreen) {
         isMapFullscreen = fullscreen;
         if (fullscreen) {
@@ -1147,37 +1058,36 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void updateBatteryDisplay(int percent, boolean charging) {
+        if (tvDrawerBattery == null) return;
         if (percent < 0) {
-            tvTopBattery.setText("🔋 --%");
+            tvDrawerBattery.setText("🔋 --%");
             return;
         }
         String icon = charging ? "⚡ " : (percent <= 20 ? "🪫 " : "🔋 ");
-        tvTopBattery.setText(icon + percent + "%");
-        if (percent <= 20 && !charging) {
-            tvTopBattery.setTextColor(0xFFEF4444);
-        } else if (charging) {
-            tvTopBattery.setTextColor(0xFFF59E0B);
-        } else {
-            tvTopBattery.setTextColor(0xFF10B981);
-        }
+        tvDrawerBattery.setText(icon + percent + "%");
+        int color = (percent <= 20 && !charging) ? 0xFFEF4444 : (charging ? 0xFFF59E0B : 0xFF10B981);
+        tvDrawerBattery.setTextColor(color);
     }
 
     private void updateSignalDisplay(int bars) {
+        if (tvDrawerSignal == null) return;
         if (bars < 0) {
-            tvTopSignal.setText("📶 --");
+            tvDrawerSignal.setText("📶 --");
             return;
         }
         String graph = bars >= 4 ? "●●●●" : bars == 3 ? "●●●○" : bars == 2 ? "●●○○" : bars == 1 ? "●○○○" : "○○○○";
-        tvTopSignal.setText("📶 " + graph);
+        tvDrawerSignal.setText("📶 " + graph);
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private void setupMicroAnimations() {
-        pulseAnimator = ObjectAnimator.ofFloat(viewTopBtStatusDot, "alpha", 0.3f, 1.0f);
-        pulseAnimator.setDuration(900);
-        pulseAnimator.setRepeatMode(ValueAnimator.REVERSE);
-        pulseAnimator.setRepeatCount(ValueAnimator.INFINITE);
-        pulseAnimator.start();
+        if (viewDrawerBtStatusDot != null) {
+            pulseAnimator = ObjectAnimator.ofFloat(viewDrawerBtStatusDot, "alpha", 0.3f, 1.0f);
+            pulseAnimator.setDuration(900);
+            pulseAnimator.setRepeatMode(ValueAnimator.REVERSE);
+            pulseAnimator.setRepeatCount(ValueAnimator.INFINITE);
+            pulseAnimator.start();
+        }
 
         View.OnTouchListener tactileTouch = (v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -1288,37 +1198,28 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void setConnectingState() {
-        tvTopBtStatus.setText("Connecting...");
-        tvTopBtStatus.setTextColor(0xFFF59E0B);
-        tvDrawerBtStatus.setText("Connecting...");
-        tvDrawerBtStatus.setTextColor(0xFFF59E0B);
+        if (tvDrawerBtStatus != null) {
+            tvDrawerBtStatus.setText("Connecting...");
+            tvDrawerBtStatus.setTextColor(0xFFF59E0B);
+        }
     }
 
     @Override
     public void onConnectionStateChanged(boolean connected, String deviceName, String deviceAddress) {
         runOnUiThread(() -> {
             if (connected) {
-                String displayName = (deviceName != null && !deviceName.isEmpty()) ? deviceName : "BAJAJ PULSAR";
-                tvTopBikeName.setText(displayName.toUpperCase());
-                tvTopBtStatus.setText("Connected");
-                tvTopBtStatus.setTextColor(0xFF10B981);
-
-                tvDrawerBikeName.setText(displayName);
-                tvDrawerBtStatus.setText("Connected (GATT OK)");
-                tvDrawerBtStatus.setTextColor(0xFF10B981);
-
-                tvBikeTabName.setText(displayName);
-                tvBikeTabStatus.setText("Cluster: Connected (" + (deviceAddress != null ? deviceAddress : "OK") + ")");
+                String displayName = (deviceName != null && !deviceName.isEmpty()) ? deviceName : "Bajaj Pulsar NS400Z";
+                if (tvDrawerBikeName != null) tvDrawerBikeName.setText(displayName);
+                if (tvDrawerBtStatus != null) {
+                    tvDrawerBtStatus.setText("Connected (BLE OK)");
+                    tvDrawerBtStatus.setTextColor(0xFF10B981);
+                }
             } else {
-                tvTopBikeName.setText("BAJAJ PULSAR");
-                tvTopBtStatus.setText("Disconnected");
-                tvTopBtStatus.setTextColor(0xFFEF4444);
-
-                tvDrawerBikeName.setText("Bajaj Pulsar");
-                tvDrawerBtStatus.setText("Disconnected");
-                tvDrawerBtStatus.setTextColor(0xFFEF4444);
-
-                tvBikeTabStatus.setText("Cluster: Disconnected (Searching...)");
+                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Bajaj Pulsar NS400Z");
+                if (tvDrawerBtStatus != null) {
+                    tvDrawerBtStatus.setText("Disconnected");
+                    tvDrawerBtStatus.setTextColor(0xFFEF4444);
+                }
             }
         });
     }
@@ -1515,6 +1416,17 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
 
         MapplsApiClient.RouteStep step = currentActiveRoute.steps.get(currentRouteStepIndex);
+        // Skip steps with no valid location data (lat/lng == 0)
+        if (step.lat == 0.0 && step.lng == 0.0) {
+            // Treat as passed; move to next step if any
+            currentRouteStepIndex++;
+            if (currentRouteStepIndex >= currentActiveRoute.steps.size()) {
+                endActiveNavigation();
+                return;
+            }
+            step = currentActiveRoute.steps.get(currentRouteStepIndex);
+        }
+
         float[] results = new float[1];
         Location.distanceBetween(riderLocation.getLatitude(), riderLocation.getLongitude(),
                 step.lat, step.lng, results);

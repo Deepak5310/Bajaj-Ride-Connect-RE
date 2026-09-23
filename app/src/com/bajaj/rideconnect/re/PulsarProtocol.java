@@ -120,7 +120,7 @@ public final class PulsarProtocol {
             String album,
             int positionSec,
             int durationSec,
-            int playbackState // 0=Stopped, 1=Playing, 2=Paused
+            int playbackState // 0=None/Stopped, 1=Paused, 2=Playing
     ) {
         byte[] frame = new byte[105];
         frame[0] = 0x01; // Header
@@ -133,20 +133,20 @@ public final class PulsarProtocol {
             System.arraycopy(titleBytes, 0, frame, 2, Math.min(titleBytes.length, 32));
         }
 
-        // Album (Bytes 34-66) - Matches decompiled CallFrame.musicInfoFrame
-        if (album != null && !album.isEmpty()) {
-            if (album.length() > 31) album = album.substring(0, 31);
-            frame[34] = (byte) album.length();
-            byte[] albumBytes = album.getBytes(StandardCharsets.UTF_8);
-            System.arraycopy(albumBytes, 0, frame, 35, Math.min(albumBytes.length, 32));
-        }
-
-        // Artist (Bytes 67-99) - Matches decompiled CallFrame.musicInfoFrame
+        // Artist (Bytes 34-66) — swapped with Album to match reference layout
         if (artist != null && !artist.isEmpty()) {
             if (artist.length() > 31) artist = artist.substring(0, 31);
-            frame[67] = (byte) artist.length();
+            frame[34] = (byte) artist.length();
             byte[] artistBytes = artist.getBytes(StandardCharsets.UTF_8);
-            System.arraycopy(artistBytes, 0, frame, 68, Math.min(artistBytes.length, 32));
+            System.arraycopy(artistBytes, 0, frame, 35, Math.min(artistBytes.length, 32));
+        }
+
+        // Album (Bytes 67-99) — swapped with Artist to match reference layout
+        if (album != null && !album.isEmpty()) {
+            if (album.length() > 31) album = album.substring(0, 31);
+            frame[67] = (byte) album.length();
+            byte[] albumBytes = album.getBytes(StandardCharsets.UTF_8);
+            System.arraycopy(albumBytes, 0, frame, 68, Math.min(albumBytes.length, 32));
         }
 
         // Position (Bytes 100-101 Big-Endian uint16)
