@@ -1,13 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_dark">#0F172A</color>
-    <color name="card_bg">#1E293B</color>
-    <color name="card_border">#334155</color>
-    <color name="accent_blue">#38BDF8</color>
-    <color name="accent_green">#22C55E</color>
-    <color name="accent_red">#EF4444</color>
+    <!-- Backgrounds -->
+    <color name="bg_root">#070B14</color>
+    <color name="bg_surface">#0D1527</color>
+    <color name="bg_card">#131F37</color>
+    <color name="bg_card_elevated">#182746</color>
+    <color name="bg_card_border">#22375F</color>
+    <color name="bg_lcd_matrix">#041226</color>
+    <color name="lcd_glow_border">#00E5FF</color>
+
+    <!-- Pulsar Brand & Accent Neon Colors -->
+    <color name="pulsar_cyan">#00E5FF</color>
+    <color name="pulsar_blue">#2563EB</color>
+    <color name="pulsar_indigo">#6366F1</color>
+    <color name="pulsar_amber">#FFB300</color>
+    <color name="pulsar_red">#FF3B30</color>
+    <color name="pulsar_green">#10B981</color>
+    <color name="pulsar_purple">#A855F7</color>
+
+    <!-- Text hierarchy -->
     <color name="text_primary">#F8FAFC</color>
     <color name="text_secondary">#94A3B8</color>
-    <color name="btn_bg">#2563EB</color>
-    <color name="btn_bg_pressed">#1D4ED8</color>
+    <color name="text_tertiary">#64748B</color>
+    <color name="text_lcd_cyan">#38BDF8</color>
+    <color name="text_lcd_white">#E0F2FE</color>
+
+    <!-- Component states -->
+    <color name="status_connected">#10B981</color>
+    <color name="status_disconnected">#EF4444</color>
+    <color name="status_scanning">#38BDF8</color>
+    <color name="status_idle">#64748B</color>
 </resources>

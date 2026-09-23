@@ -12,9 +12,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Lightweight Android Notification Listener Service for Google Maps.
+ * Enterprise Google Maps Notification Listener Service for Bajaj Pulsar NS400Z.
  * Intercepts active navigation turns and dispatches real-time BLE GATT frames
- * to the Bajaj Pulsar NS400Z motorcycle speedometer cluster.
+ * to the digital speedometer cluster.
  */
 public class GoogleMapsNotificationListener extends NotificationListenerService {
 
@@ -33,6 +33,11 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
         super.onListenerConnected();
         isServiceRunning = true;
         Log.i(TAG, "Google Maps TBT Listener Connected & Active.");
+        PulsarForegroundService.start(this);
+        PulsarForegroundService svc = PulsarForegroundService.getInstance();
+        if (svc != null) {
+            svc.refreshMediaSessions();
+        }
     }
 
     @Override
@@ -44,7 +49,7 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        if (!GOOGLE_MAPS_PKG.equals(sbn.getPackageName())) {
+        if (sbn == null || !GOOGLE_MAPS_PKG.equals(sbn.getPackageName())) {
             return;
         }
 
@@ -66,7 +71,7 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
         Log.d(TAG, String.format("G-Maps Nav: Title='%s', Text='%s', SubText='%s'", title, text, subText));
 
         // 1. Maneuver & Roundabout Exit
-        TbtFrameBuilder.Maneuver maneuver = parseManeuver(fullPrompt);
+        PulsarProtocol.Maneuver maneuver = parseManeuver(fullPrompt);
         int roundaboutExit = parseRoundaboutExit(fullPrompt);
 
         // 2. Step Distance
@@ -102,7 +107,7 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
         String street = parseStreet(title, text);
 
         // Build 48-byte BLE packet
-        byte[] frame = TbtFrameBuilder.buildFrame(
+        byte[] frame = PulsarProtocol.buildTbtFrame(
                 maneuver,
                 stepDistMeters,
                 totalDistMeters,
@@ -114,13 +119,19 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
                 roundaboutExit
         );
 
-        // Dispatch to motorcycle
-        TbtBleDispatcher.getInstance(getApplicationContext()).sendTbtFrame(frame);
+        // Dispatch directly to motorcycle cluster
+        PulsarBleManager.getInstance(getApplicationContext()).sendTbtFrame(frame);
 
-        // Broadcast update to MainActivity
+        PulsarForegroundService svc = PulsarForegroundService.getInstance();
+        if (svc != null) {
+            svc.updateNavStatus(maneuver.description, street);
+        }
+
+        // Broadcast update to MainActivity & Foreground Service
         Intent intent = new Intent(ACTION_TBT_UPDATE);
         intent.setPackage(getPackageName());
         intent.putExtra("maneuver", maneuver.name());
+        intent.putExtra("maneuver_desc", maneuver.description);
         intent.putExtra("step_dist", stepDistMeters);
         intent.putExtra("total_dist", totalDistMeters);
         intent.putExtra("eta_hour", etaHour);
@@ -131,21 +142,23 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
         sendBroadcast(intent);
     }
 
-    private TbtFrameBuilder.Maneuver parseManeuver(String input) {
+    private PulsarProtocol.Maneuver parseManeuver(String input) {
         String lower = input.toLowerCase();
-        if (lower.contains("sharp left")) return TbtFrameBuilder.Maneuver.SHARP_LEFT;
-        if (lower.contains("sharp right")) return TbtFrameBuilder.Maneuver.SHARP_RIGHT;
-        if (lower.contains("slight left")) return TbtFrameBuilder.Maneuver.SLIGHT_LEFT;
-        if (lower.contains("slight right")) return TbtFrameBuilder.Maneuver.SLIGHT_RIGHT;
-        if (lower.contains("keep left")) return TbtFrameBuilder.Maneuver.KEEP_LEFT;
-        if (lower.contains("keep right")) return TbtFrameBuilder.Maneuver.KEEP_RIGHT;
-        if (lower.contains("u-turn") || lower.contains("uturn")) return TbtFrameBuilder.Maneuver.U_TURN_LEFT;
-        if (lower.contains("roundabout")) return TbtFrameBuilder.Maneuver.ROUNDABOUT_CW;
-        if (lower.contains("destination") || lower.contains("arrived")) return TbtFrameBuilder.Maneuver.DESTINATION;
-        if (lower.contains("turn left") || lower.contains("left")) return TbtFrameBuilder.Maneuver.TURN_LEFT;
-        if (lower.contains("turn right") || lower.contains("right")) return TbtFrameBuilder.Maneuver.TURN_RIGHT;
-        if (lower.contains("merge")) return TbtFrameBuilder.Maneuver.MERGE;
-        return TbtFrameBuilder.Maneuver.STRAIGHT;
+        if (lower.contains("sharp left")) return PulsarProtocol.Maneuver.SHARP_LEFT;
+        if (lower.contains("sharp right")) return PulsarProtocol.Maneuver.SHARP_RIGHT;
+        if (lower.contains("slight left")) return PulsarProtocol.Maneuver.SLIGHT_LEFT;
+        if (lower.contains("slight right")) return PulsarProtocol.Maneuver.SLIGHT_RIGHT;
+        if (lower.contains("keep left")) return PulsarProtocol.Maneuver.KEEP_LEFT;
+        if (lower.contains("keep right")) return PulsarProtocol.Maneuver.KEEP_RIGHT;
+        if (lower.contains("u-turn") || lower.contains("uturn")) return PulsarProtocol.Maneuver.U_TURN_LEFT;
+        if (lower.contains("roundabout")) return PulsarProtocol.Maneuver.ROUNDABOUT_CW;
+        if (lower.contains("destination") || lower.contains("arrived")) return PulsarProtocol.Maneuver.DESTINATION;
+        if (lower.contains("turn left") || lower.contains("left")) return PulsarProtocol.Maneuver.TURN_LEFT;
+        if (lower.contains("turn right") || lower.contains("right")) return PulsarProtocol.Maneuver.TURN_RIGHT;
+        if (lower.contains("ramp left")) return PulsarProtocol.Maneuver.RAMP_LEFT;
+        if (lower.contains("ramp right")) return PulsarProtocol.Maneuver.RAMP_RIGHT;
+        if (lower.contains("merge")) return PulsarProtocol.Maneuver.MERGE;
+        return PulsarProtocol.Maneuver.STRAIGHT;
     }
 
     private int parseRoundaboutExit(String input) {
@@ -201,14 +214,20 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
-        if (GOOGLE_MAPS_PKG.equals(sbn.getPackageName())) {
+        if (sbn != null && GOOGLE_MAPS_PKG.equals(sbn.getPackageName())) {
             Log.i(TAG, "Google Maps Navigation ended -> Clearing NS400Z cluster.");
-            byte[] stopPacket = new byte[48]; // All zeros = Clear TBT
-            TbtBleDispatcher.getInstance(getApplicationContext()).sendTbtFrame(stopPacket);
+            byte[] stopPacket = PulsarProtocol.buildTbtClearFrame();
+            PulsarBleManager.getInstance(getApplicationContext()).sendTbtFrame(stopPacket);
+
+            PulsarForegroundService svc = PulsarForegroundService.getInstance();
+            if (svc != null) {
+                svc.updateNavStatus("Idle / Stopped", "--");
+            }
 
             Intent intent = new Intent(ACTION_TBT_UPDATE);
             intent.setPackage(getPackageName());
             intent.putExtra("maneuver", "IDLE / STOPPED");
+            intent.putExtra("maneuver_desc", "Navigation Idle");
             intent.putExtra("step_dist", 0.0);
             intent.putExtra("total_dist", 0.0);
             intent.putExtra("eta_hour", 0);
@@ -221,6 +240,7 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
     }
 
     private static String bytesToHex(byte[] bytes) {
+        if (bytes == null) return "";
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(String.format("%02X ", b));

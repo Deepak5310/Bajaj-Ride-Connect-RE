@@ -1,12 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NS400Z TBT Bridge</string>
+    <string name="app_name">Pulsar Connect</string>
+    <string name="app_subtitle">NS400Z Instrument Cluster Bridge</string>
+    <string name="app_version">v2.0 Native (Android 15+)</string>
+
     <string name="status_disconnected">Disconnected</string>
-    <string name="status_connecting">Connecting...</string>
-    <string name="status_connected">Connected to NS400Z Cluster</string>
-    <string name="btn_grant_notification">Grant Notification Access</string>
-    <string name="btn_scan_connect">Scan &amp; Connect Bike</string>
-    <string name="btn_test_turn_left">Test: Left Turn (250m)</string>
-    <string name="btn_test_turn_right">Test: Right Turn (500m)</string>
-    <string name="btn_test_stop">Clear Display</string>
+    <string name="status_connecting">Connecting to Cluster...</string>
+    <string name="status_connected">Connected (PULSAR6741)</string>
+
+    <string name="title_hero_cluster">NS400Z INSTRUMENT CLUSTER</string>
+    <string name="title_live_lcd">LIVE CLUSTER LCD DISPLAY</string>
+    <string name="title_nav_feed">GOOGLE MAPS NAVIGATION</string>
+    <string name="title_telemetry_media">PHONE TELEMETRY &amp; MUSIC</string>
+    <string name="title_quick_tests">CLUSTER SIMULATION &amp; TESTING</string>
+
+    <string name="btn_connect_cluster">Scan &amp; Connect NS400Z</string>
+    <string name="btn_disconnect">Disconnect</string>
+    <string name="btn_grant_notif">Grant Notification Access</string>
+    <string name="btn_grant_perms">Grant Telephony &amp; BLE Perms</string>
+
+    <string name="btn_test_turn_left">Left Turn (250m)</string>
+    <string name="btn_test_turn_right">Right Turn (500m)</string>
+    <string name="btn_test_roundabout">Roundabout (2nd Exit)</string>
+    <string name="btn_test_destination">Destination Reached</string>
+    <string name="btn_test_call">Simulate Incoming Call</string>
+    <string name="btn_test_music">Simulate Music Track</string>
+    <string name="btn_test_clear">Clear LCD Display</string>
 </resources>

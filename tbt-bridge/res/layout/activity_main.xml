@@ -1,188 +1,369 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootScrollView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_dark"
-    android:padding="16dp">
+    android:background="@color/bg_root"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
+        android:id="@+id/mainContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="36dp">
 
-        <!-- Header -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Bajaj Pulsar NS400Z"
-            android:textColor="@color/accent_blue"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Google Maps Turn-by-Turn BLE Bridge"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Cluster Connection Card -->
+        <!-- App Brand Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/card_bg"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PULSAR CONNECT"
+                    android:textColor="@color/pulsar_cyan"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="NS400Z Digital Cluster Bridge • Android 15"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- Status Pill Badge -->
+            <TextView
+                android:id="@+id/tvStatusPill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="DISCONNECTED"
+                android:textColor="@color/pulsar_red"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_pill_disconnected"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp" />
+        </LinearLayout>
+
+        <!-- 1. LIVE CLUSTER LCD MATRIX SIMULATOR -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card_hero"
             android:padding="16dp"
             android:orientation="vertical"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="14dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="MOTORCYCLE CLUSTER (BLE GATT 0110)"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvBleStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Status: Disconnected"
-                android:textColor="@color/accent_red"
-                android:textSize="16sp"
+                android:text="LIVE CLUSTER LCD DISPLAY"
+                android:textColor="@color/pulsar_cyan"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:layout_marginTop="6dp" />
+                android:letterSpacing="0.08" />
+
+            <!-- Digital Dot-Matrix Screen Mockup Container -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_lcd_matrix"
+                android:orientation="vertical"
+                android:padding="14dp"
+                android:layout_marginTop="10dp">
+
+                <!-- LCD Top Bar: Battery, Signal, Time/ETA -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvLcdManeuverGlyph"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="↰"
+                        android:textColor="@color/text_lcd_cyan"
+                        android:textSize="36sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="12dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvLcdStepDist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="250 m"
+                            android:textColor="@color/text_lcd_white"
+                            android:textSize="26sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvLcdManeuverDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Turn Left"
+                            android:textColor="@color/text_lcd_cyan"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="end">
+
+                        <TextView
+                            android:id="@+id/tvLcdEta"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="07:45 PM"
+                            android:textColor="@color/text_lcd_white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvLcdTotalDist"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="8.5 km tot"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- LCD Street Line -->
+                <TextView
+                    android:id="@+id/tvLcdStreet"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="MG ROAD"
+                    android:textColor="@color/text_lcd_cyan"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    android:layout_marginTop="10dp" />
+
+                <!-- LCD Bottom Telemetry Tray -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="10dp">
+
+                    <TextView
+                        android:id="@+id/tvLcdBattery"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔋 85%"
+                        android:textColor="@color/pulsar_green"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvLcdSignal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📶 4G [||||]"
+                        android:textColor="@color/pulsar_cyan"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvLcdMediaTrack"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="♫ Idle"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:singleLine="true" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 2. MOTORCYCLE CLUSTER CONNECTION CARD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_card_modern"
+            android:padding="16dp"
+            android:orientation="vertical"
+            android:layout_marginBottom="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="BLUETOOTH LOW ENERGY (GATT)"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
 
             <TextView
                 android:id="@+id/tvDeviceInfo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Target: Auto-detecting OTC / NS400Z"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
+                android:text="Target: PULSAR6741 [C0:63:80:2D:0C:42]"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:layout_marginTop="6dp" />
+
+            <TextView
+                android:id="@+id/tvGattDetail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MTU: 247 • Transport: LE • Auto-Reconnect: Active"
+                android:textColor="@color/text_tertiary"
+                android:textSize="12sp"
                 android:layout_marginTop="2dp" />
 
-            <Button
-                android:id="@+id/btnConnectBle"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Scan &amp; Connect NS400Z"
-                android:backgroundTint="@color/btn_bg"
-                android:textColor="@color/text_primary"
-                android:layout_marginTop="12dp" />
+                android:orientation="horizontal"
+                android:layout_marginTop="12dp">
+
+                <Button
+                    android:id="@+id/btnConnectBle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Connect NS400Z"
+                    android:background="@drawable/bg_button_cyan"
+                    android:textColor="#041226"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/btnDisconnectBle"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Disconnect"
+                    android:background="@drawable/bg_button_slate"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
         </LinearLayout>
 
-        <!-- Permission Access Card -->
+        <!-- 3. PERMISSIONS & INTEGRATION CARD -->
         <LinearLayout
+            android:id="@+id/cardPermissions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/card_bg"
+            android:background="@drawable/bg_card_modern"
             android:padding="16dp"
             android:orientation="vertical"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="14dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="GOOGLE MAPS ACCESS"
+                android:text="SYSTEM INTEGRATION HOOKS"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
 
             <TextView
                 android:id="@+id/tvNotifStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Notification Hook: Pending Permission"
+                android:text="Notification Hook: Checking..."
                 android:textColor="@color/text_primary"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:layout_marginTop="6dp" />
 
             <Button
                 android:id="@+id/btnGrantNotif"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Enable Notification Access"
-                android:backgroundTint="@color/card_border"
-                android:textColor="@color/text_primary"
+                android:layout_height="44dp"
+                android:text="Enable Notification &amp; G-Maps Access"
+                android:background="@drawable/bg_button_slate"
+                android:textColor="@color/pulsar_cyan"
+                android:textSize="12sp"
                 android:layout_marginTop="10dp" />
         </LinearLayout>
 
-        <!-- Live Navigation Feed Card -->
+        <!-- 4. LIVE RAW PACKET MONITOR -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/card_bg"
+            android:background="@drawable/bg_card_modern"
             android:padding="16dp"
             android:orientation="vertical"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="14dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="LIVE NAVIGATION FEED"
+                android:text="RAW BLE PACKET DISPATCH"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvNavManeuver"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Maneuver: IDLE / NO ACTIVE TRIP"
-                android:textColor="@color/accent_blue"
-                android:textSize="16sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:layout_marginTop="6dp" />
-
-            <TextView
-                android:id="@+id/tvNavDetails"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Step Dist: -- | Total: -- | ETA: --"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/tvNavStreet"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Street: --"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp"
-                android:layout_marginTop="2dp" />
+                android:letterSpacing="0.08" />
 
             <TextView
                 android:id="@+id/tvRawHex"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Raw BLE Frame: (None)"
+                android:text="Frame: (Waiting for maneuver)"
                 android:textColor="#6EE7B7"
                 android:textSize="11sp"
                 android:fontFamily="monospace"
-                android:background="#0B1120"
-                android:padding="8dp"
-                android:layout_marginTop="10dp" />
+                android:background="#060C18"
+                android:padding="10dp"
+                android:layout_marginTop="8dp" />
         </LinearLayout>
 
-        <!-- Quick Test Buttons -->
+        <!-- 5. CLUSTER SIMULATION & TEST SUITE -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/card_bg"
+            android:background="@drawable/bg_card_modern"
             android:padding="16dp"
             android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CLUSTER SIMULATION TESTS"
+                android:text="CLUSTER SIMULATION &amp; DIAGNOSTICS"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08" />
 
+            <!-- Row 1: Left / Right Turns -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -192,30 +373,96 @@
                 <Button
                     android:id="@+id/btnTestLeft"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="44dp"
                     android:layout_weight="1"
-                    android:text="Test Left 250m"
-                    android:backgroundTint="#059669"
+                    android:text="Left (250m)"
+                    android:background="@drawable/bg_button_slate"
+                    android:textColor="@color/pulsar_green"
                     android:textSize="12sp"
                     android:layout_marginEnd="6dp" />
 
                 <Button
                     android:id="@+id/btnTestRight"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="44dp"
                     android:layout_weight="1"
-                    android:text="Test Right 500m"
-                    android:backgroundTint="#0D9488"
+                    android:text="Right (500m)"
+                    android:background="@drawable/bg_button_slate"
+                    android:textColor="@color/pulsar_cyan"
                     android:textSize="12sp" />
             </LinearLayout>
 
+            <!-- Row 2: Roundabout / Destination -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <Button
+                    android:id="@+id/btnTestRoundabout"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:text="Roundabout (Exit 2)"
+                    android:background="@drawable/bg_button_slate"
+                    android:textColor="@color/pulsar_amber"
+                    android:textSize="11sp"
+                    android:layout_marginEnd="6dp" />
+
+                <Button
+                    android:id="@+id/btnTestDestination"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:text="Arrived at Dest."
+                    android:background="@drawable/bg_button_slate"
+                    android:textColor="@color/pulsar_purple"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- Row 3: Call & Music Sim -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <Button
+                    android:id="@+id/btnTestCall"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:text="Test Caller ID"
+                    android:background="@drawable/bg_button_amber"
+                    android:textColor="#041226"
+                    android:textStyle="bold"
+                    android:textSize="11sp"
+                    android:layout_marginEnd="6dp" />
+
+                <Button
+                    android:id="@+id/btnTestMusic"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:text="Test Spotify Song"
+                    android:background="@drawable/bg_button_cyan"
+                    android:textColor="#041226"
+                    android:textStyle="bold"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- Row 4: Clear Display -->
             <Button
                 android:id="@+id/btnTestClear"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:text="Clear / Stop Navigation Display"
-                android:backgroundTint="#475569"
-                android:layout_marginTop="8dp" />
+                android:background="@drawable/bg_button_crimson"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:layout_marginTop="10dp" />
         </LinearLayout>
 
     </LinearLayout>
