@@ -1,0 +1,79 @@
+package com.google.android.libraries.navigation.internal.bd;
+
+import android.app.Application;
+import com.google.android.libraries.navigation.internal.aac.bn;
+import com.google.android.libraries.navigation.internal.bi.n;
+import com.google.android.libraries.navigation.internal.bi.p;
+import com.google.android.libraries.navigation.internal.hn.r;
+import com.google.android.libraries.navigation.internal.jy.af;
+import com.google.android.libraries.navigation.internal.nj.h;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+public final class d implements com.google.android.libraries.navigation.internal.afr.f {
+    private final com.google.android.libraries.navigation.internal.agl.a a;
+    private final com.google.android.libraries.navigation.internal.agl.a b;
+    private final com.google.android.libraries.navigation.internal.agl.a c;
+    private final com.google.android.libraries.navigation.internal.agl.a d;
+    private final com.google.android.libraries.navigation.internal.agl.a e;
+    private final com.google.android.libraries.navigation.internal.agl.a f;
+    private final com.google.android.libraries.navigation.internal.agl.a g;
+    private final com.google.android.libraries.navigation.internal.agl.a h;
+    private final com.google.android.libraries.navigation.internal.agl.a i;
+    private final com.google.android.libraries.navigation.internal.agl.a j;
+    private final com.google.android.libraries.navigation.internal.agl.a k;
+    private final com.google.android.libraries.navigation.internal.agl.a l;
+    private final com.google.android.libraries.navigation.internal.agl.a m;
+
+    /* JADX INFO: renamed from: n, reason: collision with root package name */
+    private final com.google.android.libraries.navigation.internal.agl.a f344n;
+    private final com.google.android.libraries.navigation.internal.agl.a o;
+    private final com.google.android.libraries.navigation.internal.agl.a p;
+    private final com.google.android.libraries.navigation.internal.agl.a q;
+    private final com.google.android.libraries.navigation.internal.agl.a r;
+    private final com.google.android.libraries.navigation.internal.agl.a s;
+    private final com.google.android.libraries.navigation.internal.agl.a t;
+
+    public d(com.google.android.libraries.navigation.internal.agl.a aVar, com.google.android.libraries.navigation.internal.agl.a aVar2, com.google.android.libraries.navigation.internal.agl.a aVar3, com.google.android.libraries.navigation.internal.agl.a aVar4, com.google.android.libraries.navigation.internal.agl.a aVar5, com.google.android.libraries.navigation.internal.agl.a aVar6, com.google.android.libraries.navigation.internal.agl.a aVar7, com.google.android.libraries.navigation.internal.agl.a aVar8, com.google.android.libraries.navigation.internal.agl.a aVar9, com.google.android.libraries.navigation.internal.agl.a aVar10, com.google.android.libraries.navigation.internal.agl.a aVar11, com.google.android.libraries.navigation.internal.agl.a aVar12, com.google.android.libraries.navigation.internal.agl.a aVar13, com.google.android.libraries.navigation.internal.agl.a aVar14, com.google.android.libraries.navigation.internal.agl.a aVar15, com.google.android.libraries.navigation.internal.agl.a aVar16, com.google.android.libraries.navigation.internal.agl.a aVar17, com.google.android.libraries.navigation.internal.agl.a aVar18, com.google.android.libraries.navigation.internal.agl.a aVar19, com.google.android.libraries.navigation.internal.agl.a aVar20) {
+        this.a = aVar;
+        this.b = aVar2;
+        this.c = aVar3;
+        this.d = aVar4;
+        this.e = aVar5;
+        this.f = aVar6;
+        this.g = aVar7;
+        this.h = aVar8;
+        this.i = aVar9;
+        this.j = aVar10;
+        this.k = aVar11;
+        this.l = aVar12;
+        this.m = aVar13;
+        this.f344n = aVar14;
+        this.o = aVar15;
+        this.p = aVar16;
+        this.q = aVar17;
+        this.r = aVar18;
+        this.s = aVar19;
+        this.t = aVar20;
+    }
+
+    @Override // com.google.android.libraries.navigation.internal.agl.a, com.google.android.libraries.navigation.internal.agk.a
+    public final /* bridge */ /* synthetic */ Object a() {
+        Application application = (Application) ((com.google.android.libraries.navigation.internal.afr.g) this.a).a;
+        com.google.android.libraries.navigation.internal.afo.a aVarC = com.google.android.libraries.navigation.internal.afr.e.c(this.b);
+        com.google.android.libraries.navigation.internal.kl.b bVar = (com.google.android.libraries.navigation.internal.kl.b) this.c.a();
+        com.google.android.libraries.navigation.internal.mj.a aVar = (com.google.android.libraries.navigation.internal.mj.a) this.e.a();
+        com.google.android.libraries.navigation.internal.bn.d dVar = (com.google.android.libraries.navigation.internal.bn.d) this.g.a();
+        ((p) this.h).a();
+        ((n) this.j).a();
+        com.google.android.libraries.navigation.internal.ia.e eVar = (com.google.android.libraries.navigation.internal.ia.e) this.k.a();
+        com.google.android.libraries.navigation.internal.cw.a aVar2 = (com.google.android.libraries.navigation.internal.cw.a) this.l.a();
+        com.google.android.libraries.navigation.internal.afo.a aVarC2 = com.google.android.libraries.navigation.internal.afr.e.c(this.m);
+        af afVar = (af) this.f344n.a();
+        r rVar = (r) this.o.a();
+        bn bnVarA = ((h) this.p).a();
+        bn bnVarA2 = ((com.google.android.libraries.navigation.internal.nj.b) this.q).a();
+        ((com.google.android.libraries.navigation.internal.nj.g) this.r).a();
+        return new c(application, aVarC, bVar, aVar, dVar, eVar, aVar2, aVarC2, afVar, rVar, bnVarA, bnVarA2, com.google.android.libraries.navigation.internal.afr.e.c(this.s));
+    }
+}

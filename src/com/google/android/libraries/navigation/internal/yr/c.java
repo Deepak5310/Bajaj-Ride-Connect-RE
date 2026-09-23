@@ -1,0 +1,11 @@
+package com.google.android.libraries.navigation.internal.yr;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+public final class c extends b {
+    @Override // java.lang.Throwable
+    public final synchronized Throwable fillInStackTrace() {
+        setStackTrace(new StackTraceElement[0]);
+        return this;
+    }
+}

@@ -1,0 +1,11 @@
+package com.google.android.libraries.navigation.internal.so;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+public interface c {
+    void a(e eVar);
+
+    void b(boolean z);
+
+    void c(String str);
+}

@@ -1,0 +1,32 @@
+# Large binaries & APK bundles
+*.apk
+*.apks
+*.pdf
+extracted_apks/
+tools/
+dist/
+build/
+*.keystore
+*.jks
+
+# Logs & dumps
+*.log
+ns400z_dump/
+*.output
+*.tmp
+
+# Temporary extraction files
+hermes_strings.txt
+all_hermes_strings.txt
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+
+# IDE / OS specific
+.DS_Store
+.idea/
+.vscode/

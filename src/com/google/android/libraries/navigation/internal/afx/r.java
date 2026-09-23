@@ -1,0 +1,11 @@
+package com.google.android.libraries.navigation.internal.afx;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+public enum r {
+    CONNECTING,
+    READY,
+    TRANSIENT_FAILURE,
+    IDLE,
+    SHUTDOWN
+}

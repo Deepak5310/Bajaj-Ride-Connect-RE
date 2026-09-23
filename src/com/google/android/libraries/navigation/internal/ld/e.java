@@ -1,0 +1,7 @@
+package com.google.android.libraries.navigation.internal.ld;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+public interface e extends g {
+    com.google.android.libraries.navigation.internal.kw.a a();
+}

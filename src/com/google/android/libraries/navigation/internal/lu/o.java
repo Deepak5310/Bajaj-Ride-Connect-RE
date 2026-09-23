@@ -1,0 +1,23 @@
+package com.google.android.libraries.navigation.internal.lu;
+
+import android.os.Parcel;
+import android.os.RemoteException;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+public abstract class o extends com.google.android.libraries.navigation.internal.d.b implements p {
+    public o() {
+        super("com.google.android.gms.location.IDeviceOrientationListener");
+    }
+
+    @Override // com.google.android.libraries.navigation.internal.d.b
+    protected final boolean y(int i, Parcel parcel, Parcel parcel2) throws RemoteException {
+        if (i != 1) {
+            return false;
+        }
+        f fVar = (f) com.google.android.libraries.navigation.internal.d.c.a(parcel, f.CREATOR);
+        com.google.android.libraries.navigation.internal.d.c.b(parcel);
+        e(fVar);
+        return true;
+    }
+}

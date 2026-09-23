@@ -1,0 +1,9 @@
+package com.google.android.libraries.navigation.internal.adg;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+public final class ar extends com.google.android.libraries.navigation.internal.ael.bb implements com.google.android.libraries.navigation.internal.ael.cz {
+    public ar() {
+        super(as.a);
+    }
+}

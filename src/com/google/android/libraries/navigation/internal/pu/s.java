@@ -1,0 +1,26 @@
+package com.google.android.libraries.navigation.internal.pu;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+public final class s implements com.google.android.libraries.navigation.internal.afr.f {
+    private final com.google.android.libraries.navigation.internal.agl.a a;
+    private final com.google.android.libraries.navigation.internal.agl.a b;
+    private final com.google.android.libraries.navigation.internal.agl.a c;
+    private final com.google.android.libraries.navigation.internal.agl.a d;
+    private final com.google.android.libraries.navigation.internal.agl.a e;
+
+    public s(com.google.android.libraries.navigation.internal.agl.a aVar, com.google.android.libraries.navigation.internal.agl.a aVar2, com.google.android.libraries.navigation.internal.agl.a aVar3, com.google.android.libraries.navigation.internal.agl.a aVar4, com.google.android.libraries.navigation.internal.agl.a aVar5) {
+        this.a = aVar;
+        this.b = aVar2;
+        this.c = aVar3;
+        this.d = aVar4;
+        this.e = aVar5;
+    }
+
+    @Override // com.google.android.libraries.navigation.internal.agl.a, com.google.android.libraries.navigation.internal.agk.a
+    public final /* bridge */ /* synthetic */ Object a() {
+        com.google.android.libraries.navigation.internal.rf.c cVarA = ((com.google.android.libraries.navigation.internal.rf.d) this.a).a();
+        com.google.android.libraries.navigation.internal.afr.j.d(cVarA);
+        return cVarA;
+    }
+}

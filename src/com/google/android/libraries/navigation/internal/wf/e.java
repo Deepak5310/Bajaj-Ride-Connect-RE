@@ -1,0 +1,151 @@
+package com.google.android.libraries.navigation.internal.wf;
+
+import com.google.android.libraries.navigation.internal.add.ap;
+import com.google.android.libraries.navigation.internal.rz.ad;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+class e extends com.google.android.libraries.navigation.internal.yx.v {
+    @Override // com.google.android.libraries.navigation.internal.yx.v
+    protected final /* bridge */ /* synthetic */ Object b(Object obj) {
+        ad adVar = (ad) obj;
+        switch (adVar) {
+            case UNKNOWN:
+                return ap.UNKNOWN;
+            case DEPART:
+                return ap.DEPART;
+            case NAME_CHANGE:
+                return ap.NAME_CHANGE;
+            case KEEP_LEFT:
+                return ap.KEEP_LEFT;
+            case KEEP_RIGHT:
+                return ap.KEEP_RIGHT;
+            case TURN_SLIGHT_LEFT:
+                return ap.TURN_SLIGHT_LEFT;
+            case TURN_SLIGHT_RIGHT:
+                return ap.TURN_SLIGHT_RIGHT;
+            case TURN_NORMAL_LEFT:
+                return ap.TURN_NORMAL_LEFT;
+            case TURN_NORMAL_RIGHT:
+                return ap.TURN_NORMAL_RIGHT;
+            case TURN_SHARP_LEFT:
+                return ap.TURN_SHARP_LEFT;
+            case TURN_SHARP_RIGHT:
+                return ap.TURN_SHARP_RIGHT;
+            case U_TURN_LEFT:
+                return ap.U_TURN_LEFT;
+            case U_TURN_RIGHT:
+                return ap.U_TURN_RIGHT;
+            case ON_RAMP_SLIGHT_LEFT:
+                return ap.ON_RAMP_SLIGHT_LEFT;
+            case ON_RAMP_SLIGHT_RIGHT:
+                return ap.ON_RAMP_SLIGHT_RIGHT;
+            case ON_RAMP_NORMAL_LEFT:
+                return ap.ON_RAMP_NORMAL_LEFT;
+            case ON_RAMP_NORMAL_RIGHT:
+                return ap.ON_RAMP_NORMAL_RIGHT;
+            case ON_RAMP_SHARP_LEFT:
+                return ap.ON_RAMP_SHARP_LEFT;
+            case ON_RAMP_SHARP_RIGHT:
+                return ap.ON_RAMP_SHARP_RIGHT;
+            case ON_RAMP_KEEP_LEFT:
+                return ap.ON_RAMP_KEEP_LEFT;
+            case ON_RAMP_KEEP_RIGHT:
+                return ap.ON_RAMP_KEEP_RIGHT;
+            case ON_RAMP_U_TURN_LEFT:
+                return ap.ON_RAMP_U_TURN_LEFT;
+            case ON_RAMP_U_TURN_RIGHT:
+                return ap.ON_RAMP_U_TURN_RIGHT;
+            case OFF_RAMP_SLIGHT_LEFT:
+                return ap.OFF_RAMP_SLIGHT_LEFT;
+            case OFF_RAMP_SLIGHT_RIGHT:
+                return ap.OFF_RAMP_SLIGHT_RIGHT;
+            case OFF_RAMP_NORMAL_LEFT:
+                return ap.OFF_RAMP_NORMAL_LEFT;
+            case OFF_RAMP_NORMAL_RIGHT:
+                return ap.OFF_RAMP_NORMAL_RIGHT;
+            case OFF_RAMP_SHARP_LEFT:
+                return ap.OFF_RAMP_SHARP_LEFT;
+            case OFF_RAMP_SHARP_RIGHT:
+                return ap.OFF_RAMP_SHARP_RIGHT;
+            case OFF_RAMP_KEEP_LEFT:
+                return ap.OFF_RAMP_KEEP_LEFT;
+            case OFF_RAMP_KEEP_RIGHT:
+                return ap.OFF_RAMP_KEEP_RIGHT;
+            case OFF_RAMP_U_TURN_LEFT:
+                return ap.OFF_RAMP_U_TURN_LEFT;
+            case OFF_RAMP_U_TURN_RIGHT:
+                return ap.OFF_RAMP_U_TURN_RIGHT;
+            case FORK_LEFT:
+                return ap.FORK_LEFT;
+            case FORK_RIGHT:
+                return ap.FORK_RIGHT;
+            case MERGE_LEFT:
+                return ap.MERGE_LEFT;
+            case MERGE_RIGHT:
+                return ap.MERGE_RIGHT;
+            case MERGE:
+                return ap.MERGE;
+            case ROUNDABOUT_ENTER_CW:
+                return ap.ROUNDABOUT_ENTER_CW;
+            case ROUNDABOUT_EXIT_CW:
+                return ap.ROUNDABOUT_EXIT_CW;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW_SHARP_RIGHT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW_SHARP_RIGHT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW_NORMAL_RIGHT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW_NORMAL_RIGHT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW_SLIGHT_RIGHT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW_SLIGHT_RIGHT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW_STRAIGHT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW_STRAIGHT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW_SHARP_LEFT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW_SHARP_LEFT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW_NORMAL_LEFT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW_NORMAL_LEFT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW_SLIGHT_LEFT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW_SLIGHT_LEFT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CW_U_TURN:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CW_U_TURN;
+            case ROUNDABOUT_ENTER_CCW:
+                return ap.ROUNDABOUT_ENTER_CCW;
+            case ROUNDABOUT_EXIT_CCW:
+                return ap.ROUNDABOUT_EXIT_CCW;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW_SHARP_RIGHT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW_SHARP_RIGHT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW_NORMAL_RIGHT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW_NORMAL_RIGHT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW_SLIGHT_RIGHT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW_SLIGHT_RIGHT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW_STRAIGHT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW_STRAIGHT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW_SHARP_LEFT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW_SHARP_LEFT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW_NORMAL_LEFT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW_NORMAL_LEFT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW_SLIGHT_LEFT:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW_SLIGHT_LEFT;
+            case ROUNDABOUT_ENTER_AND_EXIT_CCW_U_TURN:
+                return ap.ROUNDABOUT_ENTER_AND_EXIT_CCW_U_TURN;
+            case STRAIGHT:
+                return ap.STRAIGHT;
+            case FERRY_BOAT:
+                return ap.FERRY_BOAT;
+            case FERRY_TRAIN:
+                return ap.FERRY_TRAIN;
+            case DESTINATION:
+                return ap.DESTINATION;
+            case DESTINATION_STRAIGHT:
+                return ap.DESTINATION_STRAIGHT;
+            case DESTINATION_LEFT:
+                return ap.DESTINATION_LEFT;
+            case DESTINATION_RIGHT:
+                return ap.DESTINATION_RIGHT;
+            default:
+                throw new IllegalArgumentException("unknown enum value: ".concat(String.valueOf(String.valueOf(adVar))));
+        }
+    }
+}

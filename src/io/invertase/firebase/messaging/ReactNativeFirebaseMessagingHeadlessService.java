@@ -1,0 +1,25 @@
+package io.invertase.firebase.messaging;
+
+import android.content.Intent;
+import com.facebook.react.HeadlessJsTaskService;
+import com.facebook.react.devsupport.StackTraceHelper;
+import com.facebook.react.jstasks.HeadlessJsTaskConfig;
+import com.google.firebase.messaging.RemoteMessage;
+import io.invertase.firebase.common.ReactNativeFirebaseJSON;
+import javax.annotation.Nullable;
+
+/* JADX INFO: loaded from: classes4.dex */
+public class ReactNativeFirebaseMessagingHeadlessService extends HeadlessJsTaskService {
+    private static final String TASK_KEY = "ReactNativeFirebaseMessagingHeadlessTask";
+    private static final long TIMEOUT_DEFAULT = 60000;
+    private static final String TIMEOUT_JSON_KEY = "messaging_android_headless_task_timeout";
+
+    @Override // com.facebook.react.HeadlessJsTaskService
+    @Nullable
+    protected HeadlessJsTaskConfig getTaskConfig(Intent intent) {
+        if (intent.getExtras() == null) {
+            return null;
+        }
+        return new HeadlessJsTaskConfig(TASK_KEY, ReactNativeFirebaseMessagingSerializer.remoteMessageToWritableMap((RemoteMessage) intent.getParcelableExtra(StackTraceHelper.MESSAGE_KEY)), ReactNativeFirebaseJSON.getSharedInstance().getLongValue(TIMEOUT_JSON_KEY, 60000L), true);
+    }
+}

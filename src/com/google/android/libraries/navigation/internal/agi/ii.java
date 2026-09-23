@@ -1,0 +1,70 @@
+package com.google.android.libraries.navigation.internal.agi;
+
+import java.util.Spliterator;
+import java.util.function.Consumer;
+
+/* JADX INFO: compiled from: PG */
+/* JADX INFO: loaded from: classes7.dex */
+final class ii extends ak {
+    final /* synthetic */ iq a;
+
+    public ii(iq iqVar) {
+        this.a = iqVar;
+    }
+
+    @Override // com.google.android.libraries.navigation.internal.agi.ak, com.google.android.libraries.navigation.internal.agi.ad, java.util.AbstractCollection, java.util.Collection, java.lang.Iterable
+    /* JADX INFO: renamed from: a */
+    public final gi listIterator() {
+        return new ih(this.a);
+    }
+
+    @Override // com.google.android.libraries.navigation.internal.agi.ak, com.google.android.libraries.navigation.internal.agi.ad, com.google.android.libraries.navigation.internal.agi.kx
+    /* JADX INFO: renamed from: b */
+    public final hj spliterator() {
+        return new ij(this.a);
+    }
+
+    @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+    public final void clear() {
+        this.a.clear();
+    }
+
+    @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+    public final boolean contains(Object obj) {
+        return this.a.containsKey(obj);
+    }
+
+    @Override // java.lang.Iterable
+    public final void forEach(Consumer consumer) {
+        iq iqVar = this.a;
+        if (iqVar.d) {
+            consumer.accept(iqVar.a[iqVar.e]);
+        }
+        int i = this.a.e;
+        while (i != 0) {
+            i--;
+            Object obj = this.a.a[i];
+            if (obj != null) {
+                consumer.accept(obj);
+            }
+        }
+    }
+
+    @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+    public final boolean remove(Object obj) {
+        iq iqVar = this.a;
+        int i = iqVar.h;
+        iqVar.b(obj);
+        return this.a.h != i;
+    }
+
+    @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+    public final int size() {
+        return this.a.h;
+    }
+
+    @Override // com.google.android.libraries.navigation.internal.agi.ak, com.google.android.libraries.navigation.internal.agi.ad, java.util.Collection, java.lang.Iterable
+    public final /* bridge */ /* synthetic */ Spliterator spliterator() {
+        return spliterator();
+    }
+}
