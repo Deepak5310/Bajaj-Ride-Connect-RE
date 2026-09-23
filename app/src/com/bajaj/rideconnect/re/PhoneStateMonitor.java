@@ -28,6 +28,8 @@ public class PhoneStateMonitor {
     private static final String TAG = "PhoneStateMonitor";
     public static final String ACTION_TELEMETRY_UPDATE = "com.bajaj.rideconnect.re.TELEMETRY_UPDATE";
 
+    private static PhoneStateMonitor instance;
+
     private final Context context;
     private final PulsarBleManager bleManager;
     private final TelephonyCallHandler callHandler;
@@ -37,6 +39,10 @@ public class PhoneStateMonitor {
     private int signalBars = -1; // 0-4
     private boolean isRunning = false;
     private boolean batteryReceiverRegistered = false;
+
+    public static PhoneStateMonitor getInstance() {
+        return instance;
+    }
 
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
         @Override
@@ -66,18 +72,25 @@ public class PhoneStateMonitor {
                 if (bleManager.isConnected()) {
                     int callState = callHandler != null ? callHandler.getCurrentCallState() : 0;
                     String caller = callHandler != null ? callHandler.getActiveCaller() : "";
+                    int unreadMessages = PulsarNotificationService.getUnreadMessageCount();
                     bleManager.sendTelemetry(batteryPercent >= 0 ? batteryPercent : 85,
-                            signalBars >= 0 ? signalBars : 4, callState, caller, 0, 0);
+                            signalBars >= 0 ? signalBars : 4, callState, caller, 0, unreadMessages);
                 }
                 handler.postDelayed(this, 4000); // 4-second interval heartbeat
             }
         }
     };
 
+    public void triggerImmediateUpdate() {
+        handler.removeCallbacks(heartbeatRunnable);
+        handler.post(heartbeatRunnable);
+    }
+
     public PhoneStateMonitor(Context context, PulsarBleManager bleManager, TelephonyCallHandler callHandler) {
         this.context = context.getApplicationContext();
         this.bleManager = bleManager;
         this.callHandler = callHandler;
+        instance = this;
         initBatteryListener();
         initSignalListener();
     }

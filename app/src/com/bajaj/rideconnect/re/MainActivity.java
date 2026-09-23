@@ -218,18 +218,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (intent == null || intent.getAction() == null) return;
             String action = intent.getAction();
 
-            if (GoogleMapsNotificationListener.ACTION_TBT_UPDATE.equals(action)) {
-                String maneuver = intent.getStringExtra("maneuver");
-                String desc = intent.getStringExtra("maneuver_desc");
-                double stepDist = intent.getDoubleExtra("step_dist", 0.0);
-                double totalDist = intent.getDoubleExtra("total_dist", 0.0);
-                int etaHour = intent.getIntExtra("eta_hour", 12);
-                int etaMin = intent.getIntExtra("eta_min", 0);
-                boolean isPm = intent.getBooleanExtra("is_pm", false);
-                String street = intent.getStringExtra("street");
-
-                updateCockpitNavigation(maneuver, desc, stepDist, totalDist, etaHour, etaMin, isPm, street);
-            } else if (MediaStateListener.ACTION_MEDIA_UPDATE.equals(action)) {
+            if (MediaStateListener.ACTION_MEDIA_UPDATE.equals(action)) {
                 String title = intent.getStringExtra("title");
                 String artist = intent.getStringExtra("artist");
                 String source = intent.getStringExtra("source");
@@ -1217,20 +1206,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
                 tvNavSub.setText(String.format(Locale.getDefault(), "%.1f km • %s", km, sdf.format(cal.getTime())));
             }
-
-            // Stream 48-byte BLE packet to motorcycle cluster
-            NavigationHelper helper = new NavigationHelper(
-                    step.maneuverID,
-                    step.distanceMeters,
-                    remDistMeters,
-                    remDurSec,
-                    step.street,
-                    step.instruction
-            );
-            byte[] tbtFrame = helper.buildNavigationPacket();
-            if (bleManager != null) {
-                bleManager.sendTbtFrame(tbtFrame);
-            }
         });
     }
 
@@ -1239,10 +1214,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         currentRouteStepIndex = 0;
         if (mapplsMapView != null) {
             mapplsMapView.clearRoute();
-        }
-        byte[] stopPacket = NavigationHelper.buildNavigationEndPacket();
-        if (bleManager != null) {
-            bleManager.sendTbtFrame(stopPacket);
         }
         updateCockpitNavigation("IDLE", "Navigation Idle", 0.0, 0.0, 12, 0, false, "No Active Route");
         Toast.makeText(this, "Navigation Ended", Toast.LENGTH_SHORT).show();
@@ -1290,7 +1261,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         clockHandler.post(clockRunnable);
 
         try {
-            NotificationListenerService.requestRebind(new ComponentName(this, GoogleMapsNotificationListener.class));
+            NotificationListenerService.requestRebind(new ComponentName(this, PulsarNotificationService.class));
         } catch (Exception ignored) {}
 
         MediaStateListener msl = MediaStateListener.getInstance();
@@ -1306,7 +1277,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
 
         IntentFilter filter = new IntentFilter();
-        filter.addAction(GoogleMapsNotificationListener.ACTION_TBT_UPDATE);
         filter.addAction(MediaStateListener.ACTION_MEDIA_UPDATE);
         filter.addAction(PhoneStateMonitor.ACTION_TELEMETRY_UPDATE);
         filter.addAction(Intent.ACTION_BATTERY_CHANGED);

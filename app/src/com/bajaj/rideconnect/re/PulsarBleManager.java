@@ -35,7 +35,6 @@ public class PulsarBleManager {
     private static final String TAG = "PulsarBleManager";
 
     public static final UUID SERVICE_UUID = UUID.fromString(PulsarProtocol.SERVICE_UUID);
-    public static final UUID CHAR_TBT_UUID = UUID.fromString(PulsarProtocol.CHAR_TBT_UUID);
     public static final UUID CHAR_TELEMETRY_UUID = UUID.fromString(PulsarProtocol.CHAR_TELEMETRY_UUID);
     public static final UUID CHAR_MEDIA_UUID = UUID.fromString(PulsarProtocol.CHAR_MEDIA_UUID);
     public static final UUID CHAR_CONTROLS_UUID = UUID.fromString(PulsarProtocol.CHAR_CONTROLS_UUID);
@@ -52,7 +51,6 @@ public class PulsarBleManager {
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothGatt bluetoothGatt;
 
-    private BluetoothGattCharacteristic charTbt;
     private BluetoothGattCharacteristic charTelemetry;
     private BluetoothGattCharacteristic charMedia;
     private BluetoothGattCharacteristic charControls;
@@ -144,7 +142,7 @@ public class PulsarBleManager {
     }
 
     public boolean isConnected() {
-        return isConnected && charTbt != null;
+        return isConnected && charTelemetry != null;
     }
 
     public String getConnectedDeviceName() {
@@ -305,7 +303,6 @@ public class PulsarBleManager {
         }
         isConnected = false;
         isConnecting = false;
-        charTbt = null;
         charTelemetry = null;
         charMedia = null;
         charControls = null;
@@ -321,12 +318,6 @@ public class PulsarBleManager {
     // =========================================================================
     // GATT Frame Dispatchers
     // =========================================================================
-    public boolean sendTbtFrame(byte[] frame) {
-        if (charTbt == null || !isConnected) return false;
-        enqueueWrite(charTbt, frame, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
-        return true;
-    }
-
     public boolean sendTelemetry(
             int batteryPercent,
             int signalBars,
@@ -424,7 +415,6 @@ public class PulsarBleManager {
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Disconnected from NS400Z (status=" + status + ").");
                 isConnected = false;
-                charTbt = null;
                 charTelemetry = null;
                 charMedia = null;
                 charControls = null;
@@ -462,13 +452,11 @@ public class PulsarBleManager {
                 Log.i(TAG, "GATT Services discovered for " + connectedDeviceName);
                 BluetoothGattService service = gatt.getService(SERVICE_UUID);
                 if (service != null) {
-                    charTbt = service.getCharacteristic(CHAR_TBT_UUID);
                     charTelemetry = service.getCharacteristic(CHAR_TELEMETRY_UUID);
                     charMedia = service.getCharacteristic(CHAR_MEDIA_UUID);
                     charControls = service.getCharacteristic(CHAR_CONTROLS_UUID);
 
-                    Log.i(TAG, "GATT Characteristics bound: TBT=" + (charTbt != null) +
-                            ", Telemetry=" + (charTelemetry != null) +
+                    Log.i(TAG, "GATT Characteristics bound: Telemetry=" + (charTelemetry != null) +
                             ", Media=" + (charMedia != null) +
                             ", Controls=" + (charControls != null));
 
@@ -487,7 +475,7 @@ public class PulsarBleManager {
                         }
                     }
 
-                    notifyConnectionState(isConnected && charTbt != null, connectedDeviceName, connectedDeviceAddress);
+                    notifyConnectionState(isConnected && charTelemetry != null, connectedDeviceName, connectedDeviceAddress);
                 } else {
                     Log.e(TAG, "Primary Service " + SERVICE_UUID + " not found!");
                 }

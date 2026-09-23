@@ -106,7 +106,7 @@ public class MediaStateListener {
                 Log.w(TAG, "MediaSessionManager unavailable");
                 return;
             }
-            ComponentName compName = new ComponentName(context, GoogleMapsNotificationListener.class);
+            ComponentName compName = new ComponentName(context, PulsarNotificationService.class);
 
             if (sessionsChangedListener != null) {
                 try {
@@ -129,7 +129,7 @@ public class MediaStateListener {
     public synchronized void updateActiveController() {
         try {
             if (mediaSessionManager == null) return;
-            ComponentName compName = new ComponentName(context, GoogleMapsNotificationListener.class);
+            ComponentName compName = new ComponentName(context, PulsarNotificationService.class);
             List<MediaController> controllers = mediaSessionManager.getActiveSessions(compName);
 
             if (controllers == null || controllers.isEmpty()) {
