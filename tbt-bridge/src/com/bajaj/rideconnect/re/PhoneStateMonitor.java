@@ -1,4 +1,4 @@
-package com.pulsar.ns400z.tbtbridge;
+package com.bajaj.rideconnect.re;
 
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
@@ -26,7 +26,7 @@ import java.util.List;
 public class PhoneStateMonitor {
 
     private static final String TAG = "PhoneStateMonitor";
-    public static final String ACTION_TELEMETRY_UPDATE = "com.pulsar.ns400z.tbtbridge.TELEMETRY_UPDATE";
+    public static final String ACTION_TELEMETRY_UPDATE = "com.bajaj.rideconnect.re.TELEMETRY_UPDATE";
 
     private final Context context;
     private final PulsarBleManager bleManager;

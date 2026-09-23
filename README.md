@@ -1,6 +1,8 @@
 # bajaj-ride-connect-re
 
-Reverse engineering, protocol analysis, and interoperability research repository for the **Bajaj Ride Connect** Android application and the **Bajaj Pulsar NS400Z** digital instrument cluster.
+Reverse engineering, protocol analysis, and interoperability research repository for the **Bajaj Ride Connect** ecosystem and the **"My Pulsar"** universal Bluetooth dashboard bridge (`com.bajaj.rideconnect.re`).
+
+Compatible with ~80% of Bajaj Bluetooth-equipped motorcycles (Pulsar NS400Z, N250, F250, NS200, N160, NS160, N150, Dominar 400/250, and Bluetooth-equipped variants).
 
 ---
 
@@ -20,7 +22,7 @@ bajaj-ride-connect-re/
 │   │   ├── tbt/                   # Lightweight Native TBT Bridge (G-Maps Notification Listener)
 │   │   ├── ble/                   # Bluetooth GATT frames, services, and handlers
 │   │   ├── wifi/                  # Wi-Fi screen mirroring & Navigation Protocol V2 (TFT models)
-│   │   ├── features/              # SKU feature registry & NS400Z cohort definitions
+│   │   ├── features/              # SKU feature registry & Bajaj cohort definitions
 │   │   └── security/              # Cryptographic AES / JNI utilities
 └── README.md
 ```
@@ -29,22 +31,22 @@ bajaj-ride-connect-re/
 
 ## 🏍️ Vehicle Target & Architecture
 
-* **Target Vehicle:** Bajaj Pulsar NS400Z (2024–2026)
-* **Cluster Hardware:** Segmented LCD with Blue Monochrome Dot-Matrix display (`CLUSTER_V1`, Pricol / Uno Minda / OTC Engineering).
+* **Target Ecosystem:** Bajaj Bluetooth-enabled motorcycles (~80% of current line-up including Pulsar NS400Z, Pulsar N-Series, Dominar series).
+* **Cluster Hardware:** Segmented LCD with Dot-Matrix display (`CLUSTER_V1`, Pricol / Uno Minda / OTC Engineering).
 * **Connectivity Architecture:**
-  1. **Bluetooth Low Energy (GATT):** 100% active transport on NS400Z. Telemetry (`0210`), Phone battery/signal, Caller ID, Music controls (`0610`), Handlebar triggers (`0a10`), and 48-byte Turn-by-Turn maneuvers (`0110`).
-  2. **Wi-Fi Hotspot (TCP:5558 / UDP:5556):** Dormant on NS400Z. Present in the unified APK codebase for full-color TFT vehicles (Chetak EV / KTM).
+  1. **Bluetooth Low Energy (GATT):** 100% active transport. Telemetry (`0210`), Phone battery/signal, Caller ID, Music controls (`0610`), Handlebar triggers (`0a10`), and 48-byte Turn-by-Turn maneuvers (`0110`).
+  2. **Wi-Fi Hotspot (TCP:5558 / UDP:5556):** Available on full-color TFT vehicles (Chetak EV / KTM).
 
 ---
 
 ## 🛠️ Usage & Tools
 
-### 1. Standalone Google Maps -> NS400Z TBT Bridge APK (44 KB)
-A native, lightweight background service and dashboard app (`com.pulsar.ns400z.tbtbridge`) that connects directly to the NS400Z BLE cluster (`0110`), intercepts active navigation notifications from **Google Maps**, and renders turn arrows, step distances, ETA, and street names on the bike's LCD dot-matrix display:
+### 1. "My Pulsar" Standalone Landscape Cockpit Bridge APK
+A native, lightweight automotive cockpit dashboard and background service (`com.bajaj.rideconnect.re`) that connects directly to the Bajaj BLE cluster, intercepts active navigation notifications from **Google Maps**, and renders turn arrows, step distances, ETA, and street names on the bike's LCD dot-matrix display:
 
 ```bash
 # Build, sign, and install standalone bridge APK to connected Android phone
-python3 build_tbt_bridge.py --install
+./build.sh --install
 ```
 
 ### 2. BLE Packet Decoder CLI

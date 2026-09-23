@@ -1,4 +1,4 @@
-package com.pulsar.ns400z.tbtbridge;
+package com.bajaj.rideconnect.re;
 
 import android.app.Notification;
 import android.content.Intent;
@@ -22,7 +22,7 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
 
     private static final String TAG = "GoogleMapsTbtListener";
     public static final String GOOGLE_MAPS_PKG = "com.google.android.apps.maps";
-    public static final String ACTION_TBT_UPDATE = "com.pulsar.ns400z.tbtbridge.TBT_UPDATE";
+    public static final String ACTION_TBT_UPDATE = "com.bajaj.rideconnect.re.TBT_UPDATE";
 
     private static final Pattern DISTANCE_PATTERN = Pattern.compile("(?i)(\\d+(?:[.,]\\d+)?)\\s*(m|km|ft|mi|meter|kilomet|mile)");
     private static final Pattern ETA_PATTERN = Pattern.compile("(\\d{1,2}):(\\d{2})\\s*(AM|PM)?", Pattern.CASE_INSENSITIVE);

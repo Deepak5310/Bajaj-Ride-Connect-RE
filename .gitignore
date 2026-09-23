@@ -16,6 +16,7 @@ HANDOFF.md
 ns400z_dump/
 *.output
 *.tmp
+*.png
 
 # Temporary extraction files
 hermes_strings.txt

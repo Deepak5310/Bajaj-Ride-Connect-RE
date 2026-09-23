@@ -1,4 +1,4 @@
-package com.pulsar.ns400z.tbtbridge;
+package com.bajaj.rideconnect.re;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -23,7 +23,7 @@ import java.util.List;
 public class MediaStateListener {
 
     private static final String TAG = "MediaStateListener";
-    public static final String ACTION_MEDIA_UPDATE = "com.pulsar.ns400z.tbtbridge.MEDIA_UPDATE";
+    public static final String ACTION_MEDIA_UPDATE = "com.bajaj.rideconnect.re.MEDIA_UPDATE";
 
     private final Context context;
     private final PulsarBleManager bleManager;
@@ -208,13 +208,59 @@ public class MediaStateListener {
                 + posSec + "/" + durSec + "s -> " + (sent ? "queued" : "dropped (cluster not connected)"));
 
         // Broadcast media update to MainActivity UI
+        String sourceName = formatSourceLabel(activeController != null ? activeController.getPackageName() : "");
         Intent intent = new Intent(ACTION_MEDIA_UPDATE);
         intent.setPackage(context.getPackageName());
         intent.putExtra("title", currentTitle);
         intent.putExtra("artist", currentArtist);
         intent.putExtra("album", currentAlbum);
+        intent.putExtra("source", sourceName);
+        intent.putExtra("duration_sec", durSec);
+        intent.putExtra("position_sec", posSec);
         intent.putExtra("playback_state", currentPlaybackState);
         context.sendBroadcast(intent);
+    }
+
+    private static String formatSourceLabel(String pkg) {
+        if (pkg == null || pkg.isEmpty()) return "Music Player";
+        String lower = pkg.toLowerCase();
+        if (lower.contains("spotify")) return "Spotify";
+        if (lower.contains("youtube") || lower.contains("music")) return "YT Music";
+        if (lower.contains("apple")) return "Apple Music";
+        if (lower.contains("amazon")) return "Amazon Music";
+        if (lower.contains("wynk")) return "Wynk";
+        if (lower.contains("jiosaavn")) return "JioSaavn";
+        if (lower.contains("gaana")) return "Gaana";
+        int dot = pkg.lastIndexOf('.');
+        return dot >= 0 ? pkg.substring(dot + 1) : pkg;
+    }
+
+    public void togglePlayPause() {
+        if (activeController == null) {
+            updateActiveController();
+        }
+        if (isPlaying()) {
+            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PAUSE, c -> c.getTransportControls().pause());
+        } else {
+            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PLAY, c -> c.getTransportControls().play());
+        }
+        handler.postDelayed(this::syncMetadata, 400);
+    }
+
+    public void skipNext() {
+        if (activeController == null) {
+            updateActiveController();
+        }
+        dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_NEXT, c -> c.getTransportControls().skipToNext());
+        handler.postDelayed(this::syncMetadata, 400);
+    }
+
+    public void skipPrevious() {
+        if (activeController == null) {
+            updateActiveController();
+        }
+        dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PREVIOUS, c -> c.getTransportControls().skipToPrevious());
+        handler.postDelayed(this::syncMetadata, 400);
     }
 
     public void handleHandlebarMedia(PulsarProtocol.HandlebarEvent ev) {
@@ -227,19 +273,19 @@ public class MediaStateListener {
         }
 
         if (ev.musicNext) {
-            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_NEXT, c -> c.getTransportControls().skipToNext());
+            skipNext();
         } else if (ev.musicPrev) {
-            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PREVIOUS, c -> c.getTransportControls().skipToPrevious());
+            skipPrevious();
         } else if (ev.musicPlay) {
             dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PLAY, c -> c.getTransportControls().play());
+            handler.postDelayed(this::syncMetadata, 400);
         } else if (ev.musicPause) {
             dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PAUSE, c -> c.getTransportControls().pause());
+            handler.postDelayed(this::syncMetadata, 400);
         } else if (ev.musicStop) {
             dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_STOP, c -> c.getTransportControls().stop());
+            handler.postDelayed(this::syncMetadata, 400);
         }
-
-        // Post delayed resync to give player time to advance position/state
-        handler.postDelayed(this::syncMetadata, 400);
     }
 
     private interface ControllerAction {
@@ -281,6 +327,14 @@ public class MediaStateListener {
 
     public String getCurrentArtist() {
         return currentArtist;
+    }
+
+    public String getCurrentAlbum() {
+        return currentAlbum;
+    }
+
+    public String getCurrentSource() {
+        return formatSourceLabel(activeController != null ? activeController.getPackageName() : "");
     }
 
     public boolean isPlaying() {

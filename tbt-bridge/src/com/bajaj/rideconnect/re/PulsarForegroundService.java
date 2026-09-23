@@ -1,4 +1,4 @@
-package com.pulsar.ns400z.tbtbridge;
+package com.bajaj.rideconnect.re;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -22,9 +22,9 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
     public static final String CHANNEL_ID = "pulsar_connect_live_channel";
     public static final int NOTIFICATION_ID = 4001;
 
-    public static final String ACTION_START = "com.pulsar.ns400z.tbtbridge.START_SERVICE";
-    public static final String ACTION_STOP = "com.pulsar.ns400z.tbtbridge.STOP_SERVICE";
-    public static final String ACTION_CONNECT = "com.pulsar.ns400z.tbtbridge.CONNECT_BLE";
+    public static final String ACTION_START = "com.bajaj.rideconnect.re.START_SERVICE";
+    public static final String ACTION_STOP = "com.bajaj.rideconnect.re.STOP_SERVICE";
+    public static final String ACTION_CONNECT = "com.bajaj.rideconnect.re.CONNECT_BLE";
 
     private static PulsarForegroundService instance;
 
