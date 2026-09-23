@@ -205,7 +205,17 @@ public class MapplsMapView extends FrameLayout {
                 "    body, html { margin:0; padding:0; height:100%; width:100%; background:#090D14; overflow:hidden; font-family:sans-serif; }\n" +
                 "    #map { position:absolute; top:0; bottom:0; width:100%; height:100%; background:#090D14; }\n" +
                 "    #map canvas { filter: invert(92%) hue-rotate(180deg) brightness(85%) contrast(108%); }\n" +
-                "    .mappls-ctrl-bottom-right, .mappls-ctrl-bottom-left, .mappls-ctrl-top-right, .mappls-ctrl-top-left { display:none !important; }\n" +
+                "    .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib, .mappls-ctrl-attrib, .mappls-attrib,\n" +
+                "    .mapboxgl-ctrl-bottom-right, .maplibregl-ctrl-bottom-right, .mappls-ctrl-bottom-right,\n" +
+                "    .mapboxgl-ctrl-bottom-left, .maplibregl-ctrl-bottom-left, .mappls-ctrl-bottom-left,\n" +
+                "    .mapboxgl-ctrl-logo, .maplibregl-ctrl-logo, .mappls-logo,\n" +
+                "    .mapboxgl-compact, .maplibregl-compact,\n" +
+                "    .mapboxgl-ctrl, .maplibregl-ctrl, .mappls-ctrl,\n" +
+                "    div[class*='attrib'], div[class*='logo'], div[class*='ctrl-bottom'],\n" +
+                "    a[href*='mapmyindia'], a[href*='mappls'], [title*='MapmyIndia'], [title*='Mappls'],\n" +
+                "    .maplibregl-ctrl-attrib-inner, .mapboxgl-ctrl-attrib-inner {\n" +
+                "       display: none !important; visibility: hidden !important; opacity: 0 !important; height: 0 !important; width: 0 !important; pointer-events: none !important;\n" +
+                "    }\n" +
                 "    .puck-marker {\n" +
                 "       width: 44px; height: 44px;\n" +
                 "       background: radial-gradient(circle, rgba(6,182,212,0.4) 0%, rgba(6,182,212,0.1) 70%, transparent 100%);\n" +
@@ -231,6 +241,15 @@ public class MapplsMapView extends FrameLayout {
                 "  var routeLayerId = 'nav-route-line';\n" +
                 "  var routeSourceId = 'nav-route-source';\n" +
                 "\n" +
+                "  function purgeAttributions() {\n" +
+                "    var toRemove = document.querySelectorAll('.mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib, .mappls-ctrl-attrib, .mapboxgl-ctrl-bottom-right, .maplibregl-ctrl-bottom-right, .mappls-ctrl-bottom-right, .mapboxgl-ctrl-bottom-left, .maplibregl-ctrl-bottom-left, .mappls-ctrl-bottom-left, .mapboxgl-ctrl-logo, .maplibregl-ctrl-logo, .mappls-logo, div[class*=\"attrib\"], div[class*=\"logo\"], a[href*=\"mapmyindia\"], a[href*=\"mappls\"]');\n" +
+                "    for (var i = 0; i < toRemove.length; i++) {\n" +
+                "      var el = toRemove[i];\n" +
+                "      if (el && el.parentNode) { el.parentNode.removeChild(el); }\n" +
+                "    }\n" +
+                "  }\n" +
+                "  setInterval(purgeAttributions, 300);\n" +
+                "\n" +
                 "  function initMap() {\n" +
                 "    if (map) return;\n" +
                 "    console.log('initMap called, typeof mappls=' + typeof mappls);\n" +
@@ -243,10 +262,12 @@ public class MapplsMapView extends FrameLayout {
                 "        center: [" + lastLat + ", " + lastLng + "],\n" +
                 "        zoom: 15,\n" +
                 "        zoomControl: false,\n" +
-                "        attribution: true\n" +
+                "        attribution: false,\n" +
+                "        attributionControl: false\n" +
                 "      });\n" +
                 "      map.on('load', function() {\n" +
                 "        console.log('Mappls vector map loaded successfully!');\n" +
+                "        purgeAttributions();\n" +
                 "        createPuckMarker();\n" +
                 "        if (window.AndroidBridge) {\n" +
                 "          window.AndroidBridge.onMapInitialized();\n" +

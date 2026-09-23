@@ -375,6 +375,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 if (btnCompass != null) {
                     btnCompass.performClick();
                 }
+            } else if ("toggle_split".equalsIgnoreCase(cmd)) {
+                setMapFullscreen(!isMapFullscreen);
+            } else if ("expand_media".equalsIgnoreCase(cmd)) {
+                setMapFullscreen(false);
             } else if ("seek_media".equalsIgnoreCase(cmd)) {
                 int progress = intent.getIntExtra("progress", 500);
                 if (pbMediaTrack != null) {
@@ -1193,7 +1197,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 btnMediaPlayPause.setImageResource(R.drawable.ic_media_play);
                 btnPillPlayPause.setImageResource(R.drawable.ic_media_play);
                 currentMediaDurSec = 0;
-                if (pbMediaTrack != null) pbMediaTrack.setProgress(0);
+                if (pbMediaTrack != null) {
+                    pbMediaTrack.setProgress(0);
+                    if (pbMediaTrack instanceof WavySeekBar) {
+                        ((WavySeekBar) pbMediaTrack).setPlaying(false);
+                    }
+                }
                 tvMediaElapsed.setText("0:00");
                 tvMediaDuration.setText("0:00");
                 ivAlbumArt.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
@@ -1211,12 +1220,16 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     tvMediaSource.setText(source);
                 }
 
-                if (state == 2) { // 2 = Playing
+                boolean isPlaying = (state == 2);
+                if (isPlaying) { // 2 = Playing
                     btnMediaPlayPause.setImageResource(R.drawable.ic_media_pause);
                     btnPillPlayPause.setImageResource(R.drawable.ic_media_pause);
                 } else {
                     btnMediaPlayPause.setImageResource(R.drawable.ic_media_play);
                     btnPillPlayPause.setImageResource(R.drawable.ic_media_play);
+                }
+                if (pbMediaTrack instanceof WavySeekBar) {
+                    ((WavySeekBar) pbMediaTrack).setPlaying(isPlaying);
                 }
 
                 currentMediaDurSec = durSec;
