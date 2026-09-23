@@ -158,6 +158,15 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
     public void onConnectionStateChanged(boolean connected, String deviceName, String deviceAddress) {
         this.isConnected = connected;
         updateNotification();
+
+        // Frames sent while disconnected are dropped by PulsarBleManager, and the
+        // cluster loses its now-playing state on every power-cycle/reconnect.
+        // Re-push the current media state as soon as the link is up. This fires
+        // twice per connection (pre- and post-service-discovery); the first call
+        // is dropped harmlessly, the second lands once 0610 is bound.
+        if (connected && mediaListener != null) {
+            mediaListener.syncMetadata();
+        }
     }
 
     @Override

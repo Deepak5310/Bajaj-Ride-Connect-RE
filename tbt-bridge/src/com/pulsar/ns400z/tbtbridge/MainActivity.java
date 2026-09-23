@@ -204,7 +204,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         // 6. Simulation: Spotify Track
         btnTestMusic.setOnClickListener(v -> {
-            bleManager.sendMedia("Blinding Lights", "The Weeknd", "After Hours", 45, 200, 1);
+            bleManager.sendMedia("Blinding Lights", "The Weeknd", "After Hours", 45, 200, 2);
             tvLcdMediaTrack.setText("♫ Blinding Lights - The Weeknd");
             tvRawHex.setText("Raw Media (0610): [The Weeknd - Blinding Lights]");
             Toast.makeText(this, "Dispatched Spotify Media Simulation", Toast.LENGTH_SHORT).show();

@@ -5,6 +5,7 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
+import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
 import android.os.Handler;
@@ -26,12 +27,13 @@ public class MediaStateListener {
     private final PulsarBleManager bleManager;
     private MediaSessionManager mediaSessionManager;
     private MediaController activeController;
+    private MediaSessionManager.OnActiveSessionsChangedListener sessionsChangedListener;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private String currentTitle = "";
     private String currentArtist = "";
     private String currentAlbum = "";
-    private int currentPlaybackState = 0; // 0=Stop, 1=Play, 2=Pause
+    private int currentPlaybackState = 0; // 0=Stop/None, 1=Pause, 2=Play (matches Bajaj PlayStatus enum)
 
     public MediaStateListener(Context context, PulsarBleManager bleManager) {
         this.context = context.getApplicationContext();
@@ -42,13 +44,23 @@ public class MediaStateListener {
     public void initMediaSessions() {
         try {
             mediaSessionManager = (MediaSessionManager) context.getSystemService(Context.MEDIA_SESSION_SERVICE);
-            ComponentName compName = new ComponentName(context, GoogleMapsNotificationListener.class);
-            if (mediaSessionManager != null) {
-                updateActiveController();
-                mediaSessionManager.addOnActiveSessionsChangedListener(controllers -> {
-                    updateActiveController();
-                }, compName, handler);
+            if (mediaSessionManager == null) {
+                Log.w(TAG, "MediaSessionManager unavailable");
+                return;
             }
+            ComponentName compName = new ComponentName(context, GoogleMapsNotificationListener.class);
+
+            // Called from the constructor and again from refreshMediaSessions();
+            // drop the previous callback so we never stack duplicates.
+            if (sessionsChangedListener != null) {
+                try {
+                    mediaSessionManager.removeOnActiveSessionsChangedListener(sessionsChangedListener);
+                } catch (Exception ignored) {}
+            }
+            sessionsChangedListener = controllers -> updateActiveController();
+            mediaSessionManager.addOnActiveSessionsChangedListener(sessionsChangedListener, compName, handler);
+
+            updateActiveController();
         } catch (SecurityException e) {
             Log.w(TAG, "Notification listener permission needed for MediaSessionManager: " + e.getMessage());
         }
@@ -59,20 +71,64 @@ public class MediaStateListener {
             if (mediaSessionManager == null) return;
             ComponentName compName = new ComponentName(context, GoogleMapsNotificationListener.class);
             List<MediaController> controllers = mediaSessionManager.getActiveSessions(compName);
-            if (controllers != null && !controllers.isEmpty()) {
-                MediaController newController = controllers.get(0);
-                if (activeController != newController) {
-                    if (activeController != null) {
-                        activeController.unregisterCallback(controllerCallback);
-                    }
-                    activeController = newController;
-                    activeController.registerCallback(controllerCallback, handler);
-                    syncMetadata();
+
+            if (controllers == null || controllers.isEmpty()) {
+                Log.i(TAG, "No active media sessions.");
+                if (activeController != null) {
+                    activeController.unregisterCallback(controllerCallback);
+                    activeController = null;
+                    currentTitle = "";
+                    currentArtist = "";
+                    currentAlbum = "";
+                    currentPlaybackState = 0;
+                    boolean sent = bleManager.sendMedia("", "", "", 0, 0, 0);
+                    Log.i(TAG, "Media session gone -> idle frame " + (sent ? "queued" : "dropped (cluster not connected)"));
                 }
+                return;
+            }
+
+            // Prefer the session that is actually playing. If none is, keep the
+            // controller we already have if it is still present, otherwise fall
+            // back to the system's top-priority session.
+            MediaController playing = null;
+            MediaController existing = null;
+            for (MediaController c : controllers) {
+                PlaybackState ps = c.getPlaybackState();
+                int st = ps != null ? ps.getState() : PlaybackState.STATE_NONE;
+                Log.i(TAG, "Session: " + c.getPackageName() + " state=" + st
+                        + (isSameSession(activeController, c) ? " (current)" : ""));
+                if (playing == null && st == PlaybackState.STATE_PLAYING) {
+                    playing = c;
+                }
+                if (existing == null && isSameSession(activeController, c)) {
+                    existing = c;
+                }
+            }
+
+            MediaController chosen = playing != null ? playing
+                    : existing != null ? existing
+                    : controllers.get(0);
+
+            if (!isSameSession(activeController, chosen)) {
+                if (activeController != null) {
+                    activeController.unregisterCallback(controllerCallback);
+                }
+                activeController = chosen;
+                activeController.registerCallback(controllerCallback, handler);
+                Log.i(TAG, "Active media controller -> " + chosen.getPackageName());
+                syncMetadata();
             }
         } catch (Exception e) {
             Log.e(TAG, "Error updating media controller: " + e.getMessage());
         }
+    }
+
+    private static boolean isSameSession(MediaController a, MediaController b) {
+        if (a == null || b == null) return false;
+        if (a == b) return true;
+        MediaSession.Token ta = a.getSessionToken();
+        MediaSession.Token tb = b.getSessionToken();
+        return ta != null && ta.equals(tb);
     }
 
     private final MediaController.Callback controllerCallback = new MediaController.Callback() {
@@ -87,21 +143,43 @@ public class MediaStateListener {
         }
     };
 
+    /**
+     * Push the current now-playing state to the cluster. Safe to call at any time;
+     * PulsarForegroundService invokes this on every BLE connect so state that was
+     * dropped while disconnected gets re-sent.
+     */
     public void syncMetadata() {
-        if (activeController == null) return;
+        if (activeController == null) {
+            Log.d(TAG, "syncMetadata: no active controller");
+            return;
+        }
         MediaMetadata metadata = activeController.getMetadata();
         PlaybackState pbState = activeController.getPlaybackState();
 
         if (metadata != null) {
             currentTitle = metadata.getString(MediaMetadata.METADATA_KEY_TITLE);
+            if (currentTitle == null || currentTitle.trim().isEmpty()) {
+                currentTitle = metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
+            }
             if (currentTitle == null) currentTitle = "";
+
             currentArtist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
+            if (currentArtist == null || currentArtist.trim().isEmpty()) {
+                currentArtist = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST);
+            }
+            if (currentArtist == null || currentArtist.trim().isEmpty()) {
+                currentArtist = metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE);
+            }
             if (currentArtist == null) currentArtist = "";
+
             currentAlbum = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM);
+            if (currentAlbum == null || currentAlbum.trim().isEmpty()) {
+                currentAlbum = metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_DESCRIPTION);
+            }
             if (currentAlbum == null) currentAlbum = "";
         }
 
-        int state = 0;
+        int state = 0; // 0=None/Stopped, 1=Paused, 2=Playing (matches Bajaj PlayStatus enum)
         int posSec = 0;
         int durSec = 0;
 
@@ -109,11 +187,11 @@ public class MediaStateListener {
             posSec = (int) (pbState.getPosition() / 1000);
             int pb = pbState.getState();
             if (pb == PlaybackState.STATE_PLAYING) {
-                state = 1;
+                state = 2; // PlayStatus.PLAY = 2
             } else if (pb == PlaybackState.STATE_PAUSED) {
-                state = 2;
+                state = 1; // PlayStatus.PAUSED = 1
             } else {
-                state = 0;
+                state = 0; // PlayStatus.NONE = 0
             }
         }
         currentPlaybackState = state;
@@ -122,7 +200,10 @@ public class MediaStateListener {
             durSec = (int) (metadata.getLong(MediaMetadata.METADATA_KEY_DURATION) / 1000);
         }
 
-        bleManager.sendMedia(currentTitle, currentArtist, currentAlbum, posSec, durSec, state);
+        boolean sent = bleManager.sendMedia(currentTitle, currentArtist, currentAlbum, posSec, durSec, state);
+        Log.i(TAG, "sendMedia[" + activeController.getPackageName() + "] state=" + state
+                + " '" + currentTitle + "' - '" + currentArtist + "' "
+                + posSec + "/" + durSec + "s -> " + (sent ? "queued" : "dropped (cluster not connected)"));
     }
 
     public void handleHandlebarMedia(PulsarProtocol.HandlebarEvent ev) {
@@ -179,6 +260,6 @@ public class MediaStateListener {
     }
 
     public boolean isPlaying() {
-        return currentPlaybackState == 1;
+        return currentPlaybackState == 2;
     }
 }
