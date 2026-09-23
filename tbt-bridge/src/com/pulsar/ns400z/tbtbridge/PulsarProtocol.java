@@ -30,7 +30,7 @@ public final class PulsarProtocol {
         ROUNDABOUT_CW(78, "Roundabout"),
         ROUNDABOUT_CCW(85, "Roundabout Left"),
         KEEP_LEFT(90, "Keep Left"),
-        KEEP_RIGHT(80, "Keep Right"),
+        KEEP_RIGHT(88, "Keep Right"),
         FORK_LEFT(81, "Fork Left"),
         FORK_RIGHT(82, "Fork Right"),
         RAMP_LEFT(75, "Ramp Left"),
@@ -73,18 +73,25 @@ public final class PulsarProtocol {
         byte[] stepDist = encodeDistance(stepDistanceMeters);
         byte[] totDist = encodeDistance(totalDistanceMeters);
 
-        // Byte 0: Active=1 | StepDistUnit (1=m, 0=km) | isPM
-        frame[0] = (byte) (1 | (stepDist[0] << 4) | ((isPm ? 1 : 0) << 7));
+        // Byte 0: Active=1 | StepDistUnit (1=m, 0=km) | isAM (bit7=1 for AM, 0 for PM)
+        frame[0] = (byte) (1 | (stepDist[0] << 4) | ((!isPm ? 1 : 0) << 7));
         frame[1] = (byte) (glyph & 0xFF);
-        System.arraycopy(stepDist, 1, frame, 2, 4);
+        // Distance bytes reversed to match original cluster firmware byte order
+        frame[2] = stepDist[4];
+        frame[3] = stepDist[3];
+        frame[4] = stepDist[2];
+        frame[5] = stepDist[1];
 
         // Byte 6-7: ETA Minute & Hour / Roundabout Exit
         frame[6] = (byte) (etaMinute & 0xFF);
         int h = (etaHour12 >= 1 && etaHour12 <= 12) ? etaHour12 : 12;
         frame[7] = (byte) ((h & 0x0F) | ((roundaboutExit & 0x0F) << 4));
 
-        // Bytes 8-11: Total remaining distance
-        System.arraycopy(totDist, 1, frame, 8, 4);
+        // Bytes 8-11: Total remaining distance (reversed byte order)
+        frame[8] = totDist[4];
+        frame[9] = totDist[3];
+        frame[10] = totDist[2];
+        frame[11] = totDist[1];
 
         // Byte 12: Total distance unit & GPS status
         int gpsVal = gpsActive ? 1 : 0;
@@ -114,23 +121,23 @@ public final class PulsarProtocol {
     }
 
     private static byte[] encodeDistance(double meters) {
-        byte[] result = new byte[5]; // [unit, decLSB, decMSB, intLSB, intMSB]
+        byte[] result = new byte[5]; // [unit, decMSB, decLSB, intMSB, intLSB]
         if (meters < 1000) {
             // Unit: Meters (1)
             result[0] = 1;
             int wholeMeters = (int) Math.round(meters);
-            result[3] = (byte) (wholeMeters & 0xFF);
-            result[4] = (byte) ((wholeMeters >> 8) & 0xFF);
+            result[3] = (byte) ((wholeMeters >> 8) & 0xFF);
+            result[4] = (byte) (wholeMeters & 0xFF);
         } else {
             // Unit: Kilometers (0)
             result[0] = 0;
             double km = meters / 1000.0;
             int wholeKm = (int) km;
             int decimals = (int) Math.round((km - wholeKm) * 10.0);
-            result[1] = (byte) (decimals & 0xFF);
-            result[2] = (byte) ((decimals >> 8) & 0xFF);
-            result[3] = (byte) (wholeKm & 0xFF);
-            result[4] = (byte) ((wholeKm >> 8) & 0xFF);
+            result[1] = (byte) ((decimals >> 8) & 0xFF);
+            result[2] = (byte) (decimals & 0xFF);
+            result[3] = (byte) ((wholeKm >> 8) & 0xFF);
+            result[4] = (byte) (wholeKm & 0xFF);
         }
         return result;
     }
