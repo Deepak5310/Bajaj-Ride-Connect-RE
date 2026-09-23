@@ -733,6 +733,19 @@
                         android:focusable="true"
                         android:layout_marginBottom="8dp" />
 
+                    <!-- Current Location (Center on GPS) -->
+                    <ImageView
+                        android:id="@+id/btnCurrentLocation"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:src="@drawable/ic_my_location"
+                        android:tint="#06B6D4"
+                        android:background="@drawable/bg_circle_action"
+                        android:padding="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginBottom="8dp" />
+
                     <!-- Search Destination (Mappls AutoSuggest) -->
                     <ImageView
                         android:id="@+id/btnMapSearch"
@@ -920,6 +933,108 @@
                         android:src="@drawable/ic_media_next"
                         android:padding="6dp" />
                 </LinearLayout>
+
+                <!-- Search Destination Overlay (Over the map) -->
+                <FrameLayout
+                    android:id="@+id/layoutSearchOverlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#A6030712"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone">
+
+                    <!-- Search Card Box -->
+                    <LinearLayout
+                        android:id="@+id/cardSearchBox"
+                        android:layout_width="480dp"
+                        android:layout_height="match_parent"
+                        android:layout_gravity="center_horizontal|top"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="8dp"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_drawer_panel"
+                        android:padding="12dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <!-- Search Bar Row -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/bg_search_input"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_search"
+                                android:tint="#06B6D4"
+                                android:layout_marginEnd="10dp" />
+
+                            <EditText
+                                android:id="@+id/etSearchQuery"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_weight="1"
+                                android:background="@null"
+                                android:hint="Search destination on Mappls..."
+                                android:textColorHint="#64748B"
+                                android:textColor="#FFFFFF"
+                                android:textSize="14sp"
+                                android:singleLine="true"
+                                android:imeOptions="actionSearch|flagNoExtractUi"
+                                android:inputType="text|textCapWords" />
+
+                            <ImageView
+                                android:id="@+id/btnSearchClear"
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:src="@drawable/ic_close"
+                                android:tint="#94A3B8"
+                                android:padding="6dp"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:visibility="gone" />
+
+                            <TextView
+                                android:id="@+id/btnSearchCancel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                android:gravity="center"
+                                android:text="Cancel"
+                                android:textColor="#06B6D4"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                android:paddingStart="12dp"
+                                android:clickable="true"
+                                android:focusable="true" />
+                        </LinearLayout>
+
+                        <!-- Progress Bar Line -->
+                        <ProgressBar
+                            android:id="@+id/pbSearchProgress"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:indeterminate="true"
+                            android:layout_width="match_parent"
+                            android:layout_height="3dp"
+                            android:layout_marginTop="3dp"
+                            android:visibility="invisible" />
+
+                        <!-- Search Results List -->
+                        <ListView
+                            android:id="@+id/lvSearchResults"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:divider="#1E293B"
+                            android:dividerHeight="1dp"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+                </FrameLayout>
 
             </FrameLayout>
         </LinearLayout>

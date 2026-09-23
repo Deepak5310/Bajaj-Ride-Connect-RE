@@ -34,6 +34,8 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.app.Dialog;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -165,12 +167,25 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     // Mappls Engine & Cockpit Controls
     private MapplsMapView mapplsMapView;
     private ImageView btnMapSearch;
+    private ImageView btnCurrentLocation;
     private LocationManager locationManager;
     private double currentRiderLat = 28.6139;
     private double currentRiderLng = 77.2090;
     private float currentRiderBearing = 0f;
     private MapplsApiClient.RouteResult currentActiveRoute = null;
     private int currentRouteStepIndex = 0;
+
+    // Search Destination Overlay Views
+    private View layoutSearchOverlay;
+    private View cardSearchBox;
+    private EditText etSearchQuery;
+    private ImageView btnSearchClear;
+    private ProgressBar pbSearchProgress;
+    private ListView lvSearchResults;
+    private TextView btnSearchCancel;
+    private final List<MapplsApiClient.PlaceResult> searchPlaceList = new ArrayList<>();
+    private ArrayAdapter<MapplsApiClient.PlaceResult> searchAdapter;
+    private final Handler searchDebounceHandler = new Handler(Looper.getMainLooper());
 
     // Right Slide-out Drawer
     private View drawerBackdrop;
@@ -418,6 +433,16 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         mapplsMapView = findViewById(R.id.mapplsMapView);
         btnMapSearch = findViewById(R.id.btnMapSearch);
+        btnCurrentLocation = findViewById(R.id.btnCurrentLocation);
+
+        // Search Destination Overlay Views
+        layoutSearchOverlay = findViewById(R.id.layoutSearchOverlay);
+        cardSearchBox = findViewById(R.id.cardSearchBox);
+        etSearchQuery = findViewById(R.id.etSearchQuery);
+        btnSearchClear = findViewById(R.id.btnSearchClear);
+        pbSearchProgress = findViewById(R.id.pbSearchProgress);
+        lvSearchResults = findViewById(R.id.lvSearchResults);
+        btnSearchCancel = findViewById(R.id.btnSearchCancel);
 
         // Drawer
         drawerBackdrop = findViewById(R.id.drawerBackdrop);
@@ -509,8 +534,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         btnTopNotifications.setOnClickListener(v -> openNotificationSettings());
 
         // Map HUD Controls
-        btnMapSearch.setOnClickListener(v -> showDestinationSearchDialog());
-        cardTurnInstruction.setOnClickListener(v -> showDestinationSearchDialog());
+        if (btnCurrentLocation != null) {
+            btnCurrentLocation.setOnClickListener(v -> centerMapOnCurrentLocation());
+        }
+        btnMapSearch.setOnClickListener(v -> showDestinationSearch());
+        cardTurnInstruction.setOnClickListener(v -> showDestinationSearch());
+        setupSearchOverlay();
 
         btnVoiceNav.setOnClickListener(v -> {
             isVoiceMuted = !isVoiceMuted;
@@ -775,7 +804,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         View[] tactileViews = new View[]{
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
-                btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnVoiceNav, btnLayers,
+                btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
                 btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnMapSearch
         };
         for (View view : tactileViews) {
@@ -1023,6 +1052,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 if (last == null) {
                     last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                 }
+                if (last == null) {
+                    last = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+                }
                 if (last != null) {
                     currentRiderLat = last.getLatitude();
                     currentRiderLng = last.getLongitude();
@@ -1030,10 +1062,41 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                         mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
                     }
                 }
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2.0f, gpsLocationListener);
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 5.0f, gpsLocationListener);
+                try {
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2.0f, gpsLocationListener);
+                } catch (Exception ignored) {}
+                try {
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 5.0f, gpsLocationListener);
+                } catch (Exception ignored) {}
             }
         } catch (Exception ignored) {}
+    }
+
+    private void centerMapOnCurrentLocation() {
+        try {
+            if (locationManager != null && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                if (loc == null) {
+                    loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                }
+                if (loc == null) {
+                    loc = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+                }
+                if (loc != null) {
+                    currentRiderLat = loc.getLatitude();
+                    currentRiderLng = loc.getLongitude();
+                    if (loc.hasBearing()) {
+                        currentRiderBearing = loc.getBearing();
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if (mapplsMapView != null) {
+            mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
+            mapplsMapView.centerOnLocation(currentRiderLat, currentRiderLng);
+            Toast.makeText(this, String.format(Locale.getDefault(), "Location: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void checkRouteProgress(Location riderLocation) {
@@ -1066,22 +1129,25 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         updateRouteStepDisplay(step, remDist, remDur);
     }
 
-    private void showDestinationSearchDialog() {
-        Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-        dialog.setContentView(R.layout.dialog_search_destination);
+    private void setupSearchOverlay() {
+        if (layoutSearchOverlay == null) return;
 
-        EditText etQuery = dialog.findViewById(R.id.etSearchQuery);
-        ImageView btnClear = dialog.findViewById(R.id.btnSearchClear);
-        ProgressBar pbProgress = dialog.findViewById(R.id.pbSearchProgress);
-        ListView lvResults = dialog.findViewById(R.id.lvSearchResults);
-        Button btnCancel = dialog.findViewById(R.id.btnSearchCancel);
+        // Dismiss when tapping outside the card on the backdrop scrim
+        layoutSearchOverlay.setOnClickListener(v -> hideDestinationSearch());
+        if (cardSearchBox != null) {
+            cardSearchBox.setOnClickListener(v -> {}); // prevent backdrop click
+        }
+        if (btnSearchCancel != null) {
+            btnSearchCancel.setOnClickListener(v -> hideDestinationSearch());
+        }
+        if (btnSearchClear != null) {
+            btnSearchClear.setOnClickListener(v -> {
+                if (etSearchQuery != null) etSearchQuery.setText("");
+            });
+        }
 
-        btnCancel.setOnClickListener(v -> dialog.dismiss());
-        btnClear.setOnClickListener(v -> etQuery.setText(""));
-
-        List<MapplsApiClient.PlaceResult> placeList = new ArrayList<>();
-        ArrayAdapter<MapplsApiClient.PlaceResult> adapter = new ArrayAdapter<MapplsApiClient.PlaceResult>(
-                this, R.layout.item_search_place, placeList) {
+        searchAdapter = new ArrayAdapter<MapplsApiClient.PlaceResult>(
+                this, R.layout.item_search_place, searchPlaceList) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 if (convertView == null) {
@@ -1104,52 +1170,102 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 return convertView;
             }
         };
-        lvResults.setAdapter(adapter);
+        if (lvSearchResults != null) {
+            lvSearchResults.setAdapter(searchAdapter);
+            lvSearchResults.setOnItemClickListener((parent, view, position, id) -> {
+                MapplsApiClient.PlaceResult selected = searchPlaceList.get(position);
+                hideDestinationSearch();
+                startMapplsNavigation(selected.name, selected.lat, selected.lng);
+            });
+        }
 
-        Handler debounceHandler = new Handler(Looper.getMainLooper());
         Runnable searchRunnable = () -> {
-            String query = etQuery.getText().toString().trim();
+            if (etSearchQuery == null) return;
+            String query = etSearchQuery.getText().toString().trim();
             if (query.length() < 2) return;
-            pbProgress.setVisibility(View.VISIBLE);
+            if (pbSearchProgress != null) pbSearchProgress.setVisibility(View.VISIBLE);
             MapplsApiClient.getInstance().searchPlaces(query, currentRiderLat, currentRiderLng, new MapplsApiClient.PlacesCallback() {
                 @Override
                 public void onSuccess(List<MapplsApiClient.PlaceResult> results) {
-                    pbProgress.setVisibility(View.INVISIBLE);
-                    placeList.clear();
-                    placeList.addAll(results);
-                    adapter.notifyDataSetChanged();
+                    if (pbSearchProgress != null) pbSearchProgress.setVisibility(View.INVISIBLE);
+                    searchPlaceList.clear();
+                    searchPlaceList.addAll(results);
+                    searchAdapter.notifyDataSetChanged();
                 }
 
                 @Override
                 public void onError(String error) {
-                    pbProgress.setVisibility(View.INVISIBLE);
+                    if (pbSearchProgress != null) pbSearchProgress.setVisibility(View.INVISIBLE);
                     Toast.makeText(MainActivity.this, "Search: " + error, Toast.LENGTH_SHORT).show();
                 }
             });
         };
 
-        etQuery.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                btnClear.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
-                debounceHandler.removeCallbacks(searchRunnable);
-                if (s.length() >= 2) {
-                    debounceHandler.postDelayed(searchRunnable, 350);
+        if (etSearchQuery != null) {
+            etSearchQuery.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    if (btnSearchClear != null) {
+                        btnSearchClear.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
+                    }
+                    searchDebounceHandler.removeCallbacks(searchRunnable);
+                    if (s.length() >= 2) {
+                        searchDebounceHandler.postDelayed(searchRunnable, 350);
+                    }
                 }
-            }
-            @Override
-            public void afterTextChanged(Editable s) {}
-        });
+                @Override
+                public void afterTextChanged(Editable s) {}
+            });
 
-        lvResults.setOnItemClickListener((parent, view, position, id) -> {
-            MapplsApiClient.PlaceResult selected = placeList.get(position);
-            dialog.dismiss();
-            startMapplsNavigation(selected.name, selected.lat, selected.lng);
-        });
+            etSearchQuery.setOnEditorActionListener((v, actionId, event) -> {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                    actionId == EditorInfo.IME_ACTION_DONE ||
+                    (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                    searchDebounceHandler.removeCallbacks(searchRunnable);
+                    searchRunnable.run();
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) imm.hideSoftInputFromWindow(etSearchQuery.getWindowToken(), 0);
+                    return true;
+                }
+                return false;
+            });
+        }
+    }
 
-        dialog.show();
+    private void showDestinationSearch() {
+        if (layoutSearchOverlay == null) return;
+        layoutSearchOverlay.setVisibility(View.VISIBLE);
+        if (etSearchQuery != null) {
+            etSearchQuery.requestFocus();
+            etSearchQuery.postDelayed(() -> {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) imm.showSoftInput(etSearchQuery, InputMethodManager.SHOW_IMPLICIT);
+            }, 100);
+        }
+    }
+
+    private void hideDestinationSearch() {
+        if (layoutSearchOverlay == null) return;
+        layoutSearchOverlay.setVisibility(View.GONE);
+        if (etSearchQuery != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(etSearchQuery.getWindowToken(), 0);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (layoutSearchOverlay != null && layoutSearchOverlay.getVisibility() == View.VISIBLE) {
+            hideDestinationSearch();
+            return;
+        }
+        if (drawerBackdrop != null && drawerBackdrop.getVisibility() == View.VISIBLE) {
+            closeDrawer();
+            return;
+        }
+        super.onBackPressed();
     }
 
     private void startMapplsNavigation(String destName, double destLat, double destLng) {

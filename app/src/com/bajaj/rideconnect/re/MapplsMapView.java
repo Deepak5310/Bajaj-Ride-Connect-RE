@@ -225,9 +225,15 @@ public class MapplsMapView extends FrameLayout {
                 "       });\n" +
                 "    }\n" +
                 "  }\n" +
+                "  var curRiderLat = " + lastLat + ";\n" +
+                "  var curRiderLng = " + lastLng + ";\n" +
+                "  var curBearing = 0;\n" +
                 "\n" +
                 "  function setRiderPosition(lat, lng, bearing) {\n" +
                 "    if (!map) return;\n" +
+                "    curRiderLat = lat;\n" +
+                "    curRiderLng = lng;\n" +
+                "    curBearing = bearing;\n" +
                 "    try {\n" +
                 "      if (puckMarker && puckMarker.setPosition) {\n" +
                 "        puckMarker.setPosition({lat: lat, lng: lng});\n" +
@@ -236,9 +242,21 @@ public class MapplsMapView extends FrameLayout {
                 "        puckEl.style.transform = 'rotate(' + bearing + 'deg)';\n" +
                 "      }\n" +
                 "      map.easeTo({\n" +
-                "        center: [lat, lng],\n" +
+                "        center: [lng, lat],\n" +
                 "        bearing: bearing,\n" +
                 "        duration: 350\n" +
+                "      });\n" +
+                "    } catch(e) {}\n" +
+                "  }\n" +
+                "\n" +
+                "  function recenterOnRider() {\n" +
+                "    if (!map) return;\n" +
+                "    try {\n" +
+                "      map.flyTo({\n" +
+                "        center: [curRiderLng, curRiderLat],\n" +
+                "        zoom: 16,\n" +
+                "        bearing: curBearing,\n" +
+                "        speed: 1.3\n" +
                 "      });\n" +
                 "    } catch(e) {}\n" +
                 "  }\n" +
@@ -354,5 +372,22 @@ public class MapplsMapView extends FrameLayout {
     public void setSatelliteMode(boolean satellite) {
         if (!isMapLoaded) return;
         mainHandler.post(() -> webView.evaluateJavascript("setSatellite(" + satellite + ");", null));
+    }
+
+    public void centerOnCurrentLocation() {
+        if (!isMapLoaded) return;
+        mainHandler.post(() -> webView.evaluateJavascript("recenterOnRider();", null));
+    }
+
+    public void centerOnLocation(double lat, double lng) {
+        lastLat = lat;
+        lastLng = lng;
+        if (!isMapLoaded) return;
+        mainHandler.post(() -> {
+            String script = String.format(java.util.Locale.US,
+                "if (map) { map.flyTo({ center: [%.6f, %.6f], zoom: 16, speed: 1.3 }); }",
+                lng, lat);
+            webView.evaluateJavascript(script, null);
+        });
     }
 }
