@@ -416,15 +416,17 @@
                         android:visibility="gone">
 
                         <ImageView
-                            android:layout_width="70dp"
-                            android:layout_height="40dp"
-                            android:src="@drawable/ic_bike_pulsar" />
+                            android:layout_width="110dp"
+                            android:layout_height="65dp"
+                            android:adjustViewBounds="true"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/ic_bike_ns400z" />
 
                         <TextView
                             android:id="@+id/tvBikeTabName"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Bajaj Pulsar"
+                            android:text="Bajaj Pulsar NS400Z"
                             android:textColor="#F8FAFC"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -1331,10 +1333,12 @@
                 <!-- Hero Bike Header -->
                 <ImageView
                     android:id="@+id/ivDrawerBikeImage"
-                    android:layout_width="160dp"
-                    android:layout_height="90dp"
+                    android:layout_width="220dp"
+                    android:layout_height="145dp"
                     android:layout_gravity="center_horizontal"
-                    android:src="@drawable/ic_bike_pulsar"
+                    android:adjustViewBounds="true"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_bike_ns400z"
                     android:layout_marginTop="8dp" />
 
                 <!-- Bike Name -->
@@ -1342,7 +1346,7 @@
                     android:id="@+id/tvDrawerBikeName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Bajaj Pulsar"
+                    android:text="Bajaj Pulsar NS400Z"
                     android:textColor="#F8FAFC"
                     android:textSize="18sp"
                     android:textStyle="bold"

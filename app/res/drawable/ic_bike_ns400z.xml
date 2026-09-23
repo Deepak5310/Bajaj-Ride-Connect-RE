@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="220dp"
+    android:height="145dp"
+    android:viewportWidth="200"
+    android:viewportHeight="135">
+
+    <!-- 0. Ground Contact Shadow (Soft Perspective Ambient Occlusion) -->
+    <path
+        android:fillColor="#33000000"
+        android:pathData="M 32,120 C 60,126 130,128 174,120 C 184,118 168,114 138,114 C 88,114 42,116 32,120 Z" />
+
+    <!-- ======================================================== -->
+    <!-- 1. REAR WHEEL ASSEMBLY (Background / Left, 3/4 perspective) -->
+    <!-- ======================================================== -->
+    <!-- Rear Tire Rubber -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="11"
+        android:fillColor="#00000000"
+        android:pathData="M 58,94 C 58,80 48,68 36,68 C 24,68 15,80 15,94 C 15,108 24,118 36,118 C 48,118 58,108 58,94 Z" />
+    <!-- Rear Alloy Rim Outer -->
+    <path
+        android:strokeColor="#0F172A"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:pathData="M 54,94 C 54,82 46,72 36,72 C 26,72 19,82 19,94 C 19,106 26,114 36,114 C 46,114 54,106 54,94 Z" />
+    <!-- Rear Red Rim Stripe (Pulsar Sport Accent) -->
+    <path
+        android:strokeColor="#EF4444"
+        android:strokeWidth="1.8"
+        android:fillColor="#00000000"
+        android:pathData="M 52,94 C 52,83 45,74 36,74 C 27,74 21,83 21,94 C 21,104 27,112 36,112 C 45,112 52,104 52,94 Z" />
+    <!-- Rear Brake Disc Rotor -->
+    <path
+        android:strokeColor="#94A3B8"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M 46,94 C 46,86 42,80 36,80 C 30,80 26,86 26,94 C 26,102 30,107 36,107 C 42,107 46,102 46,94 Z" />
+    <!-- Rear Wheel Spokes & Hub -->
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="2"
+        android:pathData="M 36,80 L 36,108 M 23,94 L 49,94 M 27,84 L 45,104 M 27,104 L 45,84" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 36,94 A 5,5 0 1,1 36,93.9 Z" />
+
+    <!-- ======================================================== -->
+    <!-- 2. REAR SWINGARM, CHAIN & NITROX MONOSHOCK               -->
+    <!-- ======================================================== -->
+    <!-- Cast Aluminium Swingarm -->
+    <path
+        android:strokeColor="#475569"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M 36,94 L 74,86 L 86,82" />
+    <!-- Rear Tire Hugger Fender -->
+    <path
+        android:strokeColor="#0F172A"
+        android:strokeWidth="3.2"
+        android:fillColor="#00000000"
+        android:pathData="M 22,86 C 24,74 36,70 52,72" />
+    <!-- Chain & Guard -->
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="2"
+        android:pathData="M 36,94 L 76,90" />
+    <!-- Red Nitrox Monoshock Spring -->
+    <path
+        android:strokeColor="#EF4444"
+        android:strokeWidth="3.5"
+        android:pathData="M 70,80 L 80,64" />
+
+    <!-- ======================================================== -->
+    <!-- 3. REAR TAIL COWL & TAIL TIDY (Pearl White Razor Tail)   -->
+    <!-- ======================================================== -->
+    <!-- Rear Tail Tidy / License Hanger -->
+    <path
+        android:strokeColor="#0F172A"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round"
+        android:pathData="M 44,56 L 30,65 L 30,73" />
+    <!-- Amber Turn Indicator (Left) -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M 27,66 L 31,64 L 31,68 L 27,68 Z" />
+    <!-- Red Reflector -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M 28,70 L 32,70 L 32,73 L 28,73 Z" />
+    <!-- Under-Tail Black Tray -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 48,58 L 64,64 L 76,66 L 58,68 Z" />
+    <!-- Upswept Razor Tail Cowl (Pearl Metallic White) -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M 44,52 C 54,48 66,48 76,54 L 78,60 L 56,64 L 44,56 Z" />
+    <!-- Red Sport Slash on Tail -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M 50,54 L 64,52 L 62,56 L 48,57 Z" />
+    <!-- Split Grab Rail (Black) -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M 56,48 L 68,46 L 74,50" />
+
+    <!-- ======================================================== -->
+    <!-- 4. SPLIT SPORTS SADDLE (Textured Black)                  -->
+    <!-- ======================================================== -->
+    <!-- Elevated Pillion Seat -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 64,46 C 70,44 76,46 80,50 L 76,56 L 62,52 Z" />
+    <!-- Scooped Rider Seat -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 76,50 C 84,49 92,52 98,58 L 88,62 C 80,62 76,56 76,50 Z" />
+
+    <!-- ======================================================== -->
+    <!-- 5. 373cc ENGINE, EXHAUST & UNDERBELLY COWL               -->
+    <!-- ======================================================== -->
+    <!-- Crankcase & Cylinder Block (Matte Black) -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 76,74 L 112,74 L 120,60 L 92,56 L 74,64 Z" />
+    <!-- Bronze Pulsar Clutch Casing (Signature Round Casing) -->
+    <path
+        android:fillColor="#B45309"
+        android:pathData="M 86,74 A 8,8 0 1,1 86,73.9 Z" />
+    <path
+        android:fillColor="#D97706"
+        android:pathData="M 86,74 A 5,5 0 1,1 86,73.9 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M 86,74 A 2.2,2.2 0 1,1 86,73.9 Z" />
+    <!-- Cooling Fins & Engine Mount Bolts -->
+    <path
+        android:strokeColor="#64748B"
+        android:strokeWidth="1.5"
+        android:pathData="M 82,66 L 96,66 M 84,70 L 98,70" />
+    <!-- Liquid-Cooling Radiator Core & Shroud -->
+    <path
+        android:fillColor="#334155"
+        android:pathData="M 118,50 L 126,50 L 122,66 L 116,64 Z" />
+    <!-- Compact Underbelly Exhaust Chamber -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M 78,80 L 102,80 L 98,87 L 74,85 Z" />
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="1.5"
+        android:pathData="M 100,82 L 108,82" />
+    <!-- Aggressive Belly Pan / Engine Cowl (Matte Black) -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 80,84 L 118,84 L 122,76 L 90,76 Z" />
+    <!-- Bold Red '400' Decal Graphic on Belly Pan -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M 96,79 L 112,79 L 110,82 L 94,82 Z" />
+
+    <!-- ======================================================== -->
+    <!-- 6. PERIMETER SPAR FRAME (Chassis Beam)                   -->
+    <!-- ======================================================== -->
+    <path
+        android:strokeColor="#64748B"
+        android:strokeWidth="5.5"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M 80,72 L 92,52 L 122,42" />
+    <!-- Metallic Specular Line on Frame -->
+    <path
+        android:strokeColor="#94A3B8"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M 81,71 L 92,51 L 122,41" />
+
+    <!-- ======================================================== -->
+    <!-- 7. SCULPTED FUEL TANK (Pearl White & Grey NS Shrouds)    -->
+    <!-- ======================================================== -->
+    <!-- Main Tank Body (Pearl Metallic White) -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M 90,52 C 94,38 105,28 120,27 C 128,27 133,32 136,38 L 126,50 L 100,54 Z" />
+    <!-- Tank 3D Contour Shading -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 112,32 C 120,30 128,32 132,38 L 126,48 L 110,48 Z" />
+    <!-- Center Black Tank Strap -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 108,28 L 116,28 L 112,38 L 106,38 Z" />
+    <!-- Brushed Aircraft Fuel Filler Cap -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 112,30 A 2,2 0 1,1 112,29.9 Z" />
+    <!-- Forward Aerodynamic Tank Shrouds (Pearl White & Silver) -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M 120,32 L 140,42 L 130,56 L 114,54 Z" />
+    <!-- Dark Grey Geometric Flank Graphic -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M 124,36 L 136,34 L 138,42 L 126,44 Z" />
+    <!-- Signature Red 'NS' Decal Accent -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M 127,38 L 138,36 L 140,40 L 129,42 Z" />
+
+    <!-- ======================================================== -->
+    <!-- 8. COCKPIT, HEADLAMP MASK & MIRRORS (Front View Angle)   -->
+    <!-- ======================================================== -->
+    <!-- Left Stalk Mirror -->
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="2.2"
+        android:pathData="M 118,26 L 108,16" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 104,14 L 112,14 L 110,18 L 102,18 Z" />
+    <!-- Right Stalk Mirror -->
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="2.2"
+        android:pathData="M 132,28 L 146,18" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 144,16 L 152,16 L 150,20 L 142,20 Z" />
+    <!-- Clip-on Handlebars -->
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="2.5"
+        android:pathData="M 120,28 L 134,32" />
+    <!-- Dark Flyscreen / Instrument Cluster Shield -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 126,26 L 136,20 L 142,24 L 134,32 Z" />
+    <!-- Robotic Headlamp Mask (Pearl White Flanks) -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M 132,32 L 144,32 L 148,42 L 136,44 Z" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 138,34 L 148,34 L 144,46 L 136,44 Z" />
+    <!-- Dual Lightning Bolt LED DRL Eyebrows (Cyan / White) -->
+    <path
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="1.8"
+        android:pathData="M 136,36 L 142,40 L 146,37" />
+    <!-- Central Bi-LED Projector Lens -->
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M 142,41 A 2.8,2.8 0 1,1 142,40.9 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 142,41 A 1.2,1.2 0 1,1 142,40.9 Z" />
+
+    <!-- ======================================================== -->
+    <!-- 9. 43mm INVERTED (USD) FRONT FORKS (Champagne Gold)      -->
+    <!-- ======================================================== -->
+    <!-- Left Gold USD Fork Leg -->
+    <path
+        android:strokeColor="#CA8A04"
+        android:strokeWidth="4.8"
+        android:strokeLineCap="round"
+        android:pathData="M 138,80 L 128,38" />
+    <!-- Right Gold USD Fork Leg (Foreground) -->
+    <path
+        android:strokeColor="#EAB308"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 146,82 L 134,40" />
+    <!-- Inner Chrome Stanchion Highlight -->
+    <path
+        android:strokeColor="#FEF08A"
+        android:strokeWidth="1.6"
+        android:pathData="M 145,80 L 136,52" />
+
+    <!-- ======================================================== -->
+    <!-- 10. FRONT MUDGUARD & FRONT WHEEL (Foreground Right)      -->
+    <!-- ======================================================== -->
+    <!-- Front Mudguard (Gloss Black with Grey Flank) -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 132,72 C 138,62 154,60 166,68 L 160,76 C 152,70 140,72 136,76 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 140,68 C 145,65 152,65 158,68 L 156,72 C 150,69 144,69 142,72 Z" />
+    <!-- Red ABS Decal Badge on Front Mudguard -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M 137,74 L 141,72 L 142,75 L 138,77 Z" />
+    <!-- Front Tire Rubber (17-inch, 3/4 Perspective) -->
+    <path
+        android:strokeColor="#1E293B"
+        android:strokeWidth="13"
+        android:fillColor="#00000000"
+        android:pathData="M 172,96 C 172,78 160,64 146,64 C 132,64 120,78 120,96 C 120,114 132,126 146,126 C 160,126 172,114 172,96 Z" />
+    <!-- Front Alloy Rim Outer (Black) -->
+    <path
+        android:strokeColor="#0F172A"
+        android:strokeWidth="4.5"
+        android:fillColor="#00000000"
+        android:pathData="M 166,96 C 166,82 157,70 146,70 C 135,70 126,82 126,96 C 126,110 135,120 146,120 C 157,120 166,110 166,96 Z" />
+    <!-- Front Red Rim Pinstripe (Pulsar Sport Accent) -->
+    <path
+        android:strokeColor="#EF4444"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:pathData="M 164,96 C 164,83 156,72 146,72 C 136,72 128,83 128,96 C 128,109 136,118 146,118 C 156,118 164,109 164,96 Z" />
+    <!-- 320mm Large Petal Disc Brake Rotor -->
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="3.5"
+        android:fillColor="#00000000"
+        android:pathData="M 158,96 C 158,86 152,78 146,78 C 140,78 134,86 134,96 C 134,106 140,112 146,112 C 152,112 158,106 158,96 Z" />
+    <!-- Split Alloy Wheel Spokes & Hub -->
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="2.5"
+        android:pathData="M 146,76 L 146,114 M 130,96 L 162,96 M 135,84 L 157,108 M 135,108 L 157,84" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 146,96 A 6,6 0 1,1 146,95.9 Z" />
+    <path
+        android:fillColor="#64748B"
+        android:pathData="M 146,96 A 3,3 0 1,1 146,95.9 Z" />
+    <!-- Bybre Radial Brake Caliper -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 136,86 L 144,82 L 148,93 L 140,97 Z" />
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M 139,88 L 142,86 L 143,89 L 140,91 Z" />
+
+</vector>
