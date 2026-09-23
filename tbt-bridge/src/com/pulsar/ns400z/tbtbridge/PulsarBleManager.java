@@ -19,7 +19,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
@@ -59,7 +61,7 @@ public class PulsarBleManager {
     private boolean isConnecting = false;
     private String connectedDeviceName = "";
     private String connectedDeviceAddress = "";
-    private BleListener listener;
+    private final List<BleListener> listeners = new ArrayList<>();
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private boolean isScanning = false;
@@ -106,11 +108,43 @@ public class PulsarBleManager {
         return instance;
     }
 
-    public void setListener(BleListener listener) {
-        this.listener = listener;
-        if (listener != null) {
+    public void addListener(BleListener listener) {
+        if (listener != null && !listeners.contains(listener)) {
+            listeners.add(listener);
             listener.onConnectionStateChanged(isConnected, connectedDeviceName, connectedDeviceAddress);
         }
+    }
+
+    public void removeListener(BleListener listener) {
+        listeners.remove(listener);
+    }
+
+    public void setListener(BleListener listener) {
+        addListener(listener);
+    }
+
+    private void notifyConnectionState(boolean connected, String name, String addr) {
+        mainHandler.post(() -> {
+            for (BleListener l : new ArrayList<>(listeners)) {
+                l.onConnectionStateChanged(connected, name, addr);
+            }
+        });
+    }
+
+    private void notifyPacketSent(String charUuid, byte[] frame, boolean success) {
+        mainHandler.post(() -> {
+            for (BleListener l : new ArrayList<>(listeners)) {
+                l.onPacketSent(charUuid, frame, success);
+            }
+        });
+    }
+
+    private void notifyHandlebarEvent(PulsarProtocol.HandlebarEvent event) {
+        mainHandler.post(() -> {
+            for (BleListener l : new ArrayList<>(listeners)) {
+                l.onHandlebarEvent(event);
+            }
+        });
     }
 
     public boolean isConnected() {
@@ -267,9 +301,7 @@ public class PulsarBleManager {
             writeQueue.clear();
             isWriting = false;
         }
-        if (listener != null) {
-            mainHandler.post(() -> listener.onConnectionStateChanged(false, connectedDeviceName, connectedDeviceAddress));
-        }
+        notifyConnectionState(false, connectedDeviceName, connectedDeviceAddress);
     }
 
     // =========================================================================
@@ -342,9 +374,7 @@ public class PulsarBleManager {
 
             if (task.writeType == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE || !result) {
                 isWriting = false;
-                if (listener != null) {
-                    mainHandler.post(() -> listener.onPacketSent(task.characteristic.getUuid().toString(), task.data, result));
-                }
+                notifyPacketSent(task.characteristic.getUuid().toString(), task.data, result);
                 // Continue queue on main loop
                 mainHandler.post(this::processNextWrite);
             }
@@ -365,9 +395,7 @@ public class PulsarBleManager {
                 Log.i(TAG, "Connected to NS400Z GATT Server. Negotiating MTU 247...");
                 isConnected = true;
                 mainHandler.removeCallbacks(reconnectRunnable);
-                if (listener != null) {
-                    mainHandler.post(() -> listener.onConnectionStateChanged(true, connectedDeviceName, connectedDeviceAddress));
-                }
+                notifyConnectionState(true, connectedDeviceName, connectedDeviceAddress);
 
                 if (!gatt.requestMtu(247)) {
                     Log.i(TAG, "MTU request declined; discovering services directly...");
@@ -388,9 +416,7 @@ public class PulsarBleManager {
                     bluetoothGatt = null;
                 }
 
-                if (listener != null) {
-                    mainHandler.post(() -> listener.onConnectionStateChanged(false, connectedDeviceName, connectedDeviceAddress));
-                }
+                notifyConnectionState(false, connectedDeviceName, connectedDeviceAddress);
 
                 if (autoReconnect) {
                     mainHandler.removeCallbacks(reconnectRunnable);
@@ -434,9 +460,7 @@ public class PulsarBleManager {
                         }
                     }
 
-                    if (listener != null) {
-                        mainHandler.post(() -> listener.onConnectionStateChanged(isConnected && charTbt != null, connectedDeviceName, connectedDeviceAddress));
-                    }
+                    notifyConnectionState(isConnected && charTbt != null, connectedDeviceName, connectedDeviceAddress);
                 } else {
                     Log.e(TAG, "Primary Service " + SERVICE_UUID + " not found!");
                 }
@@ -447,9 +471,7 @@ public class PulsarBleManager {
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             synchronized (writeQueue) {
                 isWriting = false;
-                if (listener != null) {
-                    mainHandler.post(() -> listener.onPacketSent(characteristic.getUuid().toString(), characteristic.getValue(), status == BluetoothGatt.GATT_SUCCESS));
-                }
+                notifyPacketSent(characteristic.getUuid().toString(), characteristic.getValue(), status == BluetoothGatt.GATT_SUCCESS);
                 processNextWrite();
             }
         }
@@ -459,8 +481,8 @@ public class PulsarBleManager {
             if (CHAR_CONTROLS_UUID.equals(characteristic.getUuid())) {
                 byte[] data = characteristic.getValue();
                 PulsarProtocol.HandlebarEvent event = PulsarProtocol.parseHandlebarPacket(data);
-                if (event != null && listener != null) {
-                    mainHandler.post(() -> listener.onHandlebarEvent(event));
+                if (event != null) {
+                    notifyHandlebarEvent(event);
                 }
             }
         }

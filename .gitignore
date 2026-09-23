@@ -12,6 +12,7 @@ tbt-bridge/build/
 
 # Logs & dumps
 *.log
+HANDOFF.md
 ns400z_dump/
 *.output
 *.tmp

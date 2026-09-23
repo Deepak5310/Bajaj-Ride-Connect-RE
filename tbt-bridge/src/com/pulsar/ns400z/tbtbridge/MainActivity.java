@@ -87,7 +87,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         setupListeners();
 
         bleManager = PulsarBleManager.getInstance(this);
-        bleManager.setListener(this);
+        bleManager.addListener(this);
 
         // Start Persistent Background Service
         PulsarForegroundService.start(this);
@@ -288,6 +288,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         try {
             unregisterReceiver(tbtReceiver);
         } catch (Exception ignored) {}
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (bleManager != null) {
+            bleManager.removeListener(this);
+        }
     }
 
     private void checkNotificationPermission() {

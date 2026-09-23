@@ -61,7 +61,7 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
         startForegroundWithNotification("Initializing Pulsar Connect...", "Connecting to NS400Z Cluster...");
 
         bleManager = PulsarBleManager.getInstance(this);
-        bleManager.setListener(this);
+        bleManager.addListener(this);
 
         mediaListener = new MediaStateListener(this, bleManager);
         callHandler = new TelephonyCallHandler(this, bleManager);
@@ -191,6 +191,7 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
             phoneMonitor.stop();
         }
         if (bleManager != null) {
+            bleManager.removeListener(this);
             bleManager.disconnect();
         }
     }
