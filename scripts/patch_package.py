@@ -52,6 +52,10 @@ def patch_axml(manifest_bytes: bytes, old_pkg: str, new_pkg: str) -> bytes:
             new_strings.append(new_pkg)
         elif s.startswith(old_pkg + '.'):
             new_strings.append(s.replace(old_pkg, new_pkg))
+        elif s == "base__abi,base__density":
+            new_strings.append("")
+        elif "vending.splits" in s or "com.android.stamp" in s or "com.android.vending.derived" in s:
+            new_strings.append("")
         else:
             new_strings.append(s)
 
@@ -125,7 +129,7 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
             added_files.add('AndroidManifest.xml')
 
             for item in z_base.infolist():
-                if item.filename == 'AndroidManifest.xml':
+                if item.filename in ('AndroidManifest.xml', 'stamp-cert-sha256'):
                     continue
                 if item.filename.startswith('META-INF/'):
                     continue  # Strip old signatures
@@ -137,7 +141,7 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
             print("    + Merging arm64-v8a native .so libraries...")
             with zipfile.ZipFile(arm64_apk, 'r') as z_arm:
                 for item in z_arm.infolist():
-                    if item.filename.startswith('META-INF/') or item.filename == 'AndroidManifest.xml':
+                    if item.filename.startswith('META-INF/') or item.filename in ('AndroidManifest.xml', 'stamp-cert-sha256'):
                         continue
                     if item.filename not in added_files:
                         out_zip.writestr(item, z_arm.read(item.filename))
@@ -148,7 +152,7 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
             print("    + Merging xxhdpi screen assets...")
             with zipfile.ZipFile(xxhdpi_apk, 'r') as z_xxhdpi:
                 for item in z_xxhdpi.infolist():
-                    if item.filename.startswith('META-INF/') or item.filename == 'AndroidManifest.xml' or item.filename == 'resources.arsc':
+                    if item.filename.startswith('META-INF/') or item.filename in ('AndroidManifest.xml', 'resources.arsc', 'stamp-cert-sha256'):
                         continue
                     if item.filename not in added_files:
                         out_zip.writestr(item, z_xxhdpi.read(item.filename))
@@ -159,7 +163,7 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
             print("    + Merging English locale resources...")
             with zipfile.ZipFile(en_apk, 'r') as z_en:
                 for item in z_en.infolist():
-                    if item.filename.startswith('META-INF/') or item.filename == 'AndroidManifest.xml' or item.filename == 'resources.arsc':
+                    if item.filename.startswith('META-INF/') or item.filename in ('AndroidManifest.xml', 'resources.arsc', 'stamp-cert-sha256'):
                         continue
                     if item.filename not in added_files:
                         out_zip.writestr(item, z_en.read(item.filename))
@@ -191,6 +195,11 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
         "--ks-pass", "pass:android",
         "--ks-key-alias", "androiddebugkey",
         "--key-pass", "pass:android",
+        "--min-sdk-version", "21",
+        "--max-sdk-version", "35",
+        "--v1-signing-enabled", "true",
+        "--v2-signing-enabled", "true",
+        "--v3-signing-enabled", "true",
         output_apk
     ]
     subprocess.run(cmd_sign, check=True, env=env)
