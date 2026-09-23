@@ -607,50 +607,11 @@
                 android:layout_weight="74"
                 android:background="@drawable/bg_cockpit_frosted">
 
-                <!-- Vector Map Canvas -->
-                <ImageView
-                    android:id="@+id/ivMapSurface"
+                <!-- Interactive Mappls Vector Map Engine -->
+                <com.bajaj.rideconnect.re.MapplsMapView
+                    android:id="@+id/mapplsMapView"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/bg_map_satellite" />
-
-                <!-- Location Puck (Glowing Vehicle Arrow) -->
-                <ImageView
-                    android:id="@+id/ivLocationPuck"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_nav_puck" />
-
-                <!-- Highway Shield Overlay (NH 52) -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal|top"
-                    android:layout_marginTop="60dp"
-                    android:text="NH 52"
-                    android:textColor="#000000"
-                    android:textStyle="bold"
-                    android:textSize="11sp"
-                    android:background="@drawable/bg_highway_shield"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp" />
-
-                <!-- Map Place Name Markers -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="-40dp"
-                    android:layout_marginStart="-60dp"
-                    android:text="Chirawa\nचिड़ावा"
-                    android:textColor="#E2E8F0"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:gravity="center" />
+                    android:layout_height="match_parent" />
 
                 <!-- Top Left Turn Instruction Card -->
                 <LinearLayout
@@ -768,6 +729,19 @@
                         android:src="@drawable/ic_compass"
                         android:background="@drawable/bg_circle_action"
                         android:padding="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Search Destination (Mappls AutoSuggest) -->
+                    <ImageView
+                        android:id="@+id/btnMapSearch"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:src="@drawable/ic_search"
+                        android:tint="#06B6D4"
+                        android:background="@drawable/bg_circle_action"
+                        android:padding="9dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:layout_marginBottom="8dp" />
