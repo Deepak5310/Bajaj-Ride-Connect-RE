@@ -3,6 +3,7 @@ package com.bajaj.rideconnect.re;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
@@ -11,19 +12,34 @@ import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Android Media Controller and Session Listener for Spotify, YouTube Music, Apple Music.
- * Streams track info to NS400Z cluster and translates handlebar switches to playback actions.
+ * Enterprise Android Media Controller and Session Listener for Spotify, YouTube Music, Apple Music.
+ * Features:
+ * - Real-time 1-second progress ticker with smooth elapsed time & progress bar synchronization
+ * - Direct TransportControls with graceful fallback to media key events
+ * - Album artwork extraction from MediaMetadata
+ * - Direct UI observer callbacks (zero-latency in-process delivery)
+ * - Streams now-playing track info to motorcycle LCD cluster via BLE GATT
  */
 public class MediaStateListener {
 
     private static final String TAG = "MediaStateListener";
     public static final String ACTION_MEDIA_UPDATE = "com.bajaj.rideconnect.re.MEDIA_UPDATE";
+
+    public interface MediaObserver {
+        void onMediaUpdated(String title, String artist, String album, String source,
+                            int playbackState, int posSec, int durSec, Bitmap artwork);
+    }
+
+    private static MediaStateListener instance;
 
     private final Context context;
     private final PulsarBleManager bleManager;
@@ -32,15 +48,55 @@ public class MediaStateListener {
     private MediaSessionManager.OnActiveSessionsChangedListener sessionsChangedListener;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
+    private final List<MediaObserver> observers = new CopyOnWriteArrayList<>();
+
     private String currentTitle = "";
     private String currentArtist = "";
     private String currentAlbum = "";
+    private Bitmap currentAlbumArt = null;
     private int currentPlaybackState = 0; // 0=Stop/None, 1=Pause, 2=Play (matches Bajaj PlayStatus enum)
+    private int currentPosSec = 0;
+    private int currentDurSec = 0;
+    private long lastPositionUpdateTime = 0;
+    private float playbackSpeed = 1.0f;
+
+    public static MediaStateListener getInstance() {
+        return instance;
+    }
+
+    public static boolean isNotificationListenerEnabled(Context context) {
+        if (context == null) return false;
+        String pkgName = context.getPackageName();
+        final String flat = Settings.Secure.getString(context.getContentResolver(), "enabled_notification_listeners");
+        if (flat != null && !flat.isEmpty()) {
+            final String[] names = flat.split(":");
+            for (String name : names) {
+                final ComponentName cn = ComponentName.unflattenFromString(name);
+                if (cn != null && pkgName.equals(cn.getPackageName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     public MediaStateListener(Context context, PulsarBleManager bleManager) {
         this.context = context.getApplicationContext();
         this.bleManager = bleManager;
+        instance = this;
         initMediaSessions();
+    }
+
+    public void registerObserver(MediaObserver observer) {
+        if (observer != null && !observers.contains(observer)) {
+            observers.add(observer);
+            observer.onMediaUpdated(currentTitle, currentArtist, currentAlbum, getCurrentSource(),
+                    currentPlaybackState, currentPosSec, currentDurSec, currentAlbumArt);
+        }
+    }
+
+    public void unregisterObserver(MediaObserver observer) {
+        observers.remove(observer);
     }
 
     public void initMediaSessions() {
@@ -52,8 +108,6 @@ public class MediaStateListener {
             }
             ComponentName compName = new ComponentName(context, GoogleMapsNotificationListener.class);
 
-            // Called from the constructor and again from refreshMediaSessions();
-            // drop the previous callback so we never stack duplicates.
             if (sessionsChangedListener != null) {
                 try {
                     mediaSessionManager.removeOnActiveSessionsChangedListener(sessionsChangedListener);
@@ -68,37 +122,43 @@ public class MediaStateListener {
         }
     }
 
-    private synchronized void updateActiveController() {
+    public void refreshMediaSessions() {
+        handler.post(this::updateActiveController);
+    }
+
+    public synchronized void updateActiveController() {
         try {
             if (mediaSessionManager == null) return;
             ComponentName compName = new ComponentName(context, GoogleMapsNotificationListener.class);
             List<MediaController> controllers = mediaSessionManager.getActiveSessions(compName);
 
             if (controllers == null || controllers.isEmpty()) {
-                Log.i(TAG, "No active media sessions.");
+                Log.i(TAG, "No active media sessions found.");
                 if (activeController != null) {
                     activeController.unregisterCallback(controllerCallback);
                     activeController = null;
                     currentTitle = "";
                     currentArtist = "";
                     currentAlbum = "";
+                    currentAlbumArt = null;
                     currentPlaybackState = 0;
-                    boolean sent = bleManager.sendMedia("", "", "", 0, 0, 0);
-                    Log.i(TAG, "Media session gone -> idle frame " + (sent ? "queued" : "dropped (cluster not connected)"));
+                    currentPosSec = 0;
+                    currentDurSec = 0;
+                    handler.removeCallbacks(progressTicker);
+                    dispatchMediaUpdate();
+                    if (bleManager != null) {
+                        bleManager.sendMedia("", "", "", 0, 0, 0);
+                    }
                 }
                 return;
             }
 
-            // Prefer the session that is actually playing. If none is, keep the
-            // controller we already have if it is still present, otherwise fall
-            // back to the system's top-priority session.
+            // Select active or playing controller
             MediaController playing = null;
             MediaController existing = null;
             for (MediaController c : controllers) {
                 PlaybackState ps = c.getPlaybackState();
                 int st = ps != null ? ps.getState() : PlaybackState.STATE_NONE;
-                Log.i(TAG, "Session: " + c.getPackageName() + " state=" + st
-                        + (isSameSession(activeController, c) ? " (current)" : ""));
                 if (playing == null && st == PlaybackState.STATE_PLAYING) {
                     playing = c;
                 }
@@ -146,14 +206,40 @@ public class MediaStateListener {
     };
 
     /**
-     * Push the current now-playing state to the cluster. Safe to call at any time;
-     * PulsarForegroundService invokes this on every BLE connect so state that was
-     * dropped while disconnected gets re-sent.
+     * Periodic 1-second progress ticker for active playing sessions.
+     */
+    private final Runnable progressTicker = new Runnable() {
+        @Override
+        public void run() {
+            if (activeController != null && isPlaying()) {
+                PlaybackState ps = activeController.getPlaybackState();
+                if (ps != null && ps.getState() == PlaybackState.STATE_PLAYING) {
+                    long currentMs = ps.getPosition();
+                    long delta = SystemClock.elapsedRealtime() - ps.getLastPositionUpdateTime();
+                    if (delta > 0) {
+                        currentMs += (long) (delta * ps.getPlaybackSpeed());
+                    }
+                    currentPosSec = (int) (currentMs / 1000);
+                    if (currentDurSec > 0 && currentPosSec > currentDurSec) {
+                        currentPosSec = currentDurSec;
+                    }
+                    dispatchMediaUpdate();
+                    handler.postDelayed(this, 1000);
+                    return;
+                }
+            }
+        }
+    };
+
+    /**
+     * Synchronize latest track metadata, artwork, playback state, and notify UI + BLE.
      */
     public void syncMetadata() {
         if (activeController == null) {
-            Log.d(TAG, "syncMetadata: no active controller");
-            return;
+            updateActiveController();
+            if (activeController == null) {
+                return;
+            }
         }
         MediaMetadata metadata = activeController.getMetadata();
         PlaybackState pbState = activeController.getPlaybackState();
@@ -179,44 +265,88 @@ public class MediaStateListener {
                 currentAlbum = metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_DESCRIPTION);
             }
             if (currentAlbum == null) currentAlbum = "";
+
+            long durMs = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
+            if (durMs <= 0) {
+                try {
+                    String durStr = metadata.getString(MediaMetadata.METADATA_KEY_DURATION);
+                    if (durStr != null) durMs = Long.parseLong(durStr);
+                } catch (Exception ignored) {}
+            }
+            currentDurSec = (int) (durMs / 1000);
+
+            // Extract Album Artwork
+            Bitmap art = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+            if (art == null) {
+                art = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
+            }
+            if (art == null) {
+                art = metadata.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
+            }
+            currentAlbumArt = art;
         }
 
-        int state = 0; // 0=None/Stopped, 1=Paused, 2=Playing (matches Bajaj PlayStatus enum)
-        int posSec = 0;
-        int durSec = 0;
-
+        int state = 0; // 0=None, 1=Paused, 2=Playing
         if (pbState != null) {
-            posSec = (int) (pbState.getPosition() / 1000);
-            int pb = pbState.getState();
-            if (pb == PlaybackState.STATE_PLAYING) {
-                state = 2; // PlayStatus.PLAY = 2
-            } else if (pb == PlaybackState.STATE_PAUSED) {
-                state = 1; // PlayStatus.PAUSED = 1
+            long currentMs = pbState.getPosition();
+            lastPositionUpdateTime = pbState.getLastPositionUpdateTime();
+            playbackSpeed = pbState.getPlaybackSpeed();
+            if (playbackSpeed <= 0) playbackSpeed = 1.0f;
+
+            if (pbState.getState() == PlaybackState.STATE_PLAYING) {
+                long delta = SystemClock.elapsedRealtime() - lastPositionUpdateTime;
+                if (delta > 0) {
+                    currentMs += (long) (delta * playbackSpeed);
+                }
+                state = 2;
+            } else if (pbState.getState() == PlaybackState.STATE_PAUSED) {
+                state = 1;
             } else {
-                state = 0; // PlayStatus.NONE = 0
+                state = (currentTitle.isEmpty()) ? 0 : 1;
+            }
+            currentPosSec = (int) (currentMs / 1000);
+            if (currentDurSec > 0 && currentPosSec > currentDurSec) {
+                currentPosSec = currentDurSec;
             }
         }
         currentPlaybackState = state;
 
-        if (metadata != null) {
-            durSec = (int) (metadata.getLong(MediaMetadata.METADATA_KEY_DURATION) / 1000);
+        if (state == 2) {
+            handler.removeCallbacks(progressTicker);
+            handler.postDelayed(progressTicker, 1000);
+        } else {
+            handler.removeCallbacks(progressTicker);
         }
 
-        boolean sent = bleManager.sendMedia(currentTitle, currentArtist, currentAlbum, posSec, durSec, state);
-        Log.i(TAG, "sendMedia[" + (activeController != null ? activeController.getPackageName() : "none") + "] state=" + state
-                + " '" + currentTitle + "' - '" + currentArtist + "' "
-                + posSec + "/" + durSec + "s -> " + (sent ? "queued" : "dropped (cluster not connected)"));
+        dispatchMediaUpdate();
 
-        // Broadcast media update to MainActivity UI
-        String sourceName = formatSourceLabel(activeController != null ? activeController.getPackageName() : "");
+        if (bleManager != null) {
+            bleManager.sendMedia(currentTitle, currentArtist, currentAlbum, currentPosSec, currentDurSec, state);
+        }
+    }
+
+    private void dispatchMediaUpdate() {
+        String sourceName = getCurrentSource();
+
+        // 1. In-process direct observers (UI instant delivery with Bitmap)
+        for (MediaObserver obs : observers) {
+            try {
+                obs.onMediaUpdated(currentTitle, currentArtist, currentAlbum, sourceName,
+                        currentPlaybackState, currentPosSec, currentDurSec, currentAlbumArt);
+            } catch (Exception e) {
+                Log.w(TAG, "Error notifying observer: " + e.getMessage());
+            }
+        }
+
+        // 2. Broadcast for background components
         Intent intent = new Intent(ACTION_MEDIA_UPDATE);
         intent.setPackage(context.getPackageName());
         intent.putExtra("title", currentTitle);
         intent.putExtra("artist", currentArtist);
         intent.putExtra("album", currentAlbum);
         intent.putExtra("source", sourceName);
-        intent.putExtra("duration_sec", durSec);
-        intent.putExtra("position_sec", posSec);
+        intent.putExtra("duration_sec", currentDurSec);
+        intent.putExtra("position_sec", currentPosSec);
         intent.putExtra("playback_state", currentPlaybackState);
         context.sendBroadcast(intent);
     }
@@ -239,19 +369,56 @@ public class MediaStateListener {
         if (activeController == null) {
             updateActiveController();
         }
-        if (isPlaying()) {
-            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PAUSE, c -> c.getTransportControls().pause());
+        if (activeController != null) {
+            PlaybackState ps = activeController.getPlaybackState();
+            int st = ps != null ? ps.getState() : PlaybackState.STATE_NONE;
+            boolean isCurrentlyPlaying = (st == PlaybackState.STATE_PLAYING);
+
+            MediaController.TransportControls tc = activeController.getTransportControls();
+            try {
+                if (isCurrentlyPlaying) {
+                    tc.pause();
+                    currentPlaybackState = 1;
+                } else {
+                    tc.play();
+                    currentPlaybackState = 2;
+                }
+                dispatchMediaUpdate();
+            } catch (Exception e) {
+                Log.w(TAG, "TransportControls failed: " + e.getMessage() + ", trying dispatchMediaButtonEvent");
+                int key = isCurrentlyPlaying ? KeyEvent.KEYCODE_MEDIA_PAUSE : KeyEvent.KEYCODE_MEDIA_PLAY;
+                try {
+                    activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_DOWN, key));
+                    activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_UP, key));
+                } catch (Exception ex) {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
+                }
+            }
         } else {
-            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PLAY, c -> c.getTransportControls().play());
+            sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
         }
-        handler.postDelayed(this::syncMetadata, 400);
+        handler.postDelayed(this::syncMetadata, 300);
     }
 
     public void skipNext() {
         if (activeController == null) {
             updateActiveController();
         }
-        dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_NEXT, c -> c.getTransportControls().skipToNext());
+        if (activeController != null) {
+            try {
+                activeController.getTransportControls().skipToNext();
+            } catch (Exception e) {
+                Log.w(TAG, "skipToNext TransportControls failed: " + e.getMessage());
+                try {
+                    activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT));
+                    activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_NEXT));
+                } catch (Exception ex) {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
+                }
+            }
+        } else {
+            sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
+        }
         handler.postDelayed(this::syncMetadata, 400);
     }
 
@@ -259,7 +426,21 @@ public class MediaStateListener {
         if (activeController == null) {
             updateActiveController();
         }
-        dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PREVIOUS, c -> c.getTransportControls().skipToPrevious());
+        if (activeController != null) {
+            try {
+                activeController.getTransportControls().skipToPrevious();
+            } catch (Exception e) {
+                Log.w(TAG, "skipToPrevious TransportControls failed: " + e.getMessage());
+                try {
+                    activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS));
+                    activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS));
+                } catch (Exception ex) {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+                }
+            }
+        } else {
+            sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+        }
         handler.postDelayed(this::syncMetadata, 400);
     }
 
@@ -277,47 +458,47 @@ public class MediaStateListener {
         } else if (ev.musicPrev) {
             skipPrevious();
         } else if (ev.musicPlay) {
-            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PLAY, c -> c.getTransportControls().play());
+            if (activeController != null) {
+                try {
+                    activeController.getTransportControls().play();
+                } catch (Exception e) {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY);
+                }
+            } else {
+                sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY);
+            }
             handler.postDelayed(this::syncMetadata, 400);
         } else if (ev.musicPause) {
-            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PAUSE, c -> c.getTransportControls().pause());
+            if (activeController != null) {
+                try {
+                    activeController.getTransportControls().pause();
+                } catch (Exception e) {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE);
+                }
+            } else {
+                sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE);
+            }
             handler.postDelayed(this::syncMetadata, 400);
         } else if (ev.musicStop) {
-            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_STOP, c -> c.getTransportControls().stop());
+            if (activeController != null) {
+                try {
+                    activeController.getTransportControls().stop();
+                } catch (Exception e) {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_STOP);
+                }
+            } else {
+                sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_STOP);
+            }
             handler.postDelayed(this::syncMetadata, 400);
         }
     }
 
-    private interface ControllerAction {
-        void execute(MediaController controller);
-    }
-
-    private void dispatchMediaAction(int keyCode, ControllerAction action) {
-        if (activeController != null) {
-            if (action != null) {
-                try {
-                    action.execute(activeController);
-                } catch (Exception e) {
-                    Log.w(TAG, "Transport controls failed, falling back to key event: " + e.getMessage());
-                }
-            }
-            try {
-                activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
-                activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_UP, keyCode));
-            } catch (Exception e) {
-                Log.w(TAG, "Controller media button event failed: " + e.getMessage());
-            }
-        }
-
-        // Fallback: Send Audio Key Events via AudioManager
+    private void sendGlobalMediaKey(int keyCode) {
         AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         if (am != null) {
-            try {
-                am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
-                am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyCode));
-            } catch (Exception e) {
-                Log.w(TAG, "AudioManager dispatchMediaKeyEvent failed: " + e.getMessage());
-            }
+            long now = SystemClock.uptimeMillis();
+            am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0));
+            am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0));
         }
     }
 
@@ -333,11 +514,21 @@ public class MediaStateListener {
         return currentAlbum;
     }
 
+    public Bitmap getCurrentAlbumArt() {
+        return currentAlbumArt;
+    }
+
     public String getCurrentSource() {
         return formatSourceLabel(activeController != null ? activeController.getPackageName() : "");
     }
 
     public boolean isPlaying() {
+        if (activeController != null) {
+            PlaybackState ps = activeController.getPlaybackState();
+            if (ps != null) {
+                return ps.getState() == PlaybackState.STATE_PLAYING;
+            }
+        }
         return currentPlaybackState == 2;
     }
 }

@@ -51,11 +51,22 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
 
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        if (sbn == null || !GOOGLE_MAPS_PKG.equals(sbn.getPackageName())) {
+        if (sbn == null) {
             return;
         }
 
         Notification notification = sbn.getNotification();
+        if (notification != null && notification.extras != null) {
+            if (notification.extras.containsKey(Notification.EXTRA_MEDIA_SESSION)) {
+                if (MediaStateListener.getInstance() != null) {
+                    MediaStateListener.getInstance().refreshMediaSessions();
+                }
+            }
+        }
+
+        if (!GOOGLE_MAPS_PKG.equals(sbn.getPackageName())) {
+            return;
+        }
         if (notification == null || notification.extras == null) {
             return;
         }
@@ -246,6 +257,15 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
+        if (sbn != null && sbn.getNotification() != null) {
+            Notification n = sbn.getNotification();
+            if (n.extras != null && n.extras.containsKey(Notification.EXTRA_MEDIA_SESSION)) {
+                if (MediaStateListener.getInstance() != null) {
+                    MediaStateListener.getInstance().refreshMediaSessions();
+                }
+            }
+        }
+
         if (sbn != null && GOOGLE_MAPS_PKG.equals(sbn.getPackageName())) {
             Log.i(TAG, "Google Maps Navigation ended -> Clearing NS400Z cluster.");
             byte[] stopPacket = PulsarProtocol.buildTbtClearFrame();

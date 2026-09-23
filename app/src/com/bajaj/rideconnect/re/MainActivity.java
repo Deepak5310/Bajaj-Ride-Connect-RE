@@ -12,13 +12,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.Settings;
+import android.view.KeyEvent;
 import android.service.notification.NotificationListenerService;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyCallback;
@@ -233,7 +237,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 int posSec = intent.getIntExtra("position_sec", 0);
                 int durSec = intent.getIntExtra("duration_sec", 0);
 
-                updateCockpitMedia(title, artist, source, state, posSec, durSec);
+                Bitmap art = (MediaStateListener.getInstance() != null)
+                        ? MediaStateListener.getInstance().getCurrentAlbumArt() : null;
+                updateCockpitMedia(title, artist, source, state, posSec, durSec, art);
             } else if (PhoneStateMonitor.ACTION_TELEMETRY_UPDATE.equals(action)) {
                 int bat = intent.getIntExtra("battery", -1);
                 int sig = intent.getIntExtra("signal", -1);
@@ -257,6 +263,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
             }
         }
+    };
+
+    private final MediaStateListener.MediaObserver mediaObserver = (title, artist, album, source, state, posSec, durSec, art) -> {
+        runOnUiThread(() -> updateCockpitMedia(title, artist, source, state, posSec, durSec, art));
     };
 
     @Override
@@ -283,8 +293,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (window == null) return;
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true);
+            setTurnScreenOn(true);
+        }
 
         applyImmersiveFullscreen();
     }
@@ -548,25 +564,77 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void toggleMediaPlayback() {
-        PulsarForegroundService svc = PulsarForegroundService.getInstance();
-        if (svc != null && svc.getMediaListener() != null) {
-            svc.getMediaListener().togglePlayPause();
+        if (!MediaStateListener.isNotificationListenerEnabled(this)) {
+            Toast.makeText(this, "Enable Notification Access to control music", Toast.LENGTH_LONG).show();
+            try {
+                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+            } catch (Exception ignored) {}
+            return;
+        }
+
+        MediaStateListener msl = MediaStateListener.getInstance();
+        if (msl != null) {
+            msl.togglePlayPause();
         } else {
-            Toast.makeText(this, "No active media session. Start Spotify/YT Music first.", Toast.LENGTH_SHORT).show();
+            PulsarForegroundService svc = PulsarForegroundService.getInstance();
+            if (svc != null && svc.getMediaListener() != null) {
+                svc.getMediaListener().togglePlayPause();
+            } else {
+                sendDirectMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
+            }
         }
     }
 
     private void skipMediaNext() {
-        PulsarForegroundService svc = PulsarForegroundService.getInstance();
-        if (svc != null && svc.getMediaListener() != null) {
-            svc.getMediaListener().skipNext();
+        if (!MediaStateListener.isNotificationListenerEnabled(this)) {
+            Toast.makeText(this, "Enable Notification Access to control music", Toast.LENGTH_LONG).show();
+            try {
+                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+            } catch (Exception ignored) {}
+            return;
+        }
+
+        MediaStateListener msl = MediaStateListener.getInstance();
+        if (msl != null) {
+            msl.skipNext();
+        } else {
+            PulsarForegroundService svc = PulsarForegroundService.getInstance();
+            if (svc != null && svc.getMediaListener() != null) {
+                svc.getMediaListener().skipNext();
+            } else {
+                sendDirectMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT);
+            }
         }
     }
 
     private void skipMediaPrevious() {
-        PulsarForegroundService svc = PulsarForegroundService.getInstance();
-        if (svc != null && svc.getMediaListener() != null) {
-            svc.getMediaListener().skipPrevious();
+        if (!MediaStateListener.isNotificationListenerEnabled(this)) {
+            Toast.makeText(this, "Enable Notification Access to control music", Toast.LENGTH_LONG).show();
+            try {
+                startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+            } catch (Exception ignored) {}
+            return;
+        }
+
+        MediaStateListener msl = MediaStateListener.getInstance();
+        if (msl != null) {
+            msl.skipPrevious();
+        } else {
+            PulsarForegroundService svc = PulsarForegroundService.getInstance();
+            if (svc != null && svc.getMediaListener() != null) {
+                svc.getMediaListener().skipPrevious();
+            } else {
+                sendDirectMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS);
+            }
+        }
+    }
+
+    private void sendDirectMediaKey(int keyCode) {
+        AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        if (am != null) {
+            long now = SystemClock.uptimeMillis();
+            am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0));
+            am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0));
         }
     }
 
@@ -744,9 +812,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         });
     }
 
-    private void updateCockpitMedia(String title, String artist, String source, int state, int posSec, int durSec) {
+    private void updateCockpitMedia(String title, String artist, String source, int state, int posSec, int durSec, Bitmap art) {
         runOnUiThread(() -> {
-            if (title == null || title.trim().isEmpty() || state == 0) {
+            if (title == null || title.trim().isEmpty() || (state == 0 && (title.isEmpty() || title.equals("No Media")))) {
                 tvMediaTrack.setText("No Media Playing");
                 tvMediaArtist.setText("Start playback on phone");
                 tvMediaSource.setText("Standby");
@@ -757,6 +825,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 pbMediaTrack.setProgress(0);
                 tvMediaElapsed.setText("0:00");
                 tvMediaDuration.setText("0:00");
+                ivAlbumArt.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                ivAlbumArt.setImageResource(R.drawable.ic_album_art_placeholder);
+                ivPillAlbumArt.setImageResource(R.drawable.ic_pulsar_logo);
             } else {
                 tvMediaTrack.setText(title);
                 tvPillTrack.setText(title);
@@ -782,9 +853,28 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     pbMediaTrack.setProgress(Math.min(100, Math.max(0, percent)));
                     tvMediaElapsed.setText(formatTime(posSec));
                     tvMediaDuration.setText(formatTime(durSec));
+                } else if (posSec > 0) {
+                    tvMediaElapsed.setText(formatTime(posSec));
+                }
+
+                if (art != null) {
+                    ivAlbumArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    ivAlbumArt.setImageBitmap(art);
+                    ivPillAlbumArt.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    ivPillAlbumArt.setImageBitmap(art);
+                } else {
+                    ivAlbumArt.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                    ivAlbumArt.setImageResource(R.drawable.ic_album_art_placeholder);
+                    ivPillAlbumArt.setImageResource(R.drawable.ic_pulsar_logo);
                 }
             }
         });
+    }
+
+    private void updateCockpitMedia(String title, String artist, String source, int state, int posSec, int durSec) {
+        Bitmap art = (MediaStateListener.getInstance() != null)
+                ? MediaStateListener.getInstance().getCurrentAlbumArt() : null;
+        updateCockpitMedia(title, artist, source, state, posSec, durSec, art);
     }
 
     private static String formatTime(int totalSeconds) {
@@ -1203,12 +1293,15 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             NotificationListenerService.requestRebind(new ComponentName(this, GoogleMapsNotificationListener.class));
         } catch (Exception ignored) {}
 
-        PulsarForegroundService svc = PulsarForegroundService.getInstance();
-        if (svc != null && svc.getMediaListener() != null) {
-            MediaStateListener ml = svc.getMediaListener();
-            if (!ml.getCurrentTitle().isEmpty()) {
-                updateCockpitMedia(ml.getCurrentTitle(), ml.getCurrentArtist(), ml.getCurrentSource(),
-                        ml.isPlaying() ? 2 : 1, 0, 0);
+        MediaStateListener msl = MediaStateListener.getInstance();
+        if (msl != null) {
+            msl.registerObserver(mediaObserver);
+            msl.syncMetadata();
+        } else {
+            PulsarForegroundService svc = PulsarForegroundService.getInstance();
+            if (svc != null && svc.getMediaListener() != null) {
+                svc.getMediaListener().registerObserver(mediaObserver);
+                svc.getMediaListener().syncMetadata();
             }
         }
 
@@ -1232,6 +1325,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     @Override
     protected void onPause() {
         super.onPause();
+        MediaStateListener msl = MediaStateListener.getInstance();
+        if (msl != null) {
+            msl.unregisterObserver(mediaObserver);
+        }
         clockHandler.removeCallbacks(clockRunnable);
         try {
             unregisterReceiver(systemUpdatesReceiver);
