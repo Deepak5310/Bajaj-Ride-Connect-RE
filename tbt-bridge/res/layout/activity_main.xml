@@ -46,7 +46,7 @@
                     android:id="@+id/tvDeviceTarget"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="NS400Z • PULSAR6741"
+                    android:text="STANDBY • NO BIKE LINKED"
                     android:textColor="@color/text_tertiary"
                     android:textSize="11sp"
                     android:letterSpacing="0.04" />
@@ -172,7 +172,7 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#10253F" />
+                    android:background="#1A1B24" />
 
                 <!-- LCD Navigation Stage: Glyph + Distance + Turn Desc -->
                 <LinearLayout
@@ -261,7 +261,7 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#10253F" />
+                    android:background="#1A1B24" />
 
                 <!-- LCD Media Footer: Track + Artist + State -->
                 <LinearLayout
@@ -534,7 +534,7 @@
                     android:layout_width="0dp"
                     android:layout_height="44dp"
                     android:layout_weight="1"
-                    android:text="⮡ Roundabout (Exit 2)"
+                    android:text="🔄 Roundabout (Exit 2)"
                     android:background="@drawable/bg_chip_action"
                     android:textColor="@color/pulsar_amber"
                     android:textSize="11sp"
@@ -656,6 +656,21 @@
                     android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </LinearLayout>
+
+        <!-- ========================================================= -->
+        <!-- 6. SYSTEM TERMINATE & EXIT                                -->
+        <!-- ========================================================= -->
+        <Button
+            android:id="@+id/btnExitApp"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="✕  TERMINATE SESSION &amp; EXIT"
+            android:background="@drawable/bg_chip_danger"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:letterSpacing="0.08"
+            android:layout_marginTop="16dp" />
 
     </LinearLayout>
 </ScrollView>

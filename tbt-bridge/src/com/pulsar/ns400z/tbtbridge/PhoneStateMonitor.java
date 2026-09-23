@@ -26,14 +26,15 @@ import java.util.List;
 public class PhoneStateMonitor {
 
     private static final String TAG = "PhoneStateMonitor";
+    public static final String ACTION_TELEMETRY_UPDATE = "com.pulsar.ns400z.tbtbridge.TELEMETRY_UPDATE";
 
     private final Context context;
     private final PulsarBleManager bleManager;
     private final TelephonyCallHandler callHandler;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
-    private int batteryPercent = 85;
-    private int signalBars = 4; // 0-4
+    private int batteryPercent = -1;
+    private int signalBars = -1; // 0-4
     private boolean isRunning = false;
     private boolean batteryReceiverRegistered = false;
 
@@ -44,18 +45,29 @@ public class PhoneStateMonitor {
             int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
             if (level >= 0 && scale > 0) {
                 batteryPercent = (int) ((level / (float) scale) * 100);
+                broadcastTelemetry();
             }
         }
     };
+
+    private void broadcastTelemetry() {
+        Intent intent = new Intent(ACTION_TELEMETRY_UPDATE);
+        intent.setPackage(context.getPackageName());
+        intent.putExtra("battery", batteryPercent);
+        intent.putExtra("signal", signalBars);
+        context.sendBroadcast(intent);
+    }
 
     private final Runnable heartbeatRunnable = new Runnable() {
         @Override
         public void run() {
             if (isRunning) {
+                broadcastTelemetry();
                 if (bleManager.isConnected()) {
                     int callState = callHandler != null ? callHandler.getCurrentCallState() : 0;
                     String caller = callHandler != null ? callHandler.getActiveCaller() : "";
-                    bleManager.sendTelemetry(batteryPercent, signalBars, callState, caller, 0, 0);
+                    bleManager.sendTelemetry(batteryPercent >= 0 ? batteryPercent : 85,
+                            signalBars >= 0 ? signalBars : 4, callState, caller, 0, 0);
                 }
                 handler.postDelayed(this, 4000); // 4-second interval heartbeat
             }
@@ -80,6 +92,7 @@ public class PhoneStateMonitor {
                 int scale = sticky.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
                 if (level >= 0 && scale > 0) {
                     batteryPercent = (int) ((level / (float) scale) * 100);
+                    broadcastTelemetry();
                 }
             }
         }
@@ -96,6 +109,7 @@ public class PhoneStateMonitor {
         public void onSignalStrengthsChanged(SignalStrength signalStrength) {
             if (signalStrength != null) {
                 monitor.signalBars = signalStrength.getLevel(); // 0 to 4
+                monitor.broadcastTelemetry();
             }
         }
     }

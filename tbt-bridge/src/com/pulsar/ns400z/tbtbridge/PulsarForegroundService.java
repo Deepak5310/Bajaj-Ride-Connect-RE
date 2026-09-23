@@ -77,6 +77,19 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
         if (intent != null && intent.getAction() != null) {
             String action = intent.getAction();
             if (ACTION_STOP.equals(action)) {
+                if (bleManager != null) {
+                    bleManager.setAutoReconnect(false);
+                    bleManager.stopScan();
+                    bleManager.disconnect();
+                }
+                if (phoneMonitor != null) {
+                    phoneMonitor.stop();
+                }
+                NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                if (nm != null) {
+                    nm.cancel(NOTIFICATION_ID);
+                    nm.cancelAll();
+                }
                 stopForeground(true);
                 stopSelf();
                 return START_NOT_STICKY;
@@ -191,6 +204,10 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
         }
     }
 
+    public MediaStateListener getMediaListener() {
+        return mediaListener;
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -201,8 +218,17 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
         }
         if (bleManager != null) {
             bleManager.removeListener(this);
+            bleManager.setAutoReconnect(false);
+            bleManager.stopScan();
             bleManager.disconnect();
         }
+        try {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null) {
+                nm.cancel(NOTIFICATION_ID);
+                nm.cancelAll();
+            }
+        } catch (Exception ignored) {}
     }
 
     @Override

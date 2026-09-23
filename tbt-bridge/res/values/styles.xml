@@ -9,6 +9,6 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
-        <item name="android:colorControlHighlight">#2600F0FF</item>
+        <item name="android:colorControlHighlight">#26F59E0B</item>
     </style>
 </resources>

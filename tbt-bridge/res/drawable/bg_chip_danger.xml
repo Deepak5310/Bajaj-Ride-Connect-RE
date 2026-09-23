@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="#FF8A8A">
+    android:color="#FCA5A5">
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:startColor="#EF4444"
-                android:endColor="#991B1B"
+                android:startColor="#DC2626"
+                android:endColor="#7F1D1D"
                 android:angle="45" />
             <corners android:radius="12dp" />
         </shape>

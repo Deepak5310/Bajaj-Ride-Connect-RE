@@ -199,7 +199,7 @@ public class PulsarBleManager {
                 String name = dev.getName();
                 if (isMatchingClusterName(name)) {
                     Log.i(TAG, "Connecting to paired NS400Z cluster: " + name + " [" + dev.getAddress() + "]");
-                    connect(dev.getAddress());
+                    connect(dev.getAddress(), name);
                     return;
                 }
             }
@@ -233,16 +233,23 @@ public class PulsarBleManager {
         public void onScanResult(int callbackType, ScanResult result) {
             BluetoothDevice device = result.getDevice();
             String name = device.getName();
+            if ((name == null || name.isEmpty()) && result.getScanRecord() != null) {
+                name = result.getScanRecord().getDeviceName();
+            }
             if (isMatchingClusterName(name)) {
                 Log.i(TAG, "Discovered Pulsar cluster in BLE scan: " + name + " [" + device.getAddress() + "]");
                 stopScan();
-                connect(device.getAddress());
+                connect(device.getAddress(), name);
             }
         }
     };
 
-    @SuppressLint("MissingPermission")
     public void connect(String deviceAddress) {
+        connect(deviceAddress, null);
+    }
+
+    @SuppressLint("MissingPermission")
+    public void connect(String deviceAddress, String deviceName) {
         BluetoothAdapter adapter = getAdapter();
         if (adapter == null || deviceAddress == null) return;
         if (isConnected || isConnecting) {
@@ -253,9 +260,15 @@ public class PulsarBleManager {
         try {
             isConnecting = true;
             BluetoothDevice device = adapter.getRemoteDevice(deviceAddress);
-            connectedDeviceName = device.getName() != null ? device.getName() : "PULSAR6741";
+            if (deviceName != null && !deviceName.isEmpty()) {
+                connectedDeviceName = deviceName;
+            } else if (device.getName() != null && !device.getName().isEmpty()) {
+                connectedDeviceName = device.getName();
+            } else {
+                connectedDeviceName = "";
+            }
             connectedDeviceAddress = deviceAddress;
-            Log.i(TAG, "Initiating direct GATT connection to " + deviceAddress + " (" + connectedDeviceName + ")");
+            Log.i(TAG, "Initiating direct GATT connection to " + deviceAddress + (connectedDeviceName.isEmpty() ? "" : " (" + connectedDeviceName + ")"));
 
             if (bluetoothGatt != null) {
                 try {
@@ -280,6 +293,9 @@ public class PulsarBleManager {
     public void disconnect() {
         autoReconnect = false;
         mainHandler.removeCallbacks(reconnectRunnable);
+        if (isScanning) {
+            stopScan();
+        }
         if (bluetoothGatt != null) {
             try {
                 bluetoothGatt.disconnect();
@@ -293,11 +309,13 @@ public class PulsarBleManager {
         charTelemetry = null;
         charMedia = null;
         charControls = null;
+        connectedDeviceName = "";
+        connectedDeviceAddress = "";
         synchronized (writeQueue) {
             writeQueue.clear();
             isWriting = false;
         }
-        notifyConnectionState(false, connectedDeviceName, connectedDeviceAddress);
+        notifyConnectionState(false, "", "");
     }
 
     // =========================================================================
@@ -391,6 +409,12 @@ public class PulsarBleManager {
                 Log.i(TAG, "Connected to NS400Z GATT Server. Negotiating MTU 247...");
                 isConnected = true;
                 mainHandler.removeCallbacks(reconnectRunnable);
+                if (gatt.getDevice() != null) {
+                    String gattName = gatt.getDevice().getName();
+                    if (gattName != null && !gattName.isEmpty()) {
+                        connectedDeviceName = gattName;
+                    }
+                }
                 notifyConnectionState(true, connectedDeviceName, connectedDeviceAddress);
 
                 if (!gatt.requestMtu(247)) {
@@ -412,7 +436,10 @@ public class PulsarBleManager {
                     bluetoothGatt = null;
                 }
 
-                notifyConnectionState(false, connectedDeviceName, connectedDeviceAddress);
+                connectedDeviceName = "";
+                connectedDeviceAddress = "";
+                notifyConnectionState(false, "", "");
+                PulsarProtocol.resetHandlebarCounters();
 
                 if (autoReconnect) {
                     mainHandler.removeCallbacks(reconnectRunnable);
@@ -450,8 +477,12 @@ public class PulsarBleManager {
                         gatt.setCharacteristicNotification(charControls, true);
                         BluetoothGattDescriptor descriptor = charControls.getDescriptor(CCCD_UUID);
                         if (descriptor != null) {
-                            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                            gatt.writeDescriptor(descriptor);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                            } else {
+                                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                                gatt.writeDescriptor(descriptor);
+                            }
                             Log.i(TAG, "Subscribed to Handlebar controls CCCD notification.");
                         }
                     }
@@ -473,10 +504,22 @@ public class PulsarBleManager {
         }
 
         @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value) {
+            handleCharacteristicChanged(characteristic, value);
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            if (characteristic != null) {
+                handleCharacteristicChanged(characteristic, characteristic.getValue());
+            }
+        }
+
+        private void handleCharacteristicChanged(BluetoothGattCharacteristic characteristic, byte[] value) {
+            if (characteristic == null || value == null) return;
             if (CHAR_CONTROLS_UUID.equals(characteristic.getUuid())) {
-                byte[] data = characteristic.getValue();
-                PulsarProtocol.HandlebarEvent event = PulsarProtocol.parseHandlebarPacket(data);
+                PulsarProtocol.HandlebarEvent event = PulsarProtocol.parseHandlebarPacket(value);
                 if (event != null) {
                     notifyHandlebarEvent(event);
                 }

@@ -2,6 +2,7 @@ package com.pulsar.ns400z.tbtbridge;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
@@ -22,6 +23,7 @@ import java.util.List;
 public class MediaStateListener {
 
     private static final String TAG = "MediaStateListener";
+    public static final String ACTION_MEDIA_UPDATE = "com.pulsar.ns400z.tbtbridge.MEDIA_UPDATE";
 
     private final Context context;
     private final PulsarBleManager bleManager;
@@ -201,54 +203,76 @@ public class MediaStateListener {
         }
 
         boolean sent = bleManager.sendMedia(currentTitle, currentArtist, currentAlbum, posSec, durSec, state);
-        Log.i(TAG, "sendMedia[" + activeController.getPackageName() + "] state=" + state
+        Log.i(TAG, "sendMedia[" + (activeController != null ? activeController.getPackageName() : "none") + "] state=" + state
                 + " '" + currentTitle + "' - '" + currentArtist + "' "
                 + posSec + "/" + durSec + "s -> " + (sent ? "queued" : "dropped (cluster not connected)"));
+
+        // Broadcast media update to MainActivity UI
+        Intent intent = new Intent(ACTION_MEDIA_UPDATE);
+        intent.setPackage(context.getPackageName());
+        intent.putExtra("title", currentTitle);
+        intent.putExtra("artist", currentArtist);
+        intent.putExtra("album", currentAlbum);
+        intent.putExtra("playback_state", currentPlaybackState);
+        context.sendBroadcast(intent);
     }
 
     public void handleHandlebarMedia(PulsarProtocol.HandlebarEvent ev) {
         if (ev == null) return;
+        Log.i(TAG, "handleHandlebarMedia: play=" + ev.musicPlay + " pause=" + ev.musicPause
+                + " next=" + ev.musicNext + " prev=" + ev.musicPrev + " stop=" + ev.musicStop);
 
-        if (activeController != null && activeController.getTransportControls() != null) {
-            try {
-                if (ev.musicNext) {
-                    Log.i(TAG, "Handlebar: Skip to NEXT track");
-                    activeController.getTransportControls().skipToNext();
-                } else if (ev.musicPrev) {
-                    Log.i(TAG, "Handlebar: Skip to PREVIOUS track");
-                    activeController.getTransportControls().skipToPrevious();
-                } else if (ev.musicPlay) {
-                    Log.i(TAG, "Handlebar: Music PLAY");
-                    activeController.getTransportControls().play();
-                } else if (ev.musicPause) {
-                    Log.i(TAG, "Handlebar: Music PAUSE");
-                    activeController.getTransportControls().pause();
-                } else if (ev.musicStop) {
-                    Log.i(TAG, "Handlebar: Music STOP");
-                    activeController.getTransportControls().stop();
+        if (activeController == null) {
+            updateActiveController();
+        }
+
+        if (ev.musicNext) {
+            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_NEXT, c -> c.getTransportControls().skipToNext());
+        } else if (ev.musicPrev) {
+            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PREVIOUS, c -> c.getTransportControls().skipToPrevious());
+        } else if (ev.musicPlay) {
+            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PLAY, c -> c.getTransportControls().play());
+        } else if (ev.musicPause) {
+            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_PAUSE, c -> c.getTransportControls().pause());
+        } else if (ev.musicStop) {
+            dispatchMediaAction(KeyEvent.KEYCODE_MEDIA_STOP, c -> c.getTransportControls().stop());
+        }
+
+        // Post delayed resync to give player time to advance position/state
+        handler.postDelayed(this::syncMetadata, 400);
+    }
+
+    private interface ControllerAction {
+        void execute(MediaController controller);
+    }
+
+    private void dispatchMediaAction(int keyCode, ControllerAction action) {
+        if (activeController != null) {
+            if (action != null) {
+                try {
+                    action.execute(activeController);
+                } catch (Exception e) {
+                    Log.w(TAG, "Transport controls failed, falling back to key event: " + e.getMessage());
                 }
-                return;
+            }
+            try {
+                activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
+                activeController.dispatchMediaButtonEvent(new KeyEvent(KeyEvent.ACTION_UP, keyCode));
             } catch (Exception e) {
-                Log.e(TAG, "Transport controls error: " + e.getMessage());
+                Log.w(TAG, "Controller media button event failed: " + e.getMessage());
             }
         }
 
         // Fallback: Send Audio Key Events via AudioManager
         AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         if (am != null) {
-            if (ev.musicNext) {
-                sendMediaKeyEvent(am, KeyEvent.KEYCODE_MEDIA_NEXT);
-            } else if (ev.musicPrev) {
-                sendMediaKeyEvent(am, KeyEvent.KEYCODE_MEDIA_PREVIOUS);
-            } else if (ev.musicPlay || ev.musicPause) {
-                sendMediaKeyEvent(am, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
+            try {
+                am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
+                am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyCode));
+            } catch (Exception e) {
+                Log.w(TAG, "AudioManager dispatchMediaKeyEvent failed: " + e.getMessage());
             }
         }
-    }
-
-    private void sendMediaKeyEvent(AudioManager am, int keyCode) {
-        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keyCode));
-        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keyCode));
     }
 
     public String getCurrentTitle() {

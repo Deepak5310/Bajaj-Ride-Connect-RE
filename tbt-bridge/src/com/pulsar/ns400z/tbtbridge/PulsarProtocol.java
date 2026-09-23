@@ -310,12 +310,14 @@ public final class PulsarProtocol {
     private static int lastMusicNextCtr = 0;
     private static int lastMusicPrevCtr = 0;
     private static int lastMusicStopCtr = 0;
+    private static boolean handlebarInitialized = false;
 
-    public static HandlebarEvent parseHandlebarPacket(byte[] data) {
+    public static synchronized void resetHandlebarCounters() {
+        handlebarInitialized = false;
+    }
+
+    public static synchronized HandlebarEvent parseHandlebarPacket(byte[] data) {
         if (data == null || data.length < 11) return null;
-
-        HandlebarEvent ev = new HandlebarEvent();
-        ev.volumeLevel = data[0] & 0x0F;
 
         int callAccept = data[1] & 0xFF;
         int callReject = data[2] & 0xFF;
@@ -324,6 +326,22 @@ public final class PulsarProtocol {
         int musicNext = data[8] & 0xFF;
         int musicPrev = data[9] & 0xFF;
         int musicStop = data[10] & 0xFF;
+
+        // On first packet after connection, seed previous counters to avoid phantom clicks
+        if (!handlebarInitialized) {
+            lastCallAcceptCtr = callAccept;
+            lastCallRejectCtr = callReject;
+            lastMusicPlayCtr = musicPlay;
+            lastMusicPauseCtr = musicPause;
+            lastMusicNextCtr = musicNext;
+            lastMusicPrevCtr = musicPrev;
+            lastMusicStopCtr = musicStop;
+            handlebarInitialized = true;
+            return null;
+        }
+
+        HandlebarEvent ev = new HandlebarEvent();
+        ev.volumeLevel = data[0] & 0x0F;
 
         if (callAccept != lastCallAcceptCtr) {
             ev.callAccept = true;
@@ -394,6 +412,10 @@ public final class PulsarProtocol {
             case "DESTINATION": return "🏁";
             default: return "↑";
         }
+    }
+
+    public static String getGlyphSymbol(String maneuverName) {
+        return getGlyphIcon(maneuverName);
     }
 
     public static String bytesToHex(byte[] bytes) {
