@@ -1,8 +1,0 @@
-package io.reactivex.internal.fuseable;
-
-import io.reactivex.Maybe;
-
-/* JADX INFO: loaded from: classes4.dex */
-public interface FuseToMaybe<T> {
-    Maybe<T> fuseToMaybe();
-}

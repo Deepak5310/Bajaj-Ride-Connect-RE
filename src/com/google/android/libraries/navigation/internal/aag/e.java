@@ -1,7 +1,0 @@
-package com.google.android.libraries.navigation.internal.aag;
-
-/* JADX INFO: compiled from: PG */
-/* JADX INFO: loaded from: classes7.dex */
-public final class e {
-    public static final f a = new f();
-}

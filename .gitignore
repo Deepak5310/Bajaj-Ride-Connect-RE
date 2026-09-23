@@ -2,25 +2,21 @@
 *.apk
 *.apks
 *.pdf
-extracted_apks/
+references/
 tools/
 dist/
 build/
+app/build/
 tbt-bridge/build/
 *.keystore
 *.jks
 
 # Logs & dumps
 *.log
-HANDOFF.md
 ns400z_dump/
 *.output
 *.tmp
 *.png
-
-# Temporary extraction files
-hermes_strings.txt
-all_hermes_strings.txt
 
 # Python cache
 __pycache__/

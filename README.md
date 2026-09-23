@@ -10,20 +10,27 @@ Compatible with ~80% of Bajaj Bluetooth-equipped motorcycles (Pulsar NS400Z, N25
 
 ```
 bajaj-ride-connect-re/
-├── docs/
+├── app/                           # "My Pulsar" standalone Android cockpit app
+│   ├── AndroidManifest.xml
+│   ├── res/                       # Vectors, HUD layouts & Dark Knight themes
+│   └── src/                       # Java sources (BLE, Media, Navigation, Telemetry)
+├── docs/                          # Hardware specs, BLE protocol & owner manual
 │   ├── ble_protocol_spec.md       # Full Bluetooth Low Energy GATT specification & schemas
-│   └── wifi_protocol_spec.md      # Wi-Fi Navigation V2, TCP/UDP ports & AES screen mirroring
-├── scripts/
+│   ├── wifi_protocol_spec.md      # Wi-Fi Navigation V2, TCP/UDP ports & AES screen mirroring
+│   ├── HANDOFF.md                 # Hardware target notes & protocol findings
+│   └── pulsar-ns400z-owners-manual.pdf
+├── references/                    # Original APK bundles, split APKs & Hermes string dumps
+├── scripts/                       # Diagnostic CLI tools & protocol decoders
 │   ├── ble_decoder.py             # CLI tool to decode live or logged BLE packets
-│   ├── tbt_bridge.py              # Turn-by-Turn frame builder, simulator & G-Maps bridge
-│   └── patch_package.py           # Universal ARM64 dual-installation repackager & signer
-├── src/                           # Application sources & lightweight bridge
-│   ├── com/bajajconnect/
-│   │   ├── tbt/                   # Lightweight Native TBT Bridge (G-Maps Notification Listener)
-│   │   ├── ble/                   # Bluetooth GATT frames, services, and handlers
-│   │   ├── wifi/                  # Wi-Fi screen mirroring & Navigation Protocol V2 (TFT models)
-│   │   ├── features/              # SKU feature registry & Bajaj cohort definitions
-│   │   └── security/              # Cryptographic AES / JNI utilities
+│   ├── patch_package.py           # Universal ARM64 dual-installation repackager & signer
+│   └── tbt_bridge.py              # Turn-by-Turn frame builder, simulator & G-Maps bridge
+├── src/                           # Reference decompiled sources (Bajaj, Mappls, Spotify)
+│   └── com/
+│       ├── bajajconnect/          # Original Bajaj Ride Connect protocol & models
+│       ├── mappls/                # MapmyIndia navigation SDK reference
+│       ├── spotify/               # Spotify app remote protocol reference
+│       └── zersys/                # Anti-tamper security reference
+├── build.sh                       # Optimized Linux Bash build script (AAPT2 + D8)
 └── README.md
 ```
 

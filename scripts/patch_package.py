@@ -331,7 +331,7 @@ def build_split_apks(extracted_dir: str, splits_out_dir: str, old_pkg: str, new_
 
 def main():
     parser = argparse.ArgumentParser(description="Universal ARM64 Dual-Installation APK Builder")
-    parser.add_argument("--extracted-dir", default="extracted_apks", help="Directory with split APKs")
+    parser.add_argument("--extracted-dir", default="references/extracted_apks", help="Directory with split APKs")
     parser.add_argument("--old-pkg", default=DEFAULT_OLD_PKG, help="Original package name")
     parser.add_argument("--new-pkg", default=DEFAULT_NEW_PKG, help="New package name")
     parser.add_argument("--out", default="dist/bajaj-ride-connect-debug.apk", help="Output APK path")

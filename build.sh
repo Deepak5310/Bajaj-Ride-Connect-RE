@@ -10,7 +10,7 @@ PLATFORM_JAR="$ANDROID_HOME/platforms/android-37.0/android.jar"
 ADB="$ANDROID_HOME/platform-tools/adb"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SRC="$ROOT/tbt-bridge"
+SRC="$ROOT/app"
 BUILD="$SRC/build"
 DIST="$ROOT/dist"
 APK="$DIST/my-pulsar.apk"
