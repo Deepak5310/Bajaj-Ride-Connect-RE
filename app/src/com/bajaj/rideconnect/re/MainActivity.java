@@ -180,9 +180,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private View cardSearchBox;
     private EditText etSearchQuery;
     private ImageView btnSearchClear;
+    private ImageView btnSearchImeToggle;
     private ProgressBar pbSearchProgress;
     private ListView lvSearchResults;
     private TextView btnSearchCancel;
+    private CockpitKeyboard cockpitKeyboard;
     private final List<MapplsApiClient.PlaceResult> searchPlaceList = new ArrayList<>();
     private ArrayAdapter<MapplsApiClient.PlaceResult> searchAdapter;
     private final Handler searchDebounceHandler = new Handler(Looper.getMainLooper());
@@ -290,6 +292,34 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         PulsarForegroundService.start(this);
 
         requestAppPermissions();
+        handleIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        if (intent == null) return;
+        if (intent.getBooleanExtra("open_search", false)) {
+            layoutSearchOverlay.postDelayed(this::showDestinationSearch, 300);
+        }
+        if (intent.hasExtra("map_fullscreen")) {
+            boolean fs = intent.getBooleanExtra("map_fullscreen", false);
+            layoutMapContainer.postDelayed(() -> setMapFullscreen(fs), 300);
+        }
+        if (intent.hasExtra("query")) {
+            String q = intent.getStringExtra("query");
+            if (etSearchQuery != null && q != null) {
+                etSearchQuery.postDelayed(() -> {
+                    etSearchQuery.setText(q);
+                    etSearchQuery.setSelection(q.length());
+                }, 500);
+            }
+        }
     }
 
     private void setupEdgeToEdge() {
@@ -440,6 +470,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         cardSearchBox = findViewById(R.id.cardSearchBox);
         etSearchQuery = findViewById(R.id.etSearchQuery);
         btnSearchClear = findViewById(R.id.btnSearchClear);
+        btnSearchImeToggle = findViewById(R.id.btnSearchImeToggle);
         pbSearchProgress = findViewById(R.id.pbSearchProgress);
         lvSearchResults = findViewById(R.id.lvSearchResults);
         btnSearchCancel = findViewById(R.id.btnSearchCancel);
@@ -1232,26 +1263,62 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 return false;
             });
         }
+
+        // Initialize Integrated Automotive In-App Keyboard
+        View keyboardContainer = findViewById(R.id.layoutInAppKeyboard);
+        if (keyboardContainer != null && etSearchQuery != null) {
+            cockpitKeyboard = new CockpitKeyboard(keyboardContainer, etSearchQuery, query -> {
+                searchDebounceHandler.removeCallbacks(searchRunnable);
+                searchRunnable.run();
+            });
+        }
+
+        // Toggle button to optionally switch to System Keyboard (e.g. for voice typing)
+        if (btnSearchImeToggle != null && etSearchQuery != null) {
+            btnSearchImeToggle.setOnClickListener(v -> {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    if (cockpitKeyboard != null && cockpitKeyboard.isVisible()) {
+                        cockpitKeyboard.hide();
+                        etSearchQuery.setShowSoftInputOnFocus(true);
+                        imm.showSoftInput(etSearchQuery, InputMethodManager.SHOW_FORCED);
+                    } else {
+                        imm.hideSoftInputFromWindow(etSearchQuery.getWindowToken(), 0);
+                        etSearchQuery.setShowSoftInputOnFocus(false);
+                        if (cockpitKeyboard != null) cockpitKeyboard.show();
+                    }
+                }
+            });
+        }
     }
 
     private void showDestinationSearch() {
         if (layoutSearchOverlay == null) return;
         layoutSearchOverlay.setVisibility(View.VISIBLE);
+        if (cockpitKeyboard != null) {
+            cockpitKeyboard.show();
+        }
         if (etSearchQuery != null) {
+            etSearchQuery.setShowSoftInputOnFocus(false);
             etSearchQuery.requestFocus();
-            etSearchQuery.postDelayed(() -> {
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (imm != null) imm.showSoftInput(etSearchQuery, InputMethodManager.SHOW_IMPLICIT);
-            }, 100);
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(etSearchQuery.getWindowToken(), 0);
+            }
         }
     }
 
     private void hideDestinationSearch() {
         if (layoutSearchOverlay == null) return;
         layoutSearchOverlay.setVisibility(View.GONE);
+        if (cockpitKeyboard != null) {
+            cockpitKeyboard.hide();
+        }
         if (etSearchQuery != null) {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) imm.hideSoftInputFromWindow(etSearchQuery.getWindowToken(), 0);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(etSearchQuery.getWindowToken(), 0);
+            }
         }
     }
 
