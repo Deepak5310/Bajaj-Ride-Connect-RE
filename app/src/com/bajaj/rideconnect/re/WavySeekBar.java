@@ -79,7 +79,7 @@ public class WavySeekBar extends SeekBar {
         wavePaint.setStrokeJoin(Paint.Join.ROUND);
 
         // Background Track (Unplayed) - Sleek Dark Slate
-        bgTrackPaint.setColor(Color.parseColor("#334155"));
+        bgTrackPaint.setColor(Color.parseColor("#222838"));
         bgTrackPaint.setStyle(Paint.Style.STROKE);
         bgTrackPaint.setStrokeWidth(strokeWidth);
         bgTrackPaint.setStrokeCap(Paint.Cap.ROUND);
@@ -99,6 +99,15 @@ public class WavySeekBar extends SeekBar {
 
         // Default to flat line until playing state is enabled
         currentAmplitude = 0f;
+    }
+
+    /**
+     * Dynamically updates the Material You accent color for the wave ripple and thumb glow.
+     */
+    public void setAccentColor(int accentColor) {
+        wavePaint.setColor(accentColor);
+        thumbGlowPaint.setColor(accentColor);
+        invalidate();
     }
 
     @Override

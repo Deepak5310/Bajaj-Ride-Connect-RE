@@ -33,6 +33,8 @@ public class MapplsMapView extends FrameLayout {
     private double lastLat = 28.6139; // Default New Delhi
     private double lastLng = 77.2090;
     private float lastBearing = 0f;
+    private String currentAccentHex = "#38BDF8";
+    private String currentAccentRgb = "56, 189, 248";
 
     public interface OnMapReadyCallback {
         void onMapReady();
@@ -85,7 +87,7 @@ public class MapplsMapView extends FrameLayout {
 
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     private void init(Context context) {
-        setBackgroundColor(Color.parseColor("#090D14"));
+        setBackgroundColor(Color.BLACK);
 
         try {
             android.content.SharedPreferences prefs = context.getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE);
@@ -113,6 +115,11 @@ public class MapplsMapView extends FrameLayout {
             public void onMapInitialized() {
                 mainHandler.post(() -> {
                     isMapLoaded = true;
+                    if (currentAccentHex != null) {
+                        String script = String.format(java.util.Locale.US,
+                                "setMapAccentColor('%s', '%s');", currentAccentHex, currentAccentRgb);
+                        webView.evaluateJavascript(script, null);
+                    }
                     if (mapReadyCallback != null) {
                         mapReadyCallback.onMapReady();
                     }
@@ -202,8 +209,9 @@ public class MapplsMapView extends FrameLayout {
                 "  <title>Mappls Cockpit Navigation</title>\n" +
                 "  <script src='https://apis.mappls.com/advancedmaps/api/" + apiKey + "/map_sdk?v=3.0&layer=vector&callback=initMap'></script>\n" +
                 "  <style>\n" +
-                "    body, html { margin:0; padding:0; height:100%; width:100%; background:#090D14; overflow:hidden; font-family:sans-serif; }\n" +
-                "    #map { position:absolute; top:0; bottom:0; width:100%; height:100%; background:#090D14; }\n" +
+                "    :root { --accent-hex: " + currentAccentHex + "; --accent-rgb: " + currentAccentRgb + "; }\n" +
+                "    body, html { margin:0; padding:0; height:100%; width:100%; background:#000000; overflow:hidden; font-family:sans-serif; }\n" +
+                "    #map { position:absolute; top:0; bottom:0; width:100%; height:100%; background:#000000; }\n" +
                 "    #map canvas { filter: invert(92%) hue-rotate(180deg) brightness(85%) contrast(108%); }\n" +
                 "    .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib, .mappls-ctrl-attrib, .mappls-attrib,\n" +
                 "    .mapboxgl-ctrl-bottom-right, .maplibregl-ctrl-bottom-right, .mappls-ctrl-bottom-right,\n" +
@@ -218,7 +226,7 @@ public class MapplsMapView extends FrameLayout {
                 "    }\n" +
                 "    .puck-marker {\n" +
                 "       width: 44px; height: 44px;\n" +
-                "       background: radial-gradient(circle, rgba(6,182,212,0.4) 0%, rgba(6,182,212,0.1) 70%, transparent 100%);\n" +
+                "       background: radial-gradient(circle, rgba(var(--accent-rgb),0.45) 0%, rgba(var(--accent-rgb),0.1) 70%, transparent 100%);\n" +
                 "       border-radius: 50%;\n" +
                 "       display: flex; align-items: center; justify-content: center;\n" +
                 "       transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);\n" +
@@ -227,8 +235,8 @@ public class MapplsMapView extends FrameLayout {
                 "       width: 0; height: 0;\n" +
                 "       border-left: 9px solid transparent;\n" +
                 "       border-right: 9px solid transparent;\n" +
-                "       border-bottom: 22px solid #06B6D4;\n" +
-                "       filter: drop-shadow(0 0 8px #06B6D4);\n" +
+                "       border-bottom: 22px solid var(--accent-hex);\n" +
+                "       filter: drop-shadow(0 0 8px var(--accent-hex));\n" +
                 "    }\n" +
                 "  </style>\n" +
                 "</head>\n" +
@@ -240,6 +248,16 @@ public class MapplsMapView extends FrameLayout {
                 "  var puckMarker = null;\n" +
                 "  var routeLayerId = 'nav-route-line';\n" +
                 "  var routeSourceId = 'nav-route-source';\n" +
+                "  var currentAccentColor = '" + currentAccentHex + "';\n" +
+                "\n" +
+                "  function setMapAccentColor(hex, rgb) {\n" +
+                "    currentAccentColor = hex;\n" +
+                "    document.documentElement.style.setProperty('--accent-hex', hex);\n" +
+                "    document.documentElement.style.setProperty('--accent-rgb', rgb);\n" +
+                "    if (map && map.getLayer && map.getLayer(routeLayerId)) {\n" +
+                "      try { map.setPaintProperty(routeLayerId, 'line-color', hex); } catch(e) {}\n" +
+                "    }\n" +
+                "  }\n" +
                 "\n" +
                 "  function purgeAttributions() {\n" +
                 "    var toRemove = document.querySelectorAll('.mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib, .mappls-ctrl-attrib, .mapboxgl-ctrl-bottom-right, .maplibregl-ctrl-bottom-right, .mappls-ctrl-bottom-right, .mapboxgl-ctrl-bottom-left, .maplibregl-ctrl-bottom-left, .mappls-ctrl-bottom-left, .mapboxgl-ctrl-logo, .maplibregl-ctrl-logo, .mappls-logo, div[class*=\"attrib\"], div[class*=\"logo\"], a[href*=\"mapmyindia\"], a[href*=\"mappls\"]');\n" +
@@ -455,7 +473,7 @@ public class MapplsMapView extends FrameLayout {
                 "          'source': routeSourceId,\n" +
                 "          'layout': { 'line-join': 'round', 'line-cap': 'round' },\n" +
                 "          'paint': {\n" +
-                "            'line-color': '#06B6D4',\n" +
+                "            'line-color': currentAccentColor,\n" +
                 "            'line-width': 7,\n" +
                 "            'line-opacity': 0.95\n" +
                 "          }\n" +
@@ -514,6 +532,24 @@ public class MapplsMapView extends FrameLayout {
                 "</html>";
 
         webView.loadDataWithBaseURL("https://apis.mappls.com/", html, "text/html", "UTF-8", null);
+    }
+
+    /**
+     * Dynamically updates the map's route polyline, vehicle puck arrow, and radar glow
+     * to match the Material You wallpaper accent color.
+     */
+    public void setThemeAccent(int accentColor) {
+        int r = Color.red(accentColor);
+        int g = Color.green(accentColor);
+        int b = Color.blue(accentColor);
+        currentAccentHex = String.format("#%06X", (0xFFFFFF & accentColor));
+        currentAccentRgb = r + ", " + g + ", " + b;
+        if (!isMapLoaded || webView == null) return;
+        mainHandler.post(() -> {
+            String script = String.format(java.util.Locale.US,
+                    "setMapAccentColor('%s', '%s');", currentAccentHex, currentAccentRgb);
+            webView.evaluateJavascript(script, null);
+        });
     }
 
     public void updateRiderLocation(double lat, double lng, float bearing) {

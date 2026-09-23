@@ -3,7 +3,7 @@
     android:id="@+id/rootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0B0E">
+    android:background="#000000">
 
     <!-- ============================================================= -->
     <!-- 1. MAIN LANDSCAPE COCKPIT DASHBOARD                           -->
@@ -429,6 +429,7 @@
                                 android:textStyle="bold" />
 
                             <TextView
+                                android:id="@+id/tvSpeedUnit"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/nav_speed_unit"

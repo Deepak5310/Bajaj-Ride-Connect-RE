@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Backgrounds (Dark Knight Gotham Stealth) -->
+    <!-- AMOLED Pure Deep Black Backgrounds -->
     <color name="bg_root">#000000</color>
-    <color name="bg_surface">#08080B</color>
-    <color name="bg_card">#0E0E12</color>
-    <color name="bg_card_elevated">#15151B</color>
-    <color name="bg_card_border">#202129</color>
+    <color name="bg_surface">#000000</color>
+    <color name="bg_card">#07080B</color>
+    <color name="bg_card_elevated">#0D0E14</color>
+    <color name="bg_card_border">#1A1D27</color>
     <color name="bg_lcd_matrix">#000000</color>
-    <color name="lcd_glow_border">#F59E0B</color>
-    <color name="lcd_frame_border">#1A1B22</color>
+    <color name="lcd_glow_border">#38BDF8</color>
+    <color name="lcd_frame_border">#12141C</color>
 
-    <!-- Gotham Tactical Accents (Bat-Gold & Stealth) -->
-    <color name="pulsar_cyan">#F59E0B</color>
-    <color name="pulsar_cyan_dim">#261B06</color>
-    <color name="pulsar_cyan_glow">#451A03</color>
+    <!-- Material You / Cockpit Accents -->
+    <color name="pulsar_cyan">#38BDF8</color>
+    <color name="pulsar_cyan_dim">#0C2B3E</color>
+    <color name="pulsar_cyan_glow">#1E3A8A</color>
     <color name="pulsar_green">#10B981</color>
     <color name="pulsar_green_glow">#064E3B</color>
     <color name="pulsar_amber">#F59E0B</color>
     <color name="pulsar_amber_glow">#451A03</color>
     <color name="pulsar_red">#EF4444</color>
     <color name="pulsar_red_glow">#450A0A</color>
-    <color name="pulsar_purple">#94A3B8</color>
-    <color name="pulsar_blue">#CBD5E1</color>
+    <color name="pulsar_purple">#A855F7</color>
+    <color name="pulsar_blue">#3B82F6</color>
     <color name="knight_gold">#F59E0B</color>
     <color name="knight_gold_bright">#FBBF24</color>
 
     <!-- Button & Interactive Surfaces -->
-    <color name="btn_surface">#121318</color>
-    <color name="btn_surface_stroke">#252632</color>
-    <color name="btn_surface_active">#1D1E27</color>
+    <color name="btn_surface">#0A0B0E</color>
+    <color name="btn_surface_stroke">#1E2230</color>
+    <color name="btn_surface_active">#141722</color>
 
     <!-- Text Hierarchy -->
     <color name="text_primary">#F8FAFC</color>
     <color name="text_secondary">#94A3B8</color>
     <color name="text_tertiary">#64748B</color>
     <color name="text_lcd_white">#F8FAFC</color>
-    <color name="text_lcd_cyan">#FBBF24</color>
+    <color name="text_lcd_cyan">#38BDF8</color>
     <color name="text_lcd_dim">#475569</color>
     <color name="text_terminal_green">#34D399</color>
 
     <!-- Component States -->
     <color name="status_connected">#10B981</color>
     <color name="status_disconnected">#EF4444</color>
-    <color name="status_scanning">#F59E0B</color>
+    <color name="status_scanning">#38BDF8</color>
     <color name="status_idle">#64748B</color>
 </resources>

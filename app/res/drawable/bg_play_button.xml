@@ -3,14 +3,13 @@
     android:color="#4D38BDF8">
     <item>
         <shape android:shape="oval">
-            <solid android:color="#222B3D" />
+            <solid android:color="#0F1117" />
             <stroke
                 android:width="1.5dp"
-                android:color="#3B82F6" />
+                android:color="#38BDF8" />
             <size
                 android:width="54dp"
                 android:height="54dp" />
         </shape>
     </item>
 </ripple>
-

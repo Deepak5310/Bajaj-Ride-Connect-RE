@@ -16,6 +16,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.media.AudioManager;
 import android.os.BatteryManager;
 import android.os.Build;
@@ -124,6 +125,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private View cardSpeedHud;
     private TextView tvCurrentSpeed;
     private TextView tvSpeedLimit;
+    private TextView tvSpeedUnit;
+    private MaterialYouTheme.Palette currentThemePalette;
     private Location lastSpeedLocation = null;
     private long lastSpeedTimeMs = 0;
     private int currentSpeedKmh = 0;
@@ -289,6 +292,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         } catch (Exception ignored) {}
 
         initViews();
+        initMaterialYouTheme();
         setupListeners();
         setupMicroAnimations();
         initLiveSystemSensors();
@@ -492,6 +496,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
         tvCurrentSpeed = findViewById(R.id.tvCurrentSpeed);
         tvSpeedLimit = findViewById(R.id.tvSpeedLimit);
+        tvSpeedUnit = findViewById(R.id.tvSpeedUnit);
         btnCompass = findViewById(R.id.btnCompass);
         btnVoiceNav = findViewById(R.id.btnVoiceNav);
         btnLayers = findViewById(R.id.btnLayers);
@@ -667,7 +672,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                         layoutRecenterPill.setVisibility(View.GONE);
                     }).start();
                 }
-                btnCurrentLocation.setColorFilter(Color.parseColor("#06B6D4"));
+                if (btnCurrentLocation != null) {
+                    btnCurrentLocation.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
+                }
             });
         }
 
@@ -680,7 +687,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     layoutRecenterPill.setVisibility(View.GONE);
                 }).start();
                 if (btnCurrentLocation != null) {
-                    btnCurrentLocation.setColorFilter(Color.parseColor("#06B6D4"));
+                    btnCurrentLocation.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
                 }
             });
         }
@@ -718,7 +725,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                         }).start();
                     }
                     if (btnCurrentLocation != null) {
-                        btnCurrentLocation.setColorFilter(Color.parseColor("#06B6D4"));
+                        btnCurrentLocation.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
                     }
                 }
 
@@ -1196,6 +1203,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 tvPillArtist.setText("Standby");
                 btnMediaPlayPause.setImageResource(R.drawable.ic_media_play);
                 btnPillPlayPause.setImageResource(R.drawable.ic_media_play);
+                int standbyAccent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
+                btnMediaPlayPause.setColorFilter(standbyAccent);
+                btnPillPlayPause.setColorFilter(standbyAccent);
                 currentMediaDurSec = 0;
                 if (pbMediaTrack != null) {
                     pbMediaTrack.setProgress(0);
@@ -1221,6 +1231,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
 
                 boolean isPlaying = (state == 2);
+                int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
                 if (isPlaying) { // 2 = Playing
                     btnMediaPlayPause.setImageResource(R.drawable.ic_media_pause);
                     btnPillPlayPause.setImageResource(R.drawable.ic_media_pause);
@@ -1228,6 +1239,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     btnMediaPlayPause.setImageResource(R.drawable.ic_media_play);
                     btnPillPlayPause.setImageResource(R.drawable.ic_media_play);
                 }
+                btnMediaPlayPause.setColorFilter(accent);
+                btnPillPlayPause.setColorFilter(accent);
                 if (pbMediaTrack instanceof WavySeekBar) {
                     ((WavySeekBar) pbMediaTrack).setPlaying(isPlaying);
                 }
@@ -1916,7 +1929,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     iconRes = R.drawable.ic_straight_nav;
                 }
                 ivTurnArrow.setImageResource(iconRes);
-                ivTurnArrow.setColorFilter(Color.parseColor("#38BDF8"));
+                ivTurnArrow.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
             }
 
             String nextTurnDesc = "";
@@ -2080,9 +2093,88 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
     }
 
+    private void initMaterialYouTheme() {
+        currentThemePalette = MaterialYouTheme.getPalette(this);
+        applyThemePalette(currentThemePalette);
+        MaterialYouTheme.registerWallpaperListener(this, palette -> {
+            runOnUiThread(() -> applyThemePalette(palette));
+        });
+    }
+
+    private void applyThemePalette(MaterialYouTheme.Palette palette) {
+        if (palette == null) return;
+        this.currentThemePalette = palette;
+
+        // 1. Interactive Wavy Media Scrubber
+        if (pbMediaTrack instanceof WavySeekBar) {
+            ((WavySeekBar) pbMediaTrack).setAccentColor(palette.accentPrimary);
+        }
+
+        // 2. Play/Pause Button Dynamic Material You styling
+        if (btnMediaPlayPause != null) {
+            GradientDrawable playBg = new GradientDrawable();
+            playBg.setShape(GradientDrawable.OVAL);
+            playBg.setColor(0xFF0F1117);
+            playBg.setStroke((int) (1.8f * getResources().getDisplayMetrics().density), palette.accentPrimary);
+            btnMediaPlayPause.setBackground(playBg);
+            btnMediaPlayPause.setColorFilter(palette.accentPrimary);
+        }
+        if (btnPillPlayPause != null) {
+            btnPillPlayPause.setColorFilter(palette.accentPrimary);
+        }
+
+        // 3. Mappls Map route polyline, vehicle puck arrow and radar glow
+        if (mapplsMapView != null) {
+            mapplsMapView.setThemeAccent(palette.accentPrimary);
+        }
+
+        // 4. Navigation Maneuver HUD
+        if (ivTurnArrow != null) {
+            ivTurnArrow.setColorFilter(palette.accentPrimary);
+        }
+        if (tvNextStepDesc != null) {
+            tvNextStepDesc.setTextColor(palette.accentPrimary);
+        }
+
+        // 5. Speed HUD Unit & Navigation ETA
+        if (tvSpeedUnit != null) {
+            tvSpeedUnit.setTextColor(palette.accentPrimary);
+        }
+        if (tvNavEta != null) {
+            tvNavEta.setTextColor(palette.accentPrimary);
+        }
+
+        // 6. Tactical Action Stack Buttons
+        if (btnCurrentLocation != null) {
+            btnCurrentLocation.setColorFilter(palette.accentPrimary);
+        }
+        if (btnMapSearch != null) {
+            btnMapSearch.setColorFilter(palette.accentPrimary);
+        }
+        if (btnSearchCancel != null) {
+            btnSearchCancel.setTextColor(palette.accentPrimary);
+        }
+
+        // 7. Dynamic Re-center Pill styling
+        if (layoutRecenterPill != null) {
+            GradientDrawable pillBg = new GradientDrawable();
+            pillBg.setShape(GradientDrawable.RECTANGLE);
+            pillBg.setCornerRadius(19 * getResources().getDisplayMetrics().density);
+            pillBg.setColor(0xF208090C);
+            pillBg.setStroke((int) (1.5f * getResources().getDisplayMetrics().density), palette.accentPrimary);
+            layoutRecenterPill.setBackground(pillBg);
+        }
+
+        // 8. Drawer Telemetry
+        if (tvDrawerSignal != null && currentSignalBars >= 0) {
+            tvDrawerSignal.setTextColor(palette.accentPrimary);
+        }
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        MaterialYouTheme.unregisterWallpaperListener(this);
         if (pulseAnimator != null) {
             pulseAnimator.cancel();
         }
