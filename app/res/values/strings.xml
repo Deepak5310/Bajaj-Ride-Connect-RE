@@ -23,11 +23,11 @@
     <string name="menu_disconnect">Disconnect</string>
 
     <!-- Navigation HUD -->
-    <string name="nav_turn_dist">2.8 km</string>
-    <string name="nav_turn_desc">Turn right onto NH 52</string>
-    <string name="nav_eta_duration">1 hr 24 min</string>
-    <string name="nav_eta_sub">72 km • 11:48 am</string>
-    <string name="nav_speed">68</string>
+    <string name="nav_turn_dist">-- m</string>
+    <string name="nav_turn_desc">Continue straight</string>
+    <string name="nav_eta_duration">-- min</string>
+    <string name="nav_eta_sub">-- km • --:--</string>
+    <string name="nav_speed">0</string>
     <string name="nav_speed_unit">km/h</string>
     <string name="nav_speed_limit">80</string>
     <string name="nav_btn_end">End</string>

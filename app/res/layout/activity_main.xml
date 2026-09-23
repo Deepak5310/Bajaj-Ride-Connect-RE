@@ -104,16 +104,24 @@
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Progress Bar Line -->
-                    <ProgressBar
+                    <!-- Interactive Media Track Scrubber -->
+                    <SeekBar
                         android:id="@+id/pbMediaTrack"
-                        style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
-                        android:layout_height="4dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="18dp"
+                        android:maxHeight="18dp"
                         android:progressDrawable="@drawable/pb_custom_track"
+                        android:thumb="@drawable/thumb_media_scrubber"
+                        android:thumbOffset="7dp"
+                        android:splitTrack="false"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp"
                         android:progress="0"
-                        android:max="100"
-                        android:layout_marginTop="8dp" />
+                        android:max="1000"
+                        android:layout_marginTop="6dp" />
 
                     <!-- Time Row -->
                     <LinearLayout
@@ -220,21 +228,24 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
 
-                <!-- Top Left Turn Instruction Card (Mappls Cockpit Blue Banner) -->
+                <!-- Top Left Turn Instruction Card (Cockpit Frosted Pill matching Speed HUD) -->
                 <LinearLayout
                     android:id="@+id/cardTurnInstruction"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="start|top"
-                    android:layout_margin="12dp"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginTop="14dp"
                     android:orientation="vertical"
-                    android:background="@drawable/bg_nav_banner_blue"
-                    android:paddingStart="14dp"
+                    android:background="@drawable/bg_floating_pill"
+                    android:paddingStart="12dp"
                     android:paddingEnd="16dp"
-                    android:paddingTop="10dp"
-                    android:paddingBottom="10dp"
+                    android:paddingTop="9dp"
+                    android:paddingBottom="9dp"
                     android:visibility="gone"
-                    android:elevation="8dp">
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:elevation="10dp">
 
                     <LinearLayout
                         android:layout_width="wrap_content"
@@ -242,13 +253,20 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
-                        <ImageView
-                            android:id="@+id/ivTurnArrow"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:src="@drawable/ic_turn_right_nav"
-                            android:tint="#FFFFFF"
-                            android:layout_marginEnd="12dp" />
+                        <FrameLayout
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_circle_action"
+                            android:layout_marginEnd="10dp">
+
+                            <ImageView
+                                android:id="@+id/ivTurnArrow"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_straight_nav"
+                                android:tint="#06B6D4" />
+                        </FrameLayout>
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -261,7 +279,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/nav_turn_dist"
                                 android:textColor="#FFFFFF"
-                                android:textSize="18sp"
+                                android:textSize="20sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -269,14 +287,14 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/nav_turn_desc"
-                                android:textColor="#E0E7FF"
+                                android:textColor="#94A3B8"
                                 android:textSize="11sp"
                                 android:maxLines="2"
                                 android:ellipsize="end" />
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Secondary Next Maneuver Preview (e.g. Next 98m ↱) -->
+                    <!-- Secondary Next Maneuver Preview (e.g. Then 200m ↱) -->
                     <LinearLayout
                         android:id="@+id/layoutNextStepPreview"
                         android:layout_width="wrap_content"
@@ -284,8 +302,8 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
                         android:layout_marginTop="6dp"
-                        android:paddingStart="6dp"
-                        android:paddingEnd="6dp"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
                         android:paddingTop="2dp"
                         android:paddingBottom="2dp"
                         android:background="@drawable/bg_pipeline_chip"

@@ -315,9 +315,13 @@ public class MapplsApiClient {
                         double stepLng = 0.0;
 
                         if (man != null) {
-                            instr = man.optString("instruction", name);
                             String type = man.optString("type", "");
                             String modifier = man.optString("modifier", "");
+                            String rawInstr = man.optString("instruction", "");
+                            if (rawInstr.isEmpty()) {
+                                rawInstr = s.optString("instruction", "");
+                            }
+                            instr = buildManeuverInstruction(type, modifier, name, rawInstr);
                             manId = resolveMapplsManeuverId(type, modifier, s.optInt("maneuverID", 0));
 
                             JSONArray loc = man.optJSONArray("location");
@@ -325,6 +329,9 @@ public class MapplsApiClient {
                                 stepLng = loc.getDouble(0);
                                 stepLat = loc.getDouble(1);
                             }
+                        } else {
+                            instr = !name.isEmpty() ? "Continue on " + name : "Continue straight";
+                            manId = 0;
                         }
                         steps.add(new RouteStep(instr, name, dist, dur, manId, stepLat, stepLng));
                     }
@@ -338,24 +345,74 @@ public class MapplsApiClient {
         }
     }
 
-    private int resolveMapplsManeuverId(String type, String modifier, int explicitId) {
-        if (explicitId > 0) return explicitId;
+    private static String buildManeuverInstruction(String type, String modifier, String name, String rawInstr) {
+        if (rawInstr != null && !rawInstr.trim().isEmpty() && !rawInstr.trim().equalsIgnoreCase(name != null ? name.trim() : "")) {
+            return rawInstr.trim();
+        }
+        String road = (name != null && !name.trim().isEmpty()) ? name.trim() : "";
+        String roadSuffix = !road.isEmpty() ? " onto " + road : "";
+        String onRoadSuffix = !road.isEmpty() ? " on " + road : "";
 
+        if ("arrive".equalsIgnoreCase(type)) {
+            return !road.isEmpty() ? "Arrive at " + road : "Arrive at destination";
+        }
+        if ("depart".equalsIgnoreCase(type)) {
+            return !road.isEmpty() ? "Head towards " + road : "Proceed on route";
+        }
+        if ("roundabout".equalsIgnoreCase(type) || "rotary".equalsIgnoreCase(type)) {
+            return !road.isEmpty() ? "At roundabout, exit onto " + road : "Enter roundabout";
+        }
+        if ("uturn".equalsIgnoreCase(modifier) || "uturn".equalsIgnoreCase(type)) {
+            return "Make a U-turn" + onRoadSuffix;
+        }
+        if ("sharp right".equalsIgnoreCase(modifier)) {
+            return "Sharp right" + roadSuffix;
+        }
+        if ("sharp left".equalsIgnoreCase(modifier)) {
+            return "Sharp left" + roadSuffix;
+        }
+        if ("slight right".equalsIgnoreCase(modifier)) {
+            return "Keep right" + onRoadSuffix;
+        }
+        if ("slight left".equalsIgnoreCase(modifier)) {
+            return "Keep left" + onRoadSuffix;
+        }
+        if ("right".equalsIgnoreCase(modifier)) {
+            return "Turn right" + roadSuffix;
+        }
+        if ("left".equalsIgnoreCase(modifier)) {
+            return "Turn left" + roadSuffix;
+        }
+        if ("straight".equalsIgnoreCase(modifier) || "continue".equalsIgnoreCase(type)) {
+            return !road.isEmpty() ? "Continue straight on " + road : "Continue straight";
+        }
+        if (!road.isEmpty()) {
+            return "Continue on " + road;
+        }
+        return "Continue straight";
+    }
+
+    private int resolveMapplsManeuverId(String type, String modifier, int explicitId) {
         if ("arrive".equalsIgnoreCase(type)) return 8; // Destination reached
         if ("depart".equalsIgnoreCase(type)) return 0; // Straight
         if ("roundabout".equalsIgnoreCase(type) || "rotary".equalsIgnoreCase(type)) return 58;
 
-        if ("turn".equalsIgnoreCase(type) || "fork".equalsIgnoreCase(type) || "end of road".equalsIgnoreCase(type)) {
-            if ("left".equalsIgnoreCase(modifier)) return 19;
-            if ("right".equalsIgnoreCase(modifier)) return 2;
-            if ("sharp left".equalsIgnoreCase(modifier)) return 20;
-            if ("sharp right".equalsIgnoreCase(modifier)) return 3;
-            if ("slight left".equalsIgnoreCase(modifier)) return 15;
-            if ("slight right".equalsIgnoreCase(modifier)) return 1;
-            if ("uturn".equalsIgnoreCase(modifier)) return 4;
+        if (modifier != null) {
+            String modLower = modifier.toLowerCase(java.util.Locale.ROOT);
+            if (modLower.contains("sharp left")) return 20;
+            if (modLower.contains("slight left")) return 15;
+            if (modLower.contains("left")) return 19;
+
+            if (modLower.contains("sharp right")) return 3;
+            if (modLower.contains("slight right")) return 1;
+            if (modLower.contains("right")) return 2;
+
+            if (modLower.contains("uturn")) return 4;
+            if (modLower.contains("straight")) return 0;
         }
 
-        if ("continue".equalsIgnoreCase(type) || "straight".equalsIgnoreCase(modifier)) return 0;
+        if ("continue".equalsIgnoreCase(type)) return 0;
+        if (explicitId > 0) return explicitId;
         return 7; // Default continue/keep
     }
 

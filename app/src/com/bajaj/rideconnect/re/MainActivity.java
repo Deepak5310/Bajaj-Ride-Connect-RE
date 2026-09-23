@@ -57,6 +57,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -96,7 +97,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private TextView tvMediaTrack;
     private TextView tvMediaArtist;
     private TextView tvMediaSource;
-    private ProgressBar pbMediaTrack;
+    private SeekBar pbMediaTrack;
+    private boolean isUserScrubbingMedia = false;
+    private int currentMediaDurSec = 0;
     private TextView tvMediaElapsed;
     private TextView tvMediaDuration;
     private ImageView btnMediaPrev;
@@ -121,6 +124,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private View cardSpeedHud;
     private TextView tvCurrentSpeed;
     private TextView tvSpeedLimit;
+    private Location lastSpeedLocation = null;
+    private long lastSpeedTimeMs = 0;
+    private int currentSpeedKmh = 0;
     private ImageView btnCompass;
     private ImageView btnVoiceNav;
     private ImageView btnLayers;
@@ -369,6 +375,21 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 if (btnCompass != null) {
                     btnCompass.performClick();
                 }
+            } else if ("seek_media".equalsIgnoreCase(cmd)) {
+                int progress = intent.getIntExtra("progress", 500);
+                if (pbMediaTrack != null) {
+                    pbMediaTrack.setProgress(progress);
+                }
+                if (currentMediaDurSec > 0) {
+                    long targetMs = (long) (((float) progress / 1000.0f) * currentMediaDurSec * 1000L);
+                    seekMediaTo(targetMs);
+                }
+            } else if ("tap_turn_card".equalsIgnoreCase(cmd)) {
+                if (cardTurnInstruction != null) {
+                    cardTurnInstruction.performClick();
+                }
+            } else if ("close_search".equalsIgnoreCase(cmd)) {
+                hideDestinationSearch();
             }
         }
     }
@@ -531,6 +552,47 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         btnMediaPlayPause.setOnClickListener(v -> toggleMediaPlayback());
         btnMediaPrev.setOnClickListener(v -> skipMediaPrevious());
         btnMediaNext.setOnClickListener(v -> skipMediaNext());
+
+        if (pbMediaTrack != null) {
+            pbMediaTrack.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (fromUser && currentMediaDurSec > 0) {
+                        int scrubSec = (int) (((float) progress / seekBar.getMax()) * currentMediaDurSec);
+                        tvMediaElapsed.setText(formatTime(scrubSec));
+                    }
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                    isUserScrubbingMedia = true;
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    isUserScrubbingMedia = false;
+                    if (currentMediaDurSec > 0) {
+                        long targetMs = (long) (((float) seekBar.getProgress() / seekBar.getMax()) * currentMediaDurSec * 1000L);
+                        seekMediaTo(targetMs);
+                    }
+                }
+            });
+        }
+
+        if (cardTurnInstruction != null) {
+            cardTurnInstruction.setOnClickListener(v -> {
+                if (currentActiveRoute != null && currentRouteStepIndex < currentActiveRoute.steps.size()) {
+                    MapplsApiClient.RouteStep step = currentActiveRoute.steps.get(currentRouteStepIndex);
+                    String text = (step.instruction != null && !step.instruction.isEmpty()) ? step.instruction : step.street;
+                    if (text != null && !text.isEmpty()) {
+                        speakVoiceGuidance(text);
+                    }
+                }
+                if (mapplsMapView != null) {
+                    mapplsMapView.centerOnCurrentLocation();
+                }
+            });
+        }
 
         // Fullscreen Floating Music Pill Controls
         btnPillPlayPause.setOnClickListener(v -> toggleMediaPlayback());
@@ -963,6 +1025,18 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
     }
 
+    private void seekMediaTo(long targetMs) {
+        MediaStateListener msl = MediaStateListener.getInstance();
+        if (msl != null) {
+            msl.seekTo(targetMs);
+        } else {
+            PulsarForegroundService svc = PulsarForegroundService.getInstance();
+            if (svc != null && svc.getMediaListener() != null) {
+                svc.getMediaListener().seekTo(targetMs);
+            }
+        }
+    }
+
     private void sendDirectMediaKey(int keyCode) {
         AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         if (am != null) {
@@ -1108,24 +1182,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
     }
 
-    private void updateCockpitNavigation(String maneuver, String desc, double stepDist, double totalDist,
-                                        int etaHour, int etaMin, boolean isPm, String street) {
-        runOnUiThread(() -> {
-            if (desc != null && !desc.isEmpty()) {
-                tvTurnDesc.setText(desc);
-            }
-            tvTurnDist.setText(PulsarProtocol.formatDistance(stepDist));
-            tvNavEta.setText(PulsarProtocol.formatEta(etaHour, etaMin, isPm));
-            tvNavSub.setText(PulsarProtocol.formatDistance(totalDist) + " remaining • On Route");
-
-            if ("DESTINATION".equalsIgnoreCase(maneuver)) {
-                ivTurnArrow.setImageResource(R.drawable.ic_nav_puck);
-            } else {
-                ivTurnArrow.setImageResource(R.drawable.ic_turn_right_nav);
-            }
-        });
-    }
-
     private void updateCockpitMedia(String title, String artist, String source, int state, int posSec, int durSec, Bitmap art) {
         runOnUiThread(() -> {
             if (title == null || title.trim().isEmpty() || (state == 0 && (title.isEmpty() || title.equals("No Media")))) {
@@ -1136,7 +1192,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 tvPillArtist.setText("Standby");
                 btnMediaPlayPause.setImageResource(R.drawable.ic_media_play);
                 btnPillPlayPause.setImageResource(R.drawable.ic_media_play);
-                pbMediaTrack.setProgress(0);
+                currentMediaDurSec = 0;
+                if (pbMediaTrack != null) pbMediaTrack.setProgress(0);
                 tvMediaElapsed.setText("0:00");
                 tvMediaDuration.setText("0:00");
                 ivAlbumArt.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
@@ -1162,13 +1219,16 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     btnPillPlayPause.setImageResource(R.drawable.ic_media_play);
                 }
 
-                if (durSec > 0) {
-                    int percent = (int) (((float) posSec / durSec) * 100);
-                    pbMediaTrack.setProgress(Math.min(100, Math.max(0, percent)));
-                    tvMediaElapsed.setText(formatTime(posSec));
-                    tvMediaDuration.setText(formatTime(durSec));
-                } else if (posSec > 0) {
-                    tvMediaElapsed.setText(formatTime(posSec));
+                currentMediaDurSec = durSec;
+                if (!isUserScrubbingMedia && pbMediaTrack != null) {
+                    if (durSec > 0) {
+                        int progress = (int) (((float) posSec / durSec) * pbMediaTrack.getMax());
+                        pbMediaTrack.setProgress(Math.min(pbMediaTrack.getMax(), Math.max(0, progress)));
+                        tvMediaElapsed.setText(formatTime(posSec));
+                        tvMediaDuration.setText(formatTime(durSec));
+                    } else if (posSec > 0) {
+                        tvMediaElapsed.setText(formatTime(posSec));
+                    }
                 }
 
                 if (art != null) {
@@ -1318,12 +1378,39 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (location.hasBearing()) {
                 currentRiderBearing = location.getBearing();
             }
-            if (location.hasSpeed()) {
-                int kmh = Math.round(location.getSpeed() * 3.6f);
-                if (tvCurrentSpeed != null) {
-                    tvCurrentSpeed.setText(String.valueOf(kmh));
+
+            if (location.hasSpeed() && location.getSpeed() >= 0) {
+                currentSpeedKmh = Math.round(location.getSpeed() * 3.6f);
+            } else if (lastSpeedLocation != null && lastSpeedTimeMs > 0) {
+                long dtMs = location.getTime() - lastSpeedTimeMs;
+                if (dtMs <= 0) {
+                    dtMs = System.currentTimeMillis() - lastSpeedTimeMs;
+                }
+                if (dtMs > 400 && dtMs < 10000) {
+                    float dist = lastSpeedLocation.distanceTo(location);
+                    float speedMps = dist / (dtMs / 1000.0f);
+                    currentSpeedKmh = Math.round(speedMps * 3.6f);
+                } else if (dtMs >= 10000) {
+                    currentSpeedKmh = 0;
+                }
+            } else {
+                currentSpeedKmh = 0;
+            }
+            lastSpeedLocation = location;
+            lastSpeedTimeMs = location.getTime() > 0 ? location.getTime() : System.currentTimeMillis();
+
+            if (currentSpeedKmh < 0) currentSpeedKmh = 0;
+            if (currentSpeedKmh > 299) currentSpeedKmh = 299;
+
+            if (tvCurrentSpeed != null) {
+                tvCurrentSpeed.setText(String.valueOf(currentSpeedKmh));
+                if (currentSpeedKmh > 80) {
+                    tvCurrentSpeed.setTextColor(Color.parseColor("#EF4444"));
+                } else {
+                    tvCurrentSpeed.setTextColor(Color.parseColor("#FFFFFF"));
                 }
             }
+
             if (mapplsMapView != null) {
                 mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
             }
@@ -1417,25 +1504,43 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         MapplsApiClient.RouteStep step = currentActiveRoute.steps.get(currentRouteStepIndex);
         // Skip steps with no valid location data (lat/lng == 0)
-        if (step.lat == 0.0 && step.lng == 0.0) {
-            // Treat as passed; move to next step if any
+        while (step.lat == 0.0 && step.lng == 0.0 && currentRouteStepIndex < currentActiveRoute.steps.size() - 1) {
             currentRouteStepIndex++;
-            if (currentRouteStepIndex >= currentActiveRoute.steps.size()) {
-                endActiveNavigation();
-                return;
-            }
             step = currentActiveRoute.steps.get(currentRouteStepIndex);
         }
 
         float[] results = new float[1];
-        Location.distanceBetween(riderLocation.getLatitude(), riderLocation.getLongitude(),
-                step.lat, step.lng, results);
-        float distToStep = results[0];
+        float distToStep;
+        if (step.lat != 0.0 || step.lng != 0.0) {
+            Location.distanceBetween(riderLocation.getLatitude(), riderLocation.getLongitude(),
+                    step.lat, step.lng, results);
+            distToStep = results[0];
+        } else {
+            distToStep = (float) step.distanceMeters;
+        }
 
         // Advance to next maneuver if within 30m of waypoint
-        if (distToStep < 30f && currentRouteStepIndex < currentActiveRoute.steps.size() - 1) {
-            currentRouteStepIndex++;
-            step = currentActiveRoute.steps.get(currentRouteStepIndex);
+        if (distToStep < 30f) {
+            if (currentRouteStepIndex < currentActiveRoute.steps.size() - 1) {
+                currentRouteStepIndex++;
+                step = currentActiveRoute.steps.get(currentRouteStepIndex);
+                if (step.lat != 0.0 || step.lng != 0.0) {
+                    Location.distanceBetween(riderLocation.getLatitude(), riderLocation.getLongitude(),
+                            step.lat, step.lng, results);
+                    distToStep = results[0];
+                } else {
+                    distToStep = (float) step.distanceMeters;
+                }
+                String instr = (step.instruction != null && !step.instruction.isEmpty()) ? step.instruction : step.street;
+                if (instr != null && !instr.isEmpty()) {
+                    speakVoiceGuidance(instr);
+                }
+            } else {
+                speakVoiceGuidance("You have arrived at your destination");
+                Toast.makeText(this, "Destination Reached", Toast.LENGTH_LONG).show();
+                endActiveNavigation();
+                return;
+            }
         }
 
         double remDist = distToStep;
@@ -1445,7 +1550,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             remDur += currentActiveRoute.steps.get(i).durationSeconds;
         }
 
-        updateRouteStepDisplay(step, remDist, remDur);
+        updateRouteStepDisplay(step, distToStep, remDist, remDur);
     }
 
     private void setupSearchOverlay() {
@@ -1711,6 +1816,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (cardBottomNav != null) cardBottomNav.setVisibility(View.VISIBLE);
         if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.VISIBLE);
 
+        currentSpeedKmh = 0;
+        if (tvCurrentSpeed != null) {
+            tvCurrentSpeed.setText("0");
+            tvCurrentSpeed.setTextColor(Color.parseColor("#FFFFFF"));
+        }
+
         if (mapplsMapView != null) {
             mapplsMapView.setNavigating(true);
             mapplsMapView.centerOnCurrentLocation();
@@ -1719,11 +1830,21 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
 
         if (!currentActiveRoute.steps.isEmpty()) {
-            MapplsApiClient.RouteStep step0 = currentActiveRoute.steps.get(0);
-            updateRouteStepDisplay(step0, currentActiveRoute.totalDistanceMeters, currentActiveRoute.totalDurationSeconds);
+            MapplsApiClient.RouteStep firstStep = currentActiveRoute.steps.get(0);
+            double initialManeuverDist = firstStep.distanceMeters;
+            if (initialManeuverDist <= 15 && currentActiveRoute.steps.size() > 1) {
+                currentRouteStepIndex = 1;
+                firstStep = currentActiveRoute.steps.get(1);
+                initialManeuverDist = firstStep.distanceMeters;
+            }
+            updateRouteStepDisplay(firstStep, initialManeuverDist, currentActiveRoute.totalDistanceMeters, currentActiveRoute.totalDurationSeconds);
+            String firstInstr = (firstStep.instruction != null && !firstStep.instruction.isEmpty())
+                    ? firstStep.instruction : firstStep.street;
+            speakVoiceGuidance("Starting route to " + pendingDestName + ". " + firstInstr);
+        } else {
+            speakVoiceGuidance("Starting route to " + pendingDestName);
         }
 
-        speakVoiceGuidance("Starting route to " + pendingDestName);
         Toast.makeText(this, "Mappls Navigation Active to " + pendingDestName, Toast.LENGTH_SHORT).show();
     }
 
@@ -1739,7 +1860,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
     }
 
-    private void updateRouteStepDisplay(MapplsApiClient.RouteStep step, double remDistMeters, double remDurSec) {
+    private void updateRouteStepDisplay(MapplsApiClient.RouteStep step, double maneuverDistMeters, double remDistMeters, double remDurSec) {
         runOnUiThread(() -> {
             if (cardTurnInstruction != null && cardTurnInstruction.getVisibility() != View.VISIBLE) {
                 cardTurnInstruction.setVisibility(View.VISIBLE);
@@ -1751,38 +1872,59 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 cardSpeedHud.setVisibility(View.VISIBLE);
             }
 
+            String desc = (step.instruction != null && !step.instruction.isEmpty())
+                    ? step.instruction : step.street;
+            if (desc == null || desc.isEmpty()) {
+                desc = "Continue straight";
+            }
             if (tvTurnDesc != null) {
-                String desc = (step.instruction != null && !step.instruction.isEmpty())
-                        ? step.instruction : step.street;
                 tvTurnDesc.setText(desc);
             }
             if (tvTurnDist != null) {
-                if (step.distanceMeters < 1000) {
-                    tvTurnDist.setText((int) step.distanceMeters + " m");
+                if (maneuverDistMeters < 1000) {
+                    tvTurnDist.setText(Math.max(10, (int) Math.round(maneuverDistMeters)) + " m");
                 } else {
-                    tvTurnDist.setText(String.format(Locale.getDefault(), "%.1f km", step.distanceMeters / 1000.0));
+                    tvTurnDist.setText(String.format(Locale.getDefault(), "%.1f km", maneuverDistMeters / 1000.0));
                 }
             }
 
             if (ivTurnArrow != null) {
-                int iconRes = R.drawable.ic_turn_right_nav;
-                if (step.maneuverID == 8) {
+                int iconRes = R.drawable.ic_straight_nav;
+                String lower = desc.toLowerCase(Locale.ROOT);
+                if (step.maneuverID == 8 || lower.contains("arrive") || lower.contains("destination")) {
                     iconRes = R.drawable.ic_nav_puck;
-                } else if (step.maneuverID == 19 || step.maneuverID == 20 || step.maneuverID == 15) {
+                } else if (lower.contains("u-turn") || lower.contains("uturn") || step.maneuverID == 4) {
+                    iconRes = R.drawable.ic_uturn_nav;
+                } else if (lower.contains("left") || step.maneuverID == 19 || step.maneuverID == 20 || step.maneuverID == 15) {
                     iconRes = R.drawable.ic_turn_left_nav;
-                } else if (step.maneuverID == 0) {
+                } else if (lower.contains("right") || step.maneuverID == 2 || step.maneuverID == 3 || step.maneuverID == 1) {
+                    iconRes = R.drawable.ic_turn_right_nav;
+                } else if (lower.contains("straight") || lower.contains("continue") || step.maneuverID == 0 || step.maneuverID == 7) {
                     iconRes = R.drawable.ic_straight_nav;
                 }
                 ivTurnArrow.setImageResource(iconRes);
+                ivTurnArrow.setColorFilter(Color.parseColor("#38BDF8"));
             }
 
+            String nextTurnDesc = "";
             if (layoutNextStepPreview != null && tvNextStepDesc != null) {
                 if (currentActiveRoute != null && currentRouteStepIndex + 1 < currentActiveRoute.steps.size()) {
                     MapplsApiClient.RouteStep nextStep = currentActiveRoute.steps.get(currentRouteStepIndex + 1);
                     String nextDist = nextStep.distanceMeters < 1000
-                            ? (int) nextStep.distanceMeters + " m"
+                            ? (int) Math.round(nextStep.distanceMeters) + " m"
                             : String.format(Locale.getDefault(), "%.1f km", nextStep.distanceMeters / 1000.0);
-                    tvNextStepDesc.setText("Then " + nextDist + " • " + (nextStep.instruction.isEmpty() ? nextStep.street : nextStep.instruction));
+                    String nextDesc = (nextStep.instruction != null && !nextStep.instruction.isEmpty())
+                            ? nextStep.instruction : nextStep.street;
+                    String arrowGlyph = "↱";
+                    if (nextStep.maneuverID == 19 || nextStep.maneuverID == 20 || nextStep.maneuverID == 15) {
+                        arrowGlyph = "↰";
+                    } else if (nextStep.maneuverID == 0 || nextStep.maneuverID == 7) {
+                        arrowGlyph = "↑";
+                    } else if (nextStep.maneuverID == 8) {
+                        arrowGlyph = "◉";
+                    }
+                    nextTurnDesc = nextDesc;
+                    tvNextStepDesc.setText("Then " + nextDist + " " + arrowGlyph + " • " + nextDesc);
                     layoutNextStepPreview.setVisibility(View.VISIBLE);
                 } else {
                     layoutNextStepPreview.setVisibility(View.GONE);
@@ -1813,10 +1955,15 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         currentActiveRoute = null;
         pendingPreviewRoute = null;
         currentRouteStepIndex = 0;
+        currentSpeedKmh = 0;
         if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.GONE);
         if (cardBottomNav != null) cardBottomNav.setVisibility(View.GONE);
         if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
         if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
+        if (tvCurrentSpeed != null) {
+            tvCurrentSpeed.setText("0");
+            tvCurrentSpeed.setTextColor(Color.parseColor("#FFFFFF"));
+        }
         if (mapplsMapView != null) {
             mapplsMapView.setNavigating(false);
             mapplsMapView.clearRoute();
@@ -1825,7 +1972,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             centerMapOnCurrentLocation();
         }
         speakVoiceGuidance("Navigation ended");
-        updateCockpitNavigation("IDLE", "Navigation Idle", 0.0, 0.0, 12, 0, false, "No Active Route");
         Toast.makeText(this, "Navigation Ended", Toast.LENGTH_SHORT).show();
     }
 

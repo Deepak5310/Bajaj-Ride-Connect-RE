@@ -448,6 +448,22 @@ public class MediaStateListener {
         handler.postDelayed(this::syncMetadata, 400);
     }
 
+    public void seekTo(long positionMs) {
+        if (activeController == null) {
+            updateActiveController();
+        }
+        if (activeController != null) {
+            try {
+                activeController.getTransportControls().seekTo(positionMs);
+                currentPosSec = (int) (positionMs / 1000);
+                dispatchMediaUpdate();
+            } catch (Exception e) {
+                Log.w(TAG, "seekTo TransportControls failed: " + e.getMessage());
+            }
+        }
+        handler.postDelayed(this::syncMetadata, 300);
+    }
+
     public void handleHandlebarMedia(PulsarProtocol.HandlebarEvent ev) {
         if (ev == null) return;
         Log.i(TAG, "handleHandlebarMedia: play=" + ev.musicPlay + " pause=" + ev.musicPause
