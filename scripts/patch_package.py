@@ -89,6 +89,29 @@ def patch_axml(manifest_bytes: bytes, old_pkg: str, new_pkg: str) -> bytes:
 
     return new_root_header + new_sp_chunk + rest_of_axml
 
+def patch_arsc(arsc_bytes: bytes, old_pkg: str, new_pkg: str) -> bytes:
+    """Modifies Android compiled resource table (resources.arsc) package header to match mutated package ID."""
+    data = bytearray(arsc_bytes)
+    old_utf16 = old_pkg.encode("utf-16le")
+    new_utf16 = new_pkg.encode("utf-16le")
+    if len(new_utf16) > 256:
+        raise ValueError("New package name too long for ARSC package header (max 128 utf-16 chars / 256 bytes)")
+    padded_new = new_utf16.ljust(256, b"\x00")
+
+    pos = 0
+    patched_count = 0
+    while pos + 288 <= len(data):
+        chunk_type, header_size, chunk_size = struct.unpack("<HHI", data[pos:pos+8])
+        if chunk_type == 0x0200 and header_size == 288:  # RES_TABLE_PACKAGE_TYPE
+            pkg_name_offset = pos + 12
+            curr_name_bytes = data[pkg_name_offset:pkg_name_offset+256]
+            curr_name = curr_name_bytes.decode("utf-16le", errors="ignore").split("\x00")[0]
+            if curr_name == old_pkg:
+                data[pkg_name_offset:pkg_name_offset+256] = padded_new
+                patched_count += 1
+        pos += 4
+    return bytes(data)
+
 def ensure_keystore(keystore_path: str):
     os.makedirs(os.path.dirname(os.path.abspath(keystore_path)), exist_ok=True)
     if not os.path.exists(keystore_path):
@@ -125,11 +148,17 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
         with zipfile.ZipFile(base_apk, 'r') as z_base:
             manifest_bytes = z_base.read('AndroidManifest.xml')
             patched_manifest = patch_axml(manifest_bytes, old_pkg, new_pkg)
-            out_zip.writestr('AndroidManifest.xml', patched_manifest)
+            out_zip.writestr('AndroidManifest.xml', patched_manifest, compress_type=zipfile.ZIP_DEFLATED)
             added_files.add('AndroidManifest.xml')
 
             for item in z_base.infolist():
                 if item.filename in ('AndroidManifest.xml', 'stamp-cert-sha256'):
+                    continue
+                if item.filename == 'resources.arsc':
+                    arsc_data = z_base.read('resources.arsc')
+                    patched_arsc = patch_arsc(arsc_data, old_pkg, new_pkg)
+                    out_zip.writestr('resources.arsc', patched_arsc, compress_type=zipfile.ZIP_STORED)
+                    added_files.add('resources.arsc')
                     continue
                 if item.filename.startswith('META-INF/'):
                     continue  # Strip old signatures
@@ -246,7 +275,11 @@ def build_split_apks(extracted_dir: str, splits_out_dir: str, old_pkg: str, new_
                     if item.filename == 'AndroidManifest.xml':
                         m_data = zin.read('AndroidManifest.xml')
                         patched = patch_axml(m_data, old_pkg, new_pkg)
-                        zout.writestr('AndroidManifest.xml', patched)
+                        zout.writestr('AndroidManifest.xml', patched, compress_type=zipfile.ZIP_DEFLATED)
+                    elif item.filename == 'resources.arsc':
+                        arsc_data = zin.read('resources.arsc')
+                        patched_arsc = patch_arsc(arsc_data, old_pkg, new_pkg)
+                        zout.writestr('resources.arsc', patched_arsc, compress_type=zipfile.ZIP_STORED)
                     elif item.filename.startswith('META-INF/') or item.filename == 'stamp-cert-sha256':
                         continue
                     else:
