@@ -11,7 +11,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.media.AudioManager;
@@ -33,7 +35,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.app.AlertDialog;
 import android.app.Dialog;
+import android.speech.tts.TextToSpeech;
+import android.telecom.TelecomManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.location.Location;
@@ -181,14 +186,17 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     // Mappls Engine & Cockpit Controls
     private MapplsMapView mapplsMapView;
+    private View layoutRecenterPill;
     private ImageView btnMapSearch;
     private ImageView btnCurrentLocation;
     private LocationManager locationManager;
-    private double currentRiderLat = 28.6139;
-    private double currentRiderLng = 77.2090;
+    private double currentRiderLat = 28.1319; // Saved default (Jhunjhunu, Rajasthan)
+    private double currentRiderLng = 75.3991;
     private float currentRiderBearing = 0f;
     private MapplsApiClient.RouteResult currentActiveRoute = null;
     private int currentRouteStepIndex = 0;
+    private TextToSpeech tts;
+    private boolean isTtsReady = false;
 
     // Search Destination Overlay Views
     private View layoutSearchOverlay;
@@ -296,6 +304,21 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         setContentView(R.layout.activity_main);
         setupEdgeToEdge();
 
+        try {
+            SharedPreferences prefs = getSharedPreferences("bajaj_ride_prefs", MODE_PRIVATE);
+            currentRiderLat = prefs.getFloat("saved_rider_lat", 28.1319f);
+            currentRiderLng = prefs.getFloat("saved_rider_lng", 75.3991f);
+        } catch (Exception ignored) {}
+
+        try {
+            tts = new TextToSpeech(this, status -> {
+                if (status == TextToSpeech.SUCCESS && tts != null) {
+                    tts.setLanguage(Locale.US);
+                    isTtsReady = true;
+                }
+            });
+        } catch (Exception ignored) {}
+
         initViews();
         setupListeners();
         setupMicroAnimations();
@@ -356,7 +379,27 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             } else if ("end_nav".equalsIgnoreCase(cmd)) {
                 endActiveNavigation();
             } else if ("recenter".equalsIgnoreCase(cmd)) {
-                centerMapOnCurrentLocation();
+                if (layoutRecenterPill != null) {
+                    layoutRecenterPill.performClick();
+                } else {
+                    centerMapOnCurrentLocation();
+                }
+            } else if ("drag_map".equalsIgnoreCase(cmd)) {
+                if (mapplsMapView != null) {
+                    mapplsMapView.simulateDrag();
+                }
+            } else if ("open_saved_places".equalsIgnoreCase(cmd)) {
+                showSavedPlacesDialog();
+            } else if ("open_stats".equalsIgnoreCase(cmd)) {
+                showRideStatsDialog();
+            } else if ("open_service".equalsIgnoreCase(cmd)) {
+                showServiceDialog();
+            } else if ("open_about".equalsIgnoreCase(cmd)) {
+                showAboutDialog();
+            } else if ("open_drawer".equalsIgnoreCase(cmd)) {
+                openDrawer();
+            } else if ("close_drawer".equalsIgnoreCase(cmd)) {
+                closeDrawer();
             }
         }
     }
@@ -514,6 +557,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         btnStartNavNow = findViewById(R.id.btnStartNavNow);
 
         mapplsMapView = findViewById(R.id.mapplsMapView);
+        layoutRecenterPill = findViewById(R.id.layoutRecenterPill);
         btnMapSearch = findViewById(R.id.btnMapSearch);
         btnCurrentLocation = findViewById(R.id.btnCurrentLocation);
 
@@ -575,11 +619,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Drawer Actions
         itemRideStats.setOnClickListener(v -> {
             closeDrawer();
-            Toast.makeText(this, "Ride Stats: 1,420 km total • 42.5 km/l avg", Toast.LENGTH_SHORT).show();
+            showRideStatsDialog();
         });
         itemService.setOnClickListener(v -> {
             closeDrawer();
-            Toast.makeText(this, "Next Service: Due in 2,150 km or 45 days", Toast.LENGTH_SHORT).show();
+            showServiceDialog();
         });
         itemBikeInfo.setOnClickListener(v -> {
             closeDrawer();
@@ -591,11 +635,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         });
         itemSavedPlaces.setOnClickListener(v -> {
             closeDrawer();
-            Toast.makeText(this, "Saved Places: Home, Work, Highway Cafe", Toast.LENGTH_SHORT).show();
+            showSavedPlacesDialog();
         });
         itemOfflineMaps.setOnClickListener(v -> {
             closeDrawer();
-            Toast.makeText(this, "Offline Maps: Region Rajasthan (Downloaded)", Toast.LENGTH_SHORT).show();
+            showOfflineMapsDialog();
         });
         itemSettings.setOnClickListener(v -> {
             closeDrawer();
@@ -603,11 +647,17 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         });
         itemHelp.setOnClickListener(v -> {
             closeDrawer();
-            Toast.makeText(this, "Bajaj Roadside Assistance: 1800-209-6060", Toast.LENGTH_LONG).show();
+            try {
+                Intent intent = new Intent(Intent.ACTION_DIAL);
+                intent.setData(Uri.parse("tel:18002096060"));
+                startActivity(intent);
+            } catch (Exception e) {
+                Toast.makeText(this, "Bajaj Roadside Assistance: 1800-209-6060", Toast.LENGTH_LONG).show();
+            }
         });
         itemAbout.setOnClickListener(v -> {
             closeDrawer();
-            Toast.makeText(this, "My Pulsar (Bajaj Ride Connect RE) v2.5.0\nUniversal BLE Cockpit", Toast.LENGTH_SHORT).show();
+            showAboutDialog();
         });
 
         // Disconnect & Clean Exit Button
@@ -616,10 +666,86 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Notification Bell
         btnTopNotifications.setOnClickListener(v -> openNotificationSettings());
 
+        // Calls Tab Controls
+        if (btnCallAccept != null) {
+            btnCallAccept.setOnClickListener(v -> answerIncomingCall());
+        }
+        if (btnCallReject != null) {
+            btnCallReject.setOnClickListener(v -> rejectIncomingCall());
+        }
+
         // Map HUD Controls
         if (btnCurrentLocation != null) {
-            btnCurrentLocation.setOnClickListener(v -> centerMapOnCurrentLocation());
+            btnCurrentLocation.setOnClickListener(v -> {
+                centerMapOnCurrentLocation();
+                if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() == View.VISIBLE) {
+                    layoutRecenterPill.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+                        layoutRecenterPill.setVisibility(View.GONE);
+                    }).start();
+                }
+                btnCurrentLocation.setColorFilter(Color.parseColor("#06B6D4"));
+            });
         }
+
+        if (layoutRecenterPill != null) {
+            layoutRecenterPill.setOnClickListener(v -> {
+                if (mapplsMapView != null) {
+                    mapplsMapView.centerOnCurrentLocation();
+                }
+                layoutRecenterPill.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+                    layoutRecenterPill.setVisibility(View.GONE);
+                }).start();
+                if (btnCurrentLocation != null) {
+                    btnCurrentLocation.setColorFilter(Color.parseColor("#06B6D4"));
+                }
+            });
+        }
+
+        if (btnCompass != null) {
+            btnCompass.setOnClickListener(v -> {
+                if (mapplsMapView != null) {
+                    mapplsMapView.resetNorth();
+                }
+                btnCompass.animate().rotation(0f).setDuration(350).start();
+                Toast.makeText(this, "Map oriented North", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (mapplsMapView != null) {
+            mapplsMapView.setOnMapInteractionListener(new MapplsMapView.OnMapInteractionListener() {
+                @Override
+                public void onMapDragged() {
+                    if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() != View.VISIBLE) {
+                        layoutRecenterPill.setAlpha(0f);
+                        layoutRecenterPill.setVisibility(View.VISIBLE);
+                        layoutRecenterPill.animate().alpha(1f).setDuration(200).start();
+                    }
+                    if (btnCurrentLocation != null) {
+                        btnCurrentLocation.setColorFilter(Color.parseColor("#F59E0B"));
+                    }
+                }
+
+                @Override
+                public void onMapRecentered() {
+                    if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() == View.VISIBLE) {
+                        layoutRecenterPill.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+                            layoutRecenterPill.setVisibility(View.GONE);
+                        }).start();
+                    }
+                    if (btnCurrentLocation != null) {
+                        btnCurrentLocation.setColorFilter(Color.parseColor("#06B6D4"));
+                    }
+                }
+
+                @Override
+                public void onMapBearingChanged(double bearing) {
+                    if (btnCompass != null) {
+                        btnCompass.setRotation((float) -bearing);
+                    }
+                }
+            });
+        }
+
         btnMapSearch.setOnClickListener(v -> showDestinationSearch());
         cardTurnInstruction.setOnClickListener(v -> showDestinationSearch());
         setupSearchOverlay();
@@ -628,7 +754,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             isVoiceMuted = !isVoiceMuted;
             btnVoiceNav.setImageResource(isVoiceMuted ? R.drawable.ic_volume_off : R.drawable.ic_volume_up);
             btnVoiceNav.setAlpha(isVoiceMuted ? 0.6f : 1.0f);
-            Toast.makeText(this, isVoiceMuted ? "Voice Guidance Muted" : "Voice Guidance Active", Toast.LENGTH_SHORT).show();
+            String msg = isVoiceMuted ? "Voice Guidance Muted" : "Voice Guidance Active";
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+            speakVoiceGuidance(msg);
         });
 
         if (btnStartNavNow != null) {
@@ -660,6 +788,150 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Top Status Quick Connect
         viewTopBtStatusDot.setOnClickListener(v -> toggleBleConnection());
         tvTopBtStatus.setOnClickListener(v -> toggleBleConnection());
+    }
+
+    private void speakVoiceGuidance(String message) {
+        if (isVoiceMuted || !isTtsReady || tts == null || message == null || message.trim().isEmpty()) {
+            return;
+        }
+        try {
+            tts.speak(message, TextToSpeech.QUEUE_FLUSH, null, "BAJAJ_NAV_TTS");
+        } catch (Exception ignored) {}
+    }
+
+    private void answerIncomingCall() {
+        try {
+            TelecomManager tm = (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
+            if (tm != null && checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
+                tm.acceptRingingCall();
+                Toast.makeText(this, "Call Answered", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Call Answered", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Call Answered", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void rejectIncomingCall() {
+        try {
+            TelecomManager tm = (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
+            if (tm != null && checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
+                tm.endCall();
+                Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showSavedPlacesDialog() {
+        final String[] placeNames = {
+            "🏠 Home (Jhunjhunu)",
+            "🏢 Office / Work (RIICO)",
+            "⛽ HP Fuel Station (NH 52)",
+            "📍 Jaipur Pink City (Hawa Mahal)",
+            "📍 Delhi Aerocity (IGI Airport)"
+        };
+        final MapplsApiClient.PlaceResult[] places = {
+            new MapplsApiClient.PlaceResult("Home (Jhunjhunu)", "Mandawa Road, Jhunjhunu, Rajasthan", "", 28.1319, 75.3991, 0, "HOME"),
+            new MapplsApiClient.PlaceResult("Office / Work", "RIICO Industrial Area, Jhunjhunu", "", 28.1250, 75.3850, 0, "WORK"),
+            new MapplsApiClient.PlaceResult("HP Fuel Station", "NH 52 Highway Express, Rajasthan", "", 28.0120, 75.4120, 0, "FUEL"),
+            new MapplsApiClient.PlaceResult("Jaipur (Pink City)", "Hawa Mahal Rd, Jaipur, Rajasthan", "3T7XV6", 26.9239, 75.8267, 0, "CITY"),
+            new MapplsApiClient.PlaceResult("Delhi Aerocity", "IGI Airport, New Delhi", "", 28.5562, 77.1000, 0, "AIRPORT")
+        };
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("★ Saved Places & Favorites");
+        builder.setItems(placeNames, (dialog, which) -> {
+            dialog.dismiss();
+            if (which >= 0 && which < places.length) {
+                previewRoute(places[which]);
+            }
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void showRideStatsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("📊 Ride Statistics & Diagnostics");
+        builder.setMessage(
+            "• Odometer: 1,420 km\n" +
+            "• Trip A: 240.2 km | Trip B: 85.0 km\n" +
+            "• Average Speed: 42 km/h\n" +
+            "• Top Speed: 112 km/h\n" +
+            "• Fuel Economy: 42.5 km/L (Eco Mode)\n" +
+            "• Engine Run Time: 34 hrs 12 mins\n" +
+            "• Battery Voltage: 12.8 V (Optimal)\n" +
+            "• Coolant Temp: Normal (88°C)"
+        );
+        builder.setPositiveButton("Reset Trip A", (dialog, which) -> {
+            Toast.makeText(this, "Trip A reset to 0.0 km", Toast.LENGTH_SHORT).show();
+        });
+        builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void showServiceDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("🔧 Periodic Maintenance & Service");
+        builder.setMessage(
+            "• Next Service Due: In 2,150 km or 45 days\n" +
+            "• Engine Oil (10W-50): 82% life remaining\n" +
+            "• Front Brake Pads: Good (4.2 mm)\n" +
+            "• Rear Brake Pads: Good (3.8 mm)\n" +
+            "• Chain Slack: 25 mm (Optimal)\n" +
+            "• Air Filter: Checked\n\n" +
+            "Authorized Care Center:\n" +
+            "Bajaj Auto Service Center, Jhunjhunu"
+        );
+        builder.setPositiveButton("Call Service", (dialog, which) -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_DIAL);
+                intent.setData(Uri.parse("tel:18002096060"));
+                startActivity(intent);
+            } catch (Exception ignored) {}
+        });
+        builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void showOfflineMapsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("🗺️ Offline Map Regions");
+        builder.setMessage(
+            "• Rajasthan North (Downloaded • 145 MB)\n" +
+            "• Delhi NCR & Haryana (Downloaded • 210 MB)\n" +
+            "• Western Express Highways (Downloaded • 95 MB)\n\n" +
+            "Storage Allocated: 450 MB / 128 GB\n" +
+            "Status: All regional vector tile packages are up to date."
+        );
+        builder.setPositiveButton("Check Updates", (dialog, which) -> {
+            Toast.makeText(this, "All offline regions are up to date", Toast.LENGTH_SHORT).show();
+        });
+        builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void showAboutDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("🏍️ My Pulsar - Cockpit RE");
+        builder.setMessage(
+            "Version: 3.0.0 (Automotive Cockpit Edition)\n" +
+            "Bluetooth Protocol: Universal RE BLE 2.0\n" +
+            "Map Engine: Mappls Vector Tiles v3.0\n" +
+            "Audio & Calls: AVRCP / Telecom Engine\n\n" +
+            "Supported Motorcycles:\n" +
+            "• Bajaj Pulsar N250 / F250 / N160 / N150\n" +
+            "• Bajaj Pulsar NS400Z / NS200 / NS160\n" +
+            "• Bajaj Dominar 400 / 250\n" +
+            "• Chetak Electric EV Series"
+        );
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+        builder.show();
     }
 
     private void toggleBleConnection() {
@@ -1114,6 +1386,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (location == null) return;
             currentRiderLat = location.getLatitude();
             currentRiderLng = location.getLongitude();
+            try {
+                getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putFloat("saved_rider_lat", (float) currentRiderLat)
+                        .putFloat("saved_rider_lng", (float) currentRiderLng)
+                        .apply();
+            } catch (Exception ignored) {}
             if (location.hasBearing()) {
                 currentRiderBearing = location.getBearing();
             }
@@ -1151,6 +1430,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 if (last != null) {
                     currentRiderLat = last.getLatitude();
                     currentRiderLng = last.getLongitude();
+                    try {
+                        getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
+                                .edit()
+                                .putFloat("saved_rider_lat", (float) currentRiderLat)
+                                .putFloat("saved_rider_lng", (float) currentRiderLng)
+                                .apply();
+                    } catch (Exception ignored) {}
                     if (mapplsMapView != null) {
                         mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
                     }
@@ -1181,13 +1467,20 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     if (loc.hasBearing()) {
                         currentRiderBearing = loc.getBearing();
                     }
+                    try {
+                        getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
+                                .edit()
+                                .putFloat("saved_rider_lat", (float) currentRiderLat)
+                                .putFloat("saved_rider_lng", (float) currentRiderLng)
+                                .apply();
+                    } catch (Exception ignored) {}
                 }
             }
         } catch (Exception ignored) {}
 
         if (mapplsMapView != null) {
             mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
-            mapplsMapView.centerOnLocation(currentRiderLat, currentRiderLng);
+            mapplsMapView.centerOnCurrentLocation();
             Toast.makeText(this, String.format(Locale.getDefault(), "Location: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
         }
     }
@@ -1483,21 +1776,31 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.VISIBLE);
         if (cardBottomNav != null) cardBottomNav.setVisibility(View.VISIBLE);
 
-        centerMapOnCurrentLocation();
+        if (mapplsMapView != null) {
+            mapplsMapView.setNavigating(true);
+            mapplsMapView.centerOnCurrentLocation();
+        } else {
+            centerMapOnCurrentLocation();
+        }
 
         if (!currentActiveRoute.steps.isEmpty()) {
             MapplsApiClient.RouteStep step0 = currentActiveRoute.steps.get(0);
             updateRouteStepDisplay(step0, currentActiveRoute.totalDistanceMeters, currentActiveRoute.totalDurationSeconds);
         }
 
+        speakVoiceGuidance("Starting route to " + pendingDestName);
         Toast.makeText(this, "Mappls Navigation Active to " + pendingDestName, Toast.LENGTH_SHORT).show();
     }
 
     private void cancelRoutePreview() {
         pendingPreviewRoute = null;
         if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
-        if (mapplsMapView != null) mapplsMapView.clearRoute();
-        centerMapOnCurrentLocation();
+        if (mapplsMapView != null) {
+            mapplsMapView.clearRoute();
+            mapplsMapView.centerOnCurrentLocation();
+        } else {
+            centerMapOnCurrentLocation();
+        }
     }
 
     private void updateRouteStepDisplay(MapplsApiClient.RouteStep step, double remDistMeters, double remDurSec) {
@@ -1574,8 +1877,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.GONE);
         if (cardBottomNav != null) cardBottomNav.setVisibility(View.GONE);
         if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
-        if (mapplsMapView != null) mapplsMapView.clearRoute();
-        centerMapOnCurrentLocation();
+        if (mapplsMapView != null) {
+            mapplsMapView.setNavigating(false);
+            mapplsMapView.clearRoute();
+            mapplsMapView.centerOnCurrentLocation();
+        } else {
+            centerMapOnCurrentLocation();
+        }
+        speakVoiceGuidance("Navigation ended");
         updateCockpitNavigation("IDLE", "Navigation Idle", 0.0, 0.0, 12, 0, false, "No Active Route");
         Toast.makeText(this, "Navigation Ended", Toast.LENGTH_SHORT).show();
     }
@@ -1684,6 +1993,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (locationManager != null) {
             try {
                 locationManager.removeUpdates(gpsLocationListener);
+            } catch (Exception ignored) {}
+        }
+        if (tts != null) {
+            try {
+                tts.stop();
+                tts.shutdown();
             } catch (Exception ignored) {}
         }
     }

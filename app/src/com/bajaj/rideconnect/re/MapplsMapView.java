@@ -42,8 +42,15 @@ public class MapplsMapView extends FrameLayout {
         void onMapClick(double lat, double lng);
     }
 
+    public interface OnMapInteractionListener {
+        void onMapDragged();
+        void onMapRecentered();
+        void onMapBearingChanged(double bearing);
+    }
+
     private OnMapReadyCallback mapReadyCallback;
     private OnMapClickListener mapClickListener;
+    private OnMapInteractionListener mapInteractionListener;
 
     public MapplsMapView(Context context) {
         super(context);
@@ -71,9 +78,21 @@ public class MapplsMapView extends FrameLayout {
         this.mapClickListener = listener;
     }
 
+    public void setOnMapInteractionListener(OnMapInteractionListener listener) {
+        this.mapInteractionListener = listener;
+    }
+
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     private void init(Context context) {
         setBackgroundColor(Color.parseColor("#090D14"));
+
+        try {
+            android.content.SharedPreferences prefs = context.getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE);
+            float savedLat = prefs.getFloat("saved_rider_lat", 28.1319f); // Default to Jhunjhunu, Rajasthan
+            float savedLng = prefs.getFloat("saved_rider_lng", 75.3991f);
+            lastLat = savedLat;
+            lastLng = savedLng;
+        } catch (Exception ignored) {}
 
         webView = new WebView(context);
         webView.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
@@ -104,6 +123,33 @@ public class MapplsMapView extends FrameLayout {
                 mainHandler.post(() -> {
                     if (mapClickListener != null) {
                         mapClickListener.onMapClick(lat, lng);
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void onMapDragged() {
+                mainHandler.post(() -> {
+                    if (mapInteractionListener != null) {
+                        mapInteractionListener.onMapDragged();
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void onMapRecentered() {
+                mainHandler.post(() -> {
+                    if (mapInteractionListener != null) {
+                        mapInteractionListener.onMapRecentered();
+                    }
+                });
+            }
+
+            @JavascriptInterface
+            public void onMapBearingChanged(double bearing) {
+                mainHandler.post(() -> {
+                    if (mapInteractionListener != null) {
+                        mapInteractionListener.onMapBearingChanged(bearing);
                     }
                 });
             }
@@ -204,6 +250,29 @@ public class MapplsMapView extends FrameLayout {
                 "          window.AndroidBridge.onMapTapped(e.lngLat.lat, e.lngLat.lng);\n" +
                 "        }\n" +
                 "      });\n" +
+                "      map.on('dragstart', function() {\n" +
+                "        isUserInteracting = true;\n" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onMapDragged) {\n" +
+                "          window.AndroidBridge.onMapDragged();\n" +
+                "        }\n" +
+                "      });\n" +
+                "      map.on('rotatestart', function() {\n" +
+                "        isUserInteracting = true;\n" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onMapDragged) {\n" +
+                "          window.AndroidBridge.onMapDragged();\n" +
+                "        }\n" +
+                "      });\n" +
+                "      map.on('pitchstart', function() {\n" +
+                "        isUserInteracting = true;\n" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onMapDragged) {\n" +
+                "          window.AndroidBridge.onMapDragged();\n" +
+                "        }\n" +
+                "      });\n" +
+                "      map.on('rotate', function() {\n" +
+                "        if (window.AndroidBridge && window.AndroidBridge.onMapBearingChanged && map) {\n" +
+                "          window.AndroidBridge.onMapBearingChanged(map.getBearing());\n" +
+                "        }\n" +
+                "      });\n" +
                 "    } catch(err) {\n" +
                 "      console.error('initMap exception: ' + err);\n" +
                 "      setTimeout(initMap, 800);\n" +
@@ -228,6 +297,12 @@ public class MapplsMapView extends FrameLayout {
                 "  var curRiderLat = " + lastLat + ";\n" +
                 "  var curRiderLng = " + lastLng + ";\n" +
                 "  var curBearing = 0;\n" +
+                "  var isUserInteracting = false;\n" +
+                "  var isNavigating = false;\n" +
+                "\n" +
+                "  function setNavigating(nav) {\n" +
+                "    isNavigating = nav;\n" +
+                "  }\n" +
                 "\n" +
                 "  function setRiderPosition(lat, lng, bearing) {\n" +
                 "    if (!map) return;\n" +
@@ -241,16 +316,19 @@ public class MapplsMapView extends FrameLayout {
                 "      if (puckEl) {\n" +
                 "        puckEl.style.transform = 'rotate(' + bearing + 'deg)';\n" +
                 "      }\n" +
-                "      map.easeTo({\n" +
-                "        center: [lng, lat],\n" +
-                "        bearing: bearing,\n" +
-                "        duration: 350\n" +
-                "      });\n" +
+                "      if (!isUserInteracting) {\n" +
+                "        map.easeTo({\n" +
+                "          center: [lng, lat],\n" +
+                "          bearing: isNavigating ? bearing : map.getBearing(),\n" +
+                "          duration: 350\n" +
+                "        });\n" +
+                "      }\n" +
                 "    } catch(e) {}\n" +
                 "  }\n" +
                 "\n" +
                 "  function recenterOnRider() {\n" +
                 "    if (!map) return;\n" +
+                "    isUserInteracting = false;\n" +
                 "    try {\n" +
                 "      map.flyTo({\n" +
                 "        center: [curRiderLng, curRiderLat],\n" +
@@ -258,6 +336,23 @@ public class MapplsMapView extends FrameLayout {
                 "        bearing: curBearing,\n" +
                 "        speed: 1.3\n" +
                 "      });\n" +
+                "      if (window.AndroidBridge && window.AndroidBridge.onMapRecentered) {\n" +
+                "        window.AndroidBridge.onMapRecentered();\n" +
+                "      }\n" +
+                "    } catch(e) {}\n" +
+                "  }\n" +
+                "\n" +
+                "  function resetNorth() {\n" +
+                "    if (!map) return;\n" +
+                "    try {\n" +
+                "      map.easeTo({\n" +
+                "        bearing: 0,\n" +
+                "        pitch: 0,\n" +
+                "        duration: 400\n" +
+                "      });\n" +
+                "      if (window.AndroidBridge && window.AndroidBridge.onMapBearingChanged) {\n" +
+                "        window.AndroidBridge.onMapBearingChanged(0);\n" +
+                "      }\n" +
                 "    } catch(e) {}\n" +
                 "  }\n" +
                 "\n" +
@@ -358,6 +453,13 @@ public class MapplsMapView extends FrameLayout {
         lastLat = lat;
         lastLng = lng;
         lastBearing = bearing;
+        try {
+            getContext().getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putFloat("saved_rider_lat", (float) lat)
+                    .putFloat("saved_rider_lng", (float) lng)
+                    .apply();
+        } catch (Exception ignored) {}
         if (!isMapLoaded) return;
 
         mainHandler.post(() -> {
@@ -425,6 +527,24 @@ public class MapplsMapView extends FrameLayout {
     public void centerOnCurrentLocation() {
         if (!isMapLoaded) return;
         mainHandler.post(() -> webView.evaluateJavascript("recenterOnRider();", null));
+    }
+
+    public void resetNorth() {
+        if (!isMapLoaded) return;
+        mainHandler.post(() -> webView.evaluateJavascript("resetNorth();", null));
+    }
+
+    public void setNavigating(boolean navigating) {
+        if (!isMapLoaded) return;
+        mainHandler.post(() -> webView.evaluateJavascript("setNavigating(" + navigating + ");", null));
+    }
+
+    public void simulateDrag() {
+        if (!isMapLoaded) return;
+        mainHandler.post(() -> webView.evaluateJavascript(
+            "if (map) { map.panBy([150, 150]); isUserInteracting = true; if (window.AndroidBridge && window.AndroidBridge.onMapDragged) window.AndroidBridge.onMapDragged(); }",
+            null
+        ));
     }
 
     public void centerOnLocation(double lat, double lng) {
