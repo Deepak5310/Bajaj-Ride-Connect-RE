@@ -167,10 +167,13 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
 
         # 2. ARM64-v8a native libraries
         if os.path.exists(arm64_apk):
-            print("    + Merging arm64-v8a native .so libraries...")
+            print("    + Merging arm64-v8a native .so libraries (stripping anti-tamper & crashlytics)...")
             with zipfile.ZipFile(arm64_apk, 'r') as z_arm:
                 for item in z_arm.infolist():
                     if item.filename.startswith('META-INF/') or item.filename in ('AndroidManifest.xml', 'stamp-cert-sha256'):
+                        continue
+                    if 'security_native' in item.filename or 'crashlytics' in item.filename:
+                        print(f"      - Stripping native lib: {item.filename}")
                         continue
                     if item.filename not in added_files:
                         out_zip.writestr(item, z_arm.read(item.filename))
@@ -281,6 +284,8 @@ def build_split_apks(extracted_dir: str, splits_out_dir: str, old_pkg: str, new_
                         patched_arsc = patch_arsc(arsc_data, old_pkg, new_pkg)
                         zout.writestr('resources.arsc', patched_arsc, compress_type=zipfile.ZIP_STORED)
                     elif item.filename.startswith('META-INF/') or item.filename == 'stamp-cert-sha256':
+                        continue
+                    elif 'security_native' in item.filename or 'crashlytics' in item.filename:
                         continue
                     else:
                         zout.writestr(item, zin.read(item.filename))

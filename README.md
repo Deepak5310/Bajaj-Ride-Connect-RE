@@ -39,7 +39,15 @@ bajaj-ride-connect-re/
 
 ## 🛠️ Usage & Tools
 
-### 1. BLE Packet Decoder CLI
+### 1. Standalone Google Maps -> NS400Z TBT Bridge APK (44 KB)
+A native, lightweight background service and dashboard app (`com.pulsar.ns400z.tbtbridge`) that connects directly to the NS400Z BLE cluster (`0110`), intercepts active navigation notifications from **Google Maps**, and renders turn arrows, step distances, ETA, and street names on the bike's LCD dot-matrix display:
+
+```bash
+# Build, sign, and install standalone bridge APK to connected Android phone
+python3 build_tbt_bridge.py --install
+```
+
+### 2. BLE Packet Decoder CLI
 Decode raw hex packets captured from BLE sniffer or Android HCI logs:
 
 ```bash
@@ -53,8 +61,8 @@ python3 scripts/ble_decoder.py "<89-byte hex string>"
 python3 scripts/ble_decoder.py "91 49 00 00 00 fa 2d 07 00 32 00 08 04 00 07 4d 47 20 52 4f 41 44 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 27"
 ```
 
-### 2. Turn-by-Turn (TBT) Bridge & Simulator
-Generate and dispatch real-time 48-byte turn frames directly to the NS400Z cluster:
+### 3. Turn-by-Turn (TBT) Simulator CLI
+Generate and test 48-byte turn frames directly from command line:
 
 ```bash
 # Generate a Left Turn frame in 250m on MG Road with ETA 07:45 PM
@@ -64,12 +72,12 @@ python3 scripts/tbt_bridge.py --maneuver TURN_LEFT --step-dist 250 --total-dist 
 python3 scripts/tbt_bridge.py --decode "<48-byte hex string>"
 ```
 
-### 3. Dual-App Side-by-Side Standalone Build
-Merge Split APKs into a single universal ARM64 package with isolated package ID and ContentProvider authorities:
+### 4. Dual-App Side-by-Side Standalone Repackager
+Merges Split APKs, strips Zersys AntiTamper (`libsecurity_native.so`), Firebase Crashlytics (`libcrashlytics*.so`), and Wi-Fi daemons, isolates ContentProvider authorities, and re-signs for side-by-side co-existence with the official app:
 
 ```bash
-# Builds signed dist/bajaj-ride-connect-debug.apk
-python3 scripts/patch_package.py
+# Builds signed dist/bajaj-ride-connect-debug.apk and installs split packages
+python3 scripts/patch_package.py --install
 ```
 
 ---

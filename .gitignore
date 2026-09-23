@@ -6,6 +6,7 @@ extracted_apks/
 tools/
 dist/
 build/
+tbt-bridge/build/
 *.keystore
 *.jks
 
