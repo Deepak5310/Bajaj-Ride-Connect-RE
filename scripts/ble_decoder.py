@@ -65,21 +65,46 @@ def decode_media(data: bytes):
     print(f"│ Time   : {pos}s / {dur}s | Status: {status_map.get(data[104], 'UNKNOWN')}")
     print(f"└── Raw: {data.hex(' ')}")
 
+GLYPH_NAMES = {
+    66: "WRONG_WAY", 67: "TURN_SLIGHT_LEFT", 68: "TURN_SLIGHT_RIGHT",
+    69: "TURN_SHARP_LEFT", 70: "TURN_SHARP_RIGHT", 71: "STRAIGHT",
+    72: "DESTINATION_REACHED", 73: "TURN_LEFT", 74: "TURN_RIGHT",
+    75: "RAMP_LEFT", 76: "RAMP_RIGHT", 78: "ROUNDABOUT_RIGHT",
+    79: "U_TURN_LEFT", 80: "U_TURN_RIGHT", 81: "FORK_LEFT",
+    82: "FORK_RIGHT", 85: "ROUNDABOUT_LEFT", 86: "MERGE", 90: "KEEP_LEFT"
+}
+
 def decode_tbt(data: bytes):
-    if len(data) < 10:
-        print(f"[!] Invalid TBT length {len(data)}")
+    if len(data) < 48:
+        print(f"[!] Invalid TBT length {len(data)} (expected 48 bytes)")
         return
-    turn_icon = data[0] & 0x0F
-    next_dist = data[2] | (data[3] << 8)
-    eta_h = data[4]
-    eta_m = data[5] & 0x0F
-    tot_dist = data[6] | (data[7] << 8)
-    text = data[10:].decode('utf-8', errors='ignore').strip('\x00') if len(data) > 10 else ""
+    active = bool(data[0] & 0x01)
+    step_unit = "m" if (data[0] & 0x10) else "km"
+    is_pm = bool(data[0] & 0x80)
+    glyph_code = data[1]
+    base_glyph = glyph_code - 32 if glyph_code > 90 else glyph_code
+    glyph_name = GLYPH_NAMES.get(base_glyph, f"GLYPH_{glyph_code}")
+    is_blinking = glyph_code > 90
+
+    eta_min = data[6]
+    eta_hr = data[7] & 0x0F
+    roundabout = (data[7] >> 4) & 0x0F
+    tot_unit = "m" if (data[12] & 0x01) else "km"
+    gps_ok = bool((data[12] >> 2) & 0x01)
+
+    s_len = min(data[14], 31) if len(data) > 14 else 0
+    street = data[15:15+s_len].decode('ascii', errors='ignore') if s_len > 0 else ""
+    chk = data[47]
+    calc_chk = sum(data[:47]) & 0xFF
 
     print("┌── [0110: TURN-BY-TURN NAVIGATION]")
-    print(f"│ Next Turn  : Icon ID {turn_icon} in {next_dist}m")
-    print(f"│ ETA Time   : {eta_h:02d}:{eta_m:02d} | Remaining Distance: {tot_dist}m")
-    print(f"│ Street/Info: '{text}'")
+    print(f"│ Active State : {'ACTIVE' if active else 'INACTIVE'} | GPS Fix: {'YES' if gps_ok else 'NO'}")
+    print(f"│ Maneuver     : {glyph_name} {'(BLINKING/IMMINENT)' if is_blinking else ''} (Code {glyph_code})")
+    print(f"│ ETA Time     : {eta_hr:02d}:{eta_min:02d} {'PM' if is_pm else 'AM'}")
+    if roundabout > 0:
+        print(f"│ Roundabout   : Exit #{roundabout}")
+    print(f"│ Street/Info  : '{street}'")
+    print(f"│ Checksum     : 0x{chk:02X} ({'VALID' if chk == calc_chk else 'INVALID'})")
     print(f"└── Raw: {data.hex(' ')}")
 
 def main():
@@ -103,7 +128,7 @@ def main():
             t = "general"
         elif len(raw_bytes) == 105:
             t = "media"
-        elif len(raw_bytes) == 49:
+        elif len(raw_bytes) in (48, 49):
             t = "tbt"
         else:
             print(f"[*] Unknown length {len(raw_bytes)} bytes. Try specifying --type.")

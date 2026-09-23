@@ -75,19 +75,46 @@ Bytes 56-87:  Phone Model Name (e.g. "Pixel 8 Pro", null padded)
 Byte 88:      8-bit Checksum: sum(Byte[0..87]) & 0xFF
 ```
 
-### C. Turn-by-Turn (TBT) Navigation (`0110`) — App $\rightarrow$ Dash (49 Bytes)
+### C. Turn-by-Turn (TBT) Navigation (`0110`) — App $\rightarrow$ Dash (48 Bytes)
+Transmits maneuver icons, distances, ETA, and street text to the dot-matrix LCD.
 
 ```
-Byte 0:       (TurnIconID & 0x0F) | ((SecondaryTurn & 0x07) << 4) | ((DistanceUnit & 0x01) << 7)
-Byte 1:       Step Multiplier / Distance Multiplier
-Bytes 2-3:    Distance to Next Maneuver in meters (uint16 Little-Endian)
-Byte 4:       ETA Hour (0-23)
-Byte 5:       (ETA Minute & 0x0F) | ((TrafficCongestion & 0x0F) << 4)
-Bytes 6-7:    Total Remaining Trip Distance in meters (uint16 Little-Endian)
-Byte 8:       (ActiveFlag & 0x01) | ((EtaIsAm ? 0 : 1) << 1) | ((GpsStatus & 0x03) << 2)
-Byte 9:       Take Me Home ACK Counter
-Bytes 10-48:  Next Street / Turn Maneuver Text (ASCII/UTF-8, null padded)
+Byte 0:       (ActiveFlag: 1=Active, 0=Stop) | ((DistanceUnit: 1=Meters, 0=Km) << 4) | ((isPM ? 1 : 0) << 7)
+Byte 1:       Maneuver Glyph ASCII (e.g. 71='G' Straight, 73='I' Left, 74='J' Right, +32 for Blinking/Imminent)
+Bytes 2-5:    Step Distance (Bytes: [Decimals LSB, Decimals MSB, Integer LSB, Integer MSB])
+Byte 6:       ETA Minute (0-59 in BCD/Decimal)
+Byte 7:       (ETA Hour: 1-12) | ((RoundaboutExit & 0x0F) << 4)
+Bytes 8-11:   Total Remaining Distance (Bytes: [Decimals LSB, Decimals MSB, Integer LSB, Integer MSB])
+Byte 12:      (TotalDistanceUnit: 1=Meters, 0=Km) | ((GpsStatus: 0=NoFix, 1=Active) << 2)
+Byte 13:      Take Me Home ACK Counter
+Byte 14:      Street Name Length (max 31 chars)
+Bytes 15-46:  Street Name / Maneuver Text (ASCII characters, dot-matrix sanitized)
+Byte 47:      8-bit Checksum: sum(Byte[0..46]) & 0xFF
 ```
+
+#### Primary Turn Glyphs (`PrimaryTurns` Enum)
+
+| Code | Char | Maneuver Description | Blinking Code (< 100m) |
+| :--- | :--- | :--- | :--- |
+| `66` | `'B'` | `WRONG_WAY` / U-Turn Warning | `98` (`'b'`) |
+| `67` | `'C'` | `TURN_SLIGHT_LEFT` | `99` (`'c'`) |
+| `68` | `'D'` | `TURN_SLIGHT_RIGHT` | `100` (`'d'`) |
+| `69` | `'E'` | `TURN_SHARP_LEFT` | `101` (`'e'`) |
+| `70` | `'F'` | `TURN_SHARP_RIGHT` | `102` (`'f'`) |
+| `71` | `'G'` | `STRAIGHT` / Continue | `103` (`'g'`) |
+| `72` | `'H'` | `DESTINATION_REACHED` | `104` (`'h'`) |
+| `73` | `'I'` | `TURN_LEFT` | `105` (`'i'`) |
+| `74` | `'J'` | `TURN_RIGHT` | `106` (`'j'`) |
+| `75` | `'K'` | `RAMP_LEFT` | `107` (`'k'`) |
+| `76` | `'L'` | `RAMP_RIGHT` | `108` (`'l'`) |
+| `78` | `'N'` | `ROUNDABOUT_RIGHT` (Clockwise) | `110` (`'n'`) |
+| `79` | `'O'` | `U_TURN_LEFT` | `111` (`'o'`) |
+| `80` | `'P'` | `U_TURN_RIGHT` / Keep Right | `112` (`'p'`) |
+| `81` | `'Q'` | `FORK_LEFT` | `113` (`'q'`) |
+| `82` | `'R'` | `FORK_RIGHT` | `114` (`'r'`) |
+| `85` | `'U'` | `ROUNDABOUT_LEFT` (Counter-Clockwise) | `117` (`'u'`) |
+| `86` | `'V'` | `MERGE` | `118` (`'v'`) |
+| `90` | `'Z'` | `KEEP_LEFT` / U-Turn | `122` (`'z'`) |
 
 ### D. Now Playing Media (`0610`) — App $\rightarrow$ Dash (105 Bytes)
 
