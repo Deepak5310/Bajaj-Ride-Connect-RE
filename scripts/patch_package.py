@@ -218,16 +218,92 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
     print(f"    Target Arch : arm64-v8a")
     print(f"    Co-existence: Side-by-side with official {old_pkg}")
 
+def build_split_apks(extracted_dir: str, splits_out_dir: str, old_pkg: str, new_pkg: str, install: bool = False):
+    """Patches and signs individual split APKs to preserve exact resource tables."""
+    os.makedirs(splits_out_dir, exist_ok=True)
+    keystore_path = "dist/debug.keystore"
+    ensure_keystore(keystore_path)
+
+    env = dict(os.environ)
+    env["PATH"] = f"{os.path.join(JAVA_HOME, 'bin')}:{env.get('PATH', '')}"
+    env["JAVA_HOME"] = JAVA_HOME
+
+    apks = ["base.apk", "split_config.arm64_v8a.apk", "split_config.xxhdpi.apk", "split_config.en.apk"]
+    output_apks = []
+
+    print(f"[*] Packaging individual split APKs for {new_pkg}...")
+    for apk_name in apks:
+        in_path = os.path.join(extracted_dir, apk_name)
+        if not os.path.exists(in_path):
+            continue
+        tmp_unaligned = os.path.join(splits_out_dir, apk_name + ".unaligned.tmp")
+        tmp_aligned = os.path.join(splits_out_dir, apk_name + ".aligned.tmp")
+        out_path = os.path.join(splits_out_dir, apk_name)
+
+        with zipfile.ZipFile(in_path, 'r') as zin:
+            with zipfile.ZipFile(tmp_unaligned, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
+                for item in zin.infolist():
+                    if item.filename == 'AndroidManifest.xml':
+                        m_data = zin.read('AndroidManifest.xml')
+                        patched = patch_axml(m_data, old_pkg, new_pkg)
+                        zout.writestr('AndroidManifest.xml', patched)
+                    elif item.filename.startswith('META-INF/') or item.filename == 'stamp-cert-sha256':
+                        continue
+                    else:
+                        zout.writestr(item, zin.read(item.filename))
+
+        if os.path.exists(tmp_aligned):
+            os.remove(tmp_aligned)
+        subprocess.run([ZIPALIGN_BIN, "-p", "-f", "4", tmp_unaligned, tmp_aligned], check=True)
+        os.remove(tmp_unaligned)
+
+        if os.path.exists(out_path):
+            os.remove(out_path)
+        shutil.move(tmp_aligned, out_path)
+
+        cmd_sign = [
+            APKSIGNER_BIN, "sign",
+            "--ks", keystore_path,
+            "--ks-pass", "pass:android",
+            "--ks-key-alias", "androiddebugkey",
+            "--key-pass", "pass:android",
+            "--min-sdk-version", "21",
+            "--max-sdk-version", "35",
+            "--v1-signing-enabled", "true",
+            "--v2-signing-enabled", "true",
+            "--v3-signing-enabled", "true",
+            out_path
+        ]
+        subprocess.run(cmd_sign, check=True, env=env)
+        output_apks.append(out_path)
+        print(f"    + Signed: {out_path}")
+
+    print(f"[✓] Successfully built {len(output_apks)} patched split APKs in {splits_out_dir}/")
+
+    if install:
+        adb_bin = "/home/deepak/Android/Sdk/platform-tools/adb"
+        print(f"[*] Installing split APKs via ADB ({adb_bin} install-multiple)...")
+        cmd_install = [adb_bin, "install-multiple", "-r"] + output_apks
+        res = subprocess.run(cmd_install, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(res.stdout.strip())
+        if res.returncode == 0:
+            print(f"[✓] Installed successfully on connected Android device!")
+        else:
+            print(f"[!] ADB Install error: {res.stderr.strip()}")
+
 def main():
     parser = argparse.ArgumentParser(description="Universal ARM64 Dual-Installation APK Builder")
     parser.add_argument("--extracted-dir", default="extracted_apks", help="Directory with split APKs")
     parser.add_argument("--old-pkg", default=DEFAULT_OLD_PKG, help="Original package name")
     parser.add_argument("--new-pkg", default=DEFAULT_NEW_PKG, help="New package name")
     parser.add_argument("--out", default="dist/bajaj-ride-connect-debug.apk", help="Output APK path")
+    parser.add_argument("--splits-dir", default="dist/splits", help="Output directory for split APKs")
+    parser.add_argument("--install", action="store_true", help="Install split APKs directly to connected device via ADB")
     args = parser.parse_args()
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     merge_and_patch_apk(args.extracted_dir, args.out, args.old_pkg, args.new_pkg)
+    build_split_apks(args.extracted_dir, args.splits_dir, args.old_pkg, args.new_pkg, install=args.install)
 
 if __name__ == "__main__":
     main()
