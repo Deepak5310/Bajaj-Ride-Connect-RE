@@ -1,6 +1,8 @@
 package com.pulsar.ns400z.tbtbridge;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -11,42 +13,70 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 /**
- * Enterprise Dashboard Activity for Pulsar Connect (NS400Z).
- * Provides live LCD cluster simulation, real-time Google Maps feed monitoring,
- * and diagnostic simulation tools.
+ * Modern Digital Cockpit Activity for Pulsar Connect (NS400Z).
+ * Minimalist, hardware-accelerated automotive dashboard interface
+ * with real-time LCD simulation, pipeline status monitors, and diagnostic controls.
  */
 public class MainActivity extends Activity implements PulsarBleManager.BleListener {
 
-    private TextView tvStatusPill;
-    private TextView tvDeviceInfo;
-    private TextView tvGattDetail;
-    private TextView tvNotifStatus;
+    private static final int PERMISSION_REQ_CODE = 101;
 
-    // LCD Simulator Views
+    // Header & Connection
+    private View layoutStatusBadge;
+    private View viewStatusDot;
+    private TextView tvStatusBadge;
+    private TextView tvDeviceTarget;
+    private TextView tvQuickLinkAction;
+    private ObjectAnimator pulseAnimator;
+
+    // Hero Cockpit LCD Views
+    private TextView tvLcdBattery;
+    private TextView tvLcdSignal;
+    private TextView tvLcdClock;
     private TextView tvLcdManeuverGlyph;
     private TextView tvLcdStepDist;
     private TextView tvLcdManeuverDesc;
-    private TextView tvLcdEta;
     private TextView tvLcdTotalDist;
+    private TextView tvLcdEta;
     private TextView tvLcdStreet;
-    private TextView tvLcdBattery;
-    private TextView tvLcdSignal;
+    private TextView tvLcdMediaIcon;
     private TextView tvLcdMediaTrack;
-    private TextView tvRawHex;
+    private TextView tvLcdMediaState;
 
-    // Buttons
-    private Button btnConnectBle;
-    private Button btnDisconnectBle;
-    private Button btnGrantNotif;
+    // Pipeline Health Chips
+    private View chipBle;
+    private TextView tvChipBleIcon;
+    private TextView tvChipBleLabel;
+    private View chipMaps;
+    private TextView tvChipMapsIcon;
+    private TextView tvChipMapsLabel;
+    private View chipMedia;
+    private TextView tvChipMediaIcon;
+    private TextView tvChipMediaLabel;
+    private View chipPhone;
+    private TextView tvChipPhoneIcon;
+    private TextView tvChipPhoneLabel;
+    private View cardPermissionAlert;
+    private Button btnGrantPermissions;
+
+    // Simulation Controls
     private Button btnTestLeft;
     private Button btnTestRight;
     private Button btnTestRoundabout;
@@ -54,9 +84,27 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private Button btnTestCall;
     private Button btnTestMusic;
     private Button btnTestClear;
-    private View cardPermissions;
+
+    // Packet Inspector
+    private View layoutToggleTerminal;
+    private View layoutTerminalBody;
+    private TextView tvTerminalToggle;
+    private TextView tvRawHex;
+    private boolean isTerminalExpanded = true;
 
     private PulsarBleManager bleManager;
+    private final Handler clockHandler = new Handler(Looper.getMainLooper());
+    private final SimpleDateFormat clockFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+
+    private final Runnable clockRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (tvLcdClock != null) {
+                tvLcdClock.setText(clockFormat.format(new Date()));
+            }
+            clockHandler.postDelayed(this, 10000);
+        }
+    };
 
     private final BroadcastReceiver tbtReceiver = new BroadcastReceiver() {
         @Override
@@ -72,7 +120,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 String street = intent.getStringExtra("street");
                 String hex = intent.getStringExtra("hex");
 
-                updateLcdNavigation(maneuver, desc, stepDist, totalDist, etaHour, etaMin, isPm, street, hex);
+                updateCockpitNavigation(maneuver, desc, stepDist, totalDist, etaHour, etaMin, isPm, street, hex);
             }
         }
     };
@@ -83,13 +131,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         setupEdgeToEdge();
         setContentView(R.layout.activity_main);
 
-        bindViews();
+        initViews();
+        setupWindowInsets();
         setupListeners();
+        setupMicroAnimations();
 
         bleManager = PulsarBleManager.getInstance(this);
         bleManager.addListener(this);
 
-        // Start Persistent Background Service
         PulsarForegroundService.start(this);
 
         requestAppPermissions();
@@ -98,32 +147,63 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private void setupEdgeToEdge() {
         Window window = getWindow();
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-        window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        window.getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        );
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
     }
 
-    private void bindViews() {
-        tvStatusPill = findViewById(R.id.tvStatusPill);
-        tvDeviceInfo = findViewById(R.id.tvDeviceInfo);
-        tvGattDetail = findViewById(R.id.tvGattDetail);
-        tvNotifStatus = findViewById(R.id.tvNotifStatus);
-        cardPermissions = findViewById(R.id.cardPermissions);
+    private void setupWindowInsets() {
+        View root = findViewById(R.id.rootScrollView);
+        if (root != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            root.setOnApplyWindowInsetsListener((v, insets) -> {
+                int top = insets.getSystemWindowInsetTop();
+                int bottom = insets.getSystemWindowInsetBottom();
+                v.setPadding(v.getPaddingLeft(), top, v.getPaddingRight(), bottom);
+                return insets.consumeSystemWindowInsets();
+            });
+        }
+    }
 
+    private void initViews() {
+        layoutStatusBadge = findViewById(R.id.layoutStatusBadge);
+        viewStatusDot = findViewById(R.id.viewStatusDot);
+        tvStatusBadge = findViewById(R.id.tvStatusBadge);
+        tvDeviceTarget = findViewById(R.id.tvDeviceTarget);
+        tvQuickLinkAction = findViewById(R.id.tvQuickLinkAction);
+
+        tvLcdBattery = findViewById(R.id.tvLcdBattery);
+        tvLcdSignal = findViewById(R.id.tvLcdSignal);
+        tvLcdClock = findViewById(R.id.tvLcdClock);
         tvLcdManeuverGlyph = findViewById(R.id.tvLcdManeuverGlyph);
         tvLcdStepDist = findViewById(R.id.tvLcdStepDist);
         tvLcdManeuverDesc = findViewById(R.id.tvLcdManeuverDesc);
-        tvLcdEta = findViewById(R.id.tvLcdEta);
         tvLcdTotalDist = findViewById(R.id.tvLcdTotalDist);
+        tvLcdEta = findViewById(R.id.tvLcdEta);
         tvLcdStreet = findViewById(R.id.tvLcdStreet);
-        tvLcdBattery = findViewById(R.id.tvLcdBattery);
-        tvLcdSignal = findViewById(R.id.tvLcdSignal);
+        tvLcdMediaIcon = findViewById(R.id.tvLcdMediaIcon);
         tvLcdMediaTrack = findViewById(R.id.tvLcdMediaTrack);
-        tvRawHex = findViewById(R.id.tvRawHex);
+        tvLcdMediaState = findViewById(R.id.tvLcdMediaState);
 
-        btnConnectBle = findViewById(R.id.btnConnectBle);
-        btnDisconnectBle = findViewById(R.id.btnDisconnectBle);
-        btnGrantNotif = findViewById(R.id.btnGrantNotif);
+        chipBle = findViewById(R.id.chipBle);
+        tvChipBleIcon = findViewById(R.id.tvChipBleIcon);
+        tvChipBleLabel = findViewById(R.id.tvChipBleLabel);
+        chipMaps = findViewById(R.id.chipMaps);
+        tvChipMapsIcon = findViewById(R.id.tvChipMapsIcon);
+        tvChipMapsLabel = findViewById(R.id.tvChipMapsLabel);
+        chipMedia = findViewById(R.id.chipMedia);
+        tvChipMediaIcon = findViewById(R.id.tvChipMediaIcon);
+        tvChipMediaLabel = findViewById(R.id.tvChipMediaLabel);
+        chipPhone = findViewById(R.id.chipPhone);
+        tvChipPhoneIcon = findViewById(R.id.tvChipPhoneIcon);
+        tvChipPhoneLabel = findViewById(R.id.tvChipPhoneLabel);
+
+        cardPermissionAlert = findViewById(R.id.cardPermissionAlert);
+        btnGrantPermissions = findViewById(R.id.btnGrantPermissions);
+
         btnTestLeft = findViewById(R.id.btnTestLeft);
         btnTestRight = findViewById(R.id.btnTestRight);
         btnTestRoundabout = findViewById(R.id.btnTestRoundabout);
@@ -131,95 +211,142 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         btnTestCall = findViewById(R.id.btnTestCall);
         btnTestMusic = findViewById(R.id.btnTestMusic);
         btnTestClear = findViewById(R.id.btnTestClear);
+
+        layoutToggleTerminal = findViewById(R.id.layoutToggleTerminal);
+        layoutTerminalBody = findViewById(R.id.layoutTerminalBody);
+        tvTerminalToggle = findViewById(R.id.tvTerminalToggle);
+        tvRawHex = findViewById(R.id.tvRawHex);
     }
 
     private void setupListeners() {
-        btnConnectBle.setOnClickListener(v -> {
-            requestAppPermissions();
-            bleManager.setAutoReconnect(true);
-            bleManager.startScanOrConnect();
-            tvStatusPill.setText("CONNECTING");
-            tvStatusPill.setTextColor(0xFF38BDF8);
-            tvStatusPill.setBackgroundResource(R.drawable.bg_pill_connected);
+        // Quick Connect / Disconnect Action
+        View.OnClickListener toggleConnect = v -> {
+            if (bleManager.isConnected()) {
+                bleManager.disconnect();
+                Toast.makeText(this, "Disconnected from NS400Z", Toast.LENGTH_SHORT).show();
+            } else {
+                requestAppPermissions();
+                bleManager.setAutoReconnect(true);
+                bleManager.startScanOrConnect();
+                setConnectingState();
+            }
+        };
+        layoutStatusBadge.setOnClickListener(toggleConnect);
+        tvQuickLinkAction.setOnClickListener(toggleConnect);
+        chipBle.setOnClickListener(toggleConnect);
+
+        // Permission Prompt
+        btnGrantPermissions.setOnClickListener(v -> openNotificationSettings());
+        chipMaps.setOnClickListener(v -> openNotificationSettings());
+
+        // Pipeline Media Trigger
+        chipMedia.setOnClickListener(v -> {
+            PulsarForegroundService svc = PulsarForegroundService.getInstance();
+            if (svc != null) {
+                svc.refreshMediaSessions();
+                Toast.makeText(this, "Refreshed active media sessions", Toast.LENGTH_SHORT).show();
+            }
         });
 
-        btnDisconnectBle.setOnClickListener(v -> {
-            bleManager.disconnect();
-            Toast.makeText(this, "Disconnected from cluster.", Toast.LENGTH_SHORT).show();
-        });
+        // Diagnostic Simulations
+        btnTestLeft.setOnClickListener(v -> simulateNav(
+                PulsarProtocol.Maneuver.TURN_LEFT, "Turn Left", 250.0, 8500.0, 7, 45, true, "MG ROAD", 0
+        ));
+        btnTestRight.setOnClickListener(v -> simulateNav(
+                PulsarProtocol.Maneuver.TURN_RIGHT, "Turn Right", 500.0, 12000.0, 8, 15, true, "NH 48 HIGHWAY", 0
+        ));
+        btnTestRoundabout.setOnClickListener(v -> simulateNav(
+                PulsarProtocol.Maneuver.ROUNDABOUT_CW, "Roundabout (Exit 2)", 150.0, 5200.0, 8, 30, true, "RING ROAD CIR.", 2
+        ));
+        btnTestDestination.setOnClickListener(v -> simulateNav(
+                PulsarProtocol.Maneuver.DESTINATION, "Destination Reached", 0.0, 0.0, 8, 45, true, "DESTINATION REACHED", 0
+        ));
 
-        btnGrantNotif.setOnClickListener(v -> {
-            Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-            startActivity(intent);
-        });
-
-        // 1. Simulation: Left Turn
-        btnTestLeft.setOnClickListener(v -> {
-            byte[] frame = PulsarProtocol.buildTbtFrame(
-                    PulsarProtocol.Maneuver.TURN_LEFT, 250.0, 8500.0, 7, 45, true, "MG ROAD", true, 0
-            );
-            bleManager.sendTbtFrame(frame);
-            updateLcdNavigation("TURN_LEFT", "Turn Left", 250.0, 8500.0, 7, 45, true, "MG ROAD", bytesToHex(frame));
-            Toast.makeText(this, "Dispatched Left Turn (250m)", Toast.LENGTH_SHORT).show();
-        });
-
-        // 2. Simulation: Right Turn
-        btnTestRight.setOnClickListener(v -> {
-            byte[] frame = PulsarProtocol.buildTbtFrame(
-                    PulsarProtocol.Maneuver.TURN_RIGHT, 500.0, 12000.0, 8, 15, true, "NH 48 HIGHWAY", true, 0
-            );
-            bleManager.sendTbtFrame(frame);
-            updateLcdNavigation("TURN_RIGHT", "Turn Right", 500.0, 12000.0, 8, 15, true, "NH 48 HIGHWAY", bytesToHex(frame));
-            Toast.makeText(this, "Dispatched Right Turn (500m)", Toast.LENGTH_SHORT).show();
-        });
-
-        // 3. Simulation: Roundabout
-        btnTestRoundabout.setOnClickListener(v -> {
-            byte[] frame = PulsarProtocol.buildTbtFrame(
-                    PulsarProtocol.Maneuver.ROUNDABOUT_CW, 150.0, 5200.0, 8, 30, true, "RING ROAD CIR.", true, 2
-            );
-            bleManager.sendTbtFrame(frame);
-            updateLcdNavigation("ROUNDABOUT_CW", "Roundabout (Exit 2)", 150.0, 5200.0, 8, 30, true, "RING ROAD CIR.", bytesToHex(frame));
-            Toast.makeText(this, "Dispatched Roundabout (Exit 2)", Toast.LENGTH_SHORT).show();
-        });
-
-        // 4. Simulation: Destination Reached
-        btnTestDestination.setOnClickListener(v -> {
-            byte[] frame = PulsarProtocol.buildTbtFrame(
-                    PulsarProtocol.Maneuver.DESTINATION, 0.0, 0.0, 8, 45, true, "DESTINATION REACHED", true, 0
-            );
-            bleManager.sendTbtFrame(frame);
-            updateLcdNavigation("DESTINATION", "Destination Reached", 0.0, 0.0, 8, 45, true, "DESTINATION REACHED", bytesToHex(frame));
-            Toast.makeText(this, "Dispatched Destination Reached", Toast.LENGTH_SHORT).show();
-        });
-
-        // 5. Simulation: Caller ID
         btnTestCall.setOnClickListener(v -> {
             bleManager.sendTelemetry(90, 4, 1, "MOM (CALLING)", 0, 0);
             tvLcdStreet.setText("CALL: MOM");
             tvLcdManeuverDesc.setText("Incoming Call...");
-            tvRawHex.setText("Raw Telemetry (0210): [CALL: MOM]");
-            Toast.makeText(this, "Dispatched Caller ID Simulation", Toast.LENGTH_SHORT).show();
+            tvRawHex.setText("Raw Telemetry (0210):\n[CALL: MOM (RINGING)]");
+            Toast.makeText(this, "Dispatched Incoming Call Simulation", Toast.LENGTH_SHORT).show();
         });
 
-        // 6. Simulation: Spotify Track
         btnTestMusic.setOnClickListener(v -> {
             bleManager.sendMedia("Blinding Lights", "The Weeknd", "After Hours", 45, 200, 2);
-            tvLcdMediaTrack.setText("♫ Blinding Lights - The Weeknd");
-            tvRawHex.setText("Raw Media (0610): [The Weeknd - Blinding Lights]");
+            updateCockpitMedia("Blinding Lights", "The Weeknd", 2);
+            tvRawHex.setText("Raw Media (0610):\n[Blinding Lights - The Weeknd | PLAYING]");
             Toast.makeText(this, "Dispatched Spotify Media Simulation", Toast.LENGTH_SHORT).show();
         });
 
-        // 7. Simulation: Clear Display
         btnTestClear.setOnClickListener(v -> {
             byte[] frame = PulsarProtocol.buildTbtClearFrame();
             bleManager.sendTbtFrame(frame);
-            updateLcdNavigation("STRAIGHT", "Idle / Stopped", 0.0, 0.0, 12, 0, false, "--", bytesToHex(frame));
-            Toast.makeText(this, "Cleared Cluster Navigation Screen", Toast.LENGTH_SHORT).show();
+            updateCockpitNavigation("STRAIGHT", "Navigation Idle", 0.0, 0.0, 12, 0, false, "-- READY TO NAVIGATE --", PulsarProtocol.bytesToHex(frame));
+            tvLcdMediaTrack.setText("Idle");
+            tvLcdMediaState.setText("IDLE");
+            tvLcdMediaState.setTextColor(0xFF64748B);
+            Toast.makeText(this, "Cleared Cluster Screen", Toast.LENGTH_SHORT).show();
+        });
+
+        // Collapsible Terminal Toggle
+        layoutToggleTerminal.setOnClickListener(v -> {
+            isTerminalExpanded = !isTerminalExpanded;
+            layoutTerminalBody.setVisibility(isTerminalExpanded ? View.VISIBLE : View.GONE);
+            tvTerminalToggle.setText(isTerminalExpanded ? "▲ HIDE" : "▼ SHOW");
         });
     }
 
-    private void updateLcdNavigation(
+    @SuppressLint("ClickableViewAccessibility")
+    private void setupMicroAnimations() {
+        pulseAnimator = ObjectAnimator.ofFloat(viewStatusDot, "alpha", 1.0f, 0.2f);
+        pulseAnimator.setDuration(900);
+        pulseAnimator.setRepeatMode(ValueAnimator.REVERSE);
+        pulseAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        pulseAnimator.start();
+
+        // Tactile touch scale feedback on buttons
+        View.OnTouchListener touchScale = (v, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(80).start();
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start();
+                    break;
+            }
+            return false;
+        };
+
+        Button[] buttons = new Button[]{
+                btnTestLeft, btnTestRight, btnTestRoundabout, btnTestDestination,
+                btnTestCall, btnTestMusic, btnTestClear, btnGrantPermissions
+        };
+        for (Button b : buttons) {
+            if (b != null) b.setOnTouchListener(touchScale);
+        }
+    }
+
+    private void simulateNav(
+            PulsarProtocol.Maneuver maneuver,
+            String desc,
+            double stepDist,
+            double totalDist,
+            int etaHour,
+            int etaMin,
+            boolean isPm,
+            String street,
+            int roundaboutExit
+    ) {
+        byte[] frame = PulsarProtocol.buildTbtFrame(
+                maneuver, stepDist, totalDist, etaHour, etaMin, isPm, street, true, roundaboutExit
+        );
+        bleManager.sendTbtFrame(frame);
+        String hex = PulsarProtocol.bytesToHex(frame);
+        updateCockpitNavigation(maneuver.name(), desc, stepDist, totalDist, etaHour, etaMin, isPm, street, hex);
+        Toast.makeText(this, "Dispatched: " + desc, Toast.LENGTH_SHORT).show();
+    }
+
+    private void updateCockpitNavigation(
             String maneuverName,
             String desc,
             double stepDist,
@@ -230,89 +357,121 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             String street,
             String hex
     ) {
-        String glyph = getGlyphIcon(maneuverName);
-        tvLcdManeuverGlyph.setText(glyph);
-
-        String stepStr = stepDist >= 1000 ? String.format("%.1f km", stepDist / 1000.0) : String.format("%.0f m", stepDist);
-        String totStr = totalDist >= 1000 ? String.format("%.1f km", totalDist / 1000.0) : String.format("%.0f m", totalDist);
-        String etaStr = String.format("%02d:%02d %s", etaHour, etaMin, isPm ? "PM" : "AM");
-
-        tvLcdStepDist.setText(stepDist > 0 ? stepStr : "--");
+        tvLcdManeuverGlyph.setText(PulsarProtocol.getGlyphIcon(maneuverName));
+        tvLcdStepDist.setText(PulsarProtocol.formatDistance(stepDist));
         tvLcdManeuverDesc.setText(desc != null ? desc : maneuverName);
-        tvLcdEta.setText(etaStr);
-        tvLcdTotalDist.setText(totalDist > 0 ? totStr + " tot" : "--");
+        tvLcdTotalDist.setText(totalDist > 0 ? PulsarProtocol.formatDistance(totalDist) + " tot" : "--");
+        tvLcdEta.setText(etaHour > 0 ? "ETA: " + PulsarProtocol.formatEta(etaHour, etaMin, isPm) : "ETA: --");
         tvLcdStreet.setText(street != null && !street.isEmpty() ? street.toUpperCase() : "--");
-        tvRawHex.setText("Frame (0110):\n" + hex);
-    }
 
-    private String getGlyphIcon(String maneuverName) {
-        if (maneuverName == null) return "↑";
-        switch (maneuverName) {
-            case "TURN_LEFT":
-            case "SHARP_LEFT": return "↰";
-            case "TURN_RIGHT":
-            case "SHARP_RIGHT": return "↱";
-            case "SLIGHT_LEFT":
-            case "KEEP_LEFT": return "↖";
-            case "SLIGHT_RIGHT":
-            case "KEEP_RIGHT": return "↗";
-            case "U_TURN_LEFT":
-            case "U_TURN_RIGHT": return "↺";
-            case "ROUNDABOUT_CW":
-            case "ROUNDABOUT_CCW": return "⮡";
-            case "DESTINATION": return "🏁";
-            default: return "↑";
+        if (hex != null && !hex.isEmpty()) {
+            tvRawHex.setText("Frame (0110, TBT):\n" + hex);
         }
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        checkNotificationPermission();
+    private void updateCockpitMedia(String title, String artist, int state) {
+        if (title == null || title.isEmpty()) {
+            tvLcdMediaTrack.setText("Idle");
+            tvLcdMediaState.setText("IDLE");
+            tvLcdMediaState.setTextColor(0xFF64748B);
+            return;
+        }
 
-        IntentFilter filter = new IntentFilter(GoogleMapsNotificationListener.ACTION_TBT_UPDATE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(tbtReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        String label = (artist != null && !artist.isEmpty()) ? title + " • " + artist : title;
+        tvLcdMediaTrack.setText(label);
+
+        if (state == 2) {
+            tvLcdMediaState.setText("PLAYING");
+            tvLcdMediaState.setTextColor(0xFF10B981);
+            tvLcdMediaIcon.setText("▶");
+        } else if (state == 1) {
+            tvLcdMediaState.setText("PAUSED");
+            tvLcdMediaState.setTextColor(0xFFF59E0B);
+            tvLcdMediaIcon.setText("❚❚");
         } else {
-            registerReceiver(tbtReceiver, filter);
-        }
-
-        if (!bleManager.isConnected()) {
-            bleManager.startScanOrConnect();
+            tvLcdMediaState.setText("IDLE");
+            tvLcdMediaState.setTextColor(0xFF64748B);
+            tvLcdMediaIcon.setText("♫");
         }
     }
 
+    private void setConnectingState() {
+        tvStatusBadge.setText("CONNECTING");
+        tvStatusBadge.setTextColor(0xFF00F0FF);
+        layoutStatusBadge.setBackgroundResource(R.drawable.bg_badge_connecting);
+        tvQuickLinkAction.setText("Connecting...");
+        tvChipBleIcon.setText("⏳");
+    }
+
     @Override
-    protected void onPause() {
-        super.onPause();
+    public void onConnectionStateChanged(boolean connected, String deviceName, String deviceAddress) {
+        runOnUiThread(() -> {
+            if (connected) {
+                tvStatusBadge.setText("CONNECTED");
+                tvStatusBadge.setTextColor(0xFF10B981);
+                layoutStatusBadge.setBackgroundResource(R.drawable.bg_badge_connected);
+                tvDeviceTarget.setText(deviceName + " • " + deviceAddress);
+                tvQuickLinkAction.setText("Disconnect");
+                tvChipBleIcon.setText("⚡");
+                tvChipBleLabel.setText("LINKED");
+            } else {
+                tvStatusBadge.setText("DISCONNECTED");
+                tvStatusBadge.setTextColor(0xFFEF4444);
+                layoutStatusBadge.setBackgroundResource(R.drawable.bg_badge_disconnected);
+                tvDeviceTarget.setText("NS400Z • " + (deviceName.isEmpty() ? "PULSAR6741" : deviceName));
+                tvQuickLinkAction.setText("Tap to Connect");
+                tvChipBleIcon.setText("⚪");
+                tvChipBleLabel.setText("BLE LINK");
+            }
+        });
+    }
+
+    @Override
+    public void onPacketSent(String charUuid, byte[] frame, boolean success) {
+        runOnUiThread(() -> {
+            if (PulsarProtocol.CHAR_TBT_UUID.equalsIgnoreCase(charUuid)) {
+                tvRawHex.setText("Sent TBT (0110, " + (frame != null ? frame.length : 0) + "B, " + (success ? "OK" : "QUEUED") + "):\n"
+                        + PulsarProtocol.bytesToHex(frame));
+            }
+        });
+    }
+
+    @Override
+    public void onHandlebarEvent(PulsarProtocol.HandlebarEvent event) {
+        runOnUiThread(() -> {
+            if (event.musicNext) Toast.makeText(this, "Handlebar: Track Next", Toast.LENGTH_SHORT).show();
+            else if (event.musicPrev) Toast.makeText(this, "Handlebar: Track Prev", Toast.LENGTH_SHORT).show();
+            else if (event.musicPlay || event.musicPause) Toast.makeText(this, "Handlebar: Play/Pause", Toast.LENGTH_SHORT).show();
+            else if (event.callAccept) Toast.makeText(this, "Handlebar: Answer Call", Toast.LENGTH_SHORT).show();
+            else if (event.callReject) Toast.makeText(this, "Handlebar: End Call", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void openNotificationSettings() {
         try {
-            unregisterReceiver(tbtReceiver);
-        } catch (Exception ignored) {}
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (bleManager != null) {
-            bleManager.removeListener(this);
+            startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+        } catch (Exception e) {
+            Toast.makeText(this, "Unable to open Notification settings", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void checkNotificationPermission() {
+    private void checkSystemHooks() {
         String pkg = getPackageName();
         String flat = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
-        boolean enabled = flat != null && flat.contains(pkg);
-        if (enabled) {
-            tvNotifStatus.setText("Notification Hook: ACTIVE (Listening to G-Maps & Media)");
-            tvNotifStatus.setTextColor(0xFF10B981);
-            btnGrantNotif.setVisibility(View.GONE);
-            cardPermissions.setVisibility(View.GONE);
+        boolean notifGranted = flat != null && flat.contains(pkg);
+
+        if (notifGranted) {
+            tvChipMapsIcon.setText("✓");
+            tvChipMapsLabel.setText("G-MAPS");
+            cardPermissionAlert.setVisibility(View.GONE);
         } else {
-            tvNotifStatus.setText("Notification Hook: DISABLED (Required for G-Maps navigation)");
-            tvNotifStatus.setTextColor(0xFFEF4444);
-            btnGrantNotif.setVisibility(View.VISIBLE);
-            cardPermissions.setVisibility(View.VISIBLE);
+            tvChipMapsIcon.setText("⚠");
+            tvChipMapsLabel.setText("ACTION REQ");
+            cardPermissionAlert.setVisibility(View.VISIBLE);
         }
+
+        boolean phoneGranted = checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
+        tvChipPhoneIcon.setText(phoneGranted ? "✓" : "⚠");
     }
 
     private void requestAppPermissions() {
@@ -333,56 +492,46 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
             }
             if (need) {
-                requestPermissions(perms, 102);
+                requestPermissions(perms, PERMISSION_REQ_CODE);
             }
         }
     }
 
     @Override
-    public void onConnectionStateChanged(boolean connected, String deviceName, String deviceAddress) {
-        runOnUiThread(() -> {
-            if (connected) {
-                tvStatusPill.setText("CONNECTED");
-                tvStatusPill.setTextColor(0xFF10B981);
-                tvStatusPill.setBackgroundResource(R.drawable.bg_pill_connected);
-                tvDeviceInfo.setText("Target: " + deviceName + " [" + deviceAddress + "]");
-                tvGattDetail.setText("MTU: 247 • Transport: LE • Link: Active");
-            } else {
-                tvStatusPill.setText("DISCONNECTED");
-                tvStatusPill.setTextColor(0xFFEF4444);
-                tvStatusPill.setBackgroundResource(R.drawable.bg_pill_disconnected);
-                tvDeviceInfo.setText("Target: " + (deviceName.isEmpty() ? "PULSAR6741 (Auto-reconnecting)" : deviceName));
-                tvGattDetail.setText("MTU: -- • Transport: LE • Auto-Reconnect: Active");
-            }
-        });
-    }
+    protected void onResume() {
+        super.onResume();
+        checkSystemHooks();
+        clockHandler.post(clockRunnable);
 
-    @Override
-    public void onPacketSent(String charUuid, byte[] frame, boolean success) {
-        runOnUiThread(() -> {
-            if (PulsarProtocol.CHAR_TBT_UUID.equalsIgnoreCase(charUuid)) {
-                tvRawHex.setText("Sent TBT (0110, " + frame.length + "B, " + (success ? "OK" : "QUEUED") + "):\n" + bytesToHex(frame));
-            }
-        });
-    }
-
-    @Override
-    public void onHandlebarEvent(PulsarProtocol.HandlebarEvent event) {
-        runOnUiThread(() -> {
-            if (event.musicNext) Toast.makeText(this, "Handlebar: Music Next", Toast.LENGTH_SHORT).show();
-            else if (event.musicPrev) Toast.makeText(this, "Handlebar: Music Prev", Toast.LENGTH_SHORT).show();
-            else if (event.musicPlay || event.musicPause) Toast.makeText(this, "Handlebar: Play/Pause", Toast.LENGTH_SHORT).show();
-            else if (event.callAccept) Toast.makeText(this, "Handlebar: Answer Call", Toast.LENGTH_SHORT).show();
-            else if (event.callReject) Toast.makeText(this, "Handlebar: End Call", Toast.LENGTH_SHORT).show();
-        });
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        if (bytes == null) return "";
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02X ", b));
+        IntentFilter filter = new IntentFilter(GoogleMapsNotificationListener.ACTION_TBT_UPDATE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(tbtReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(tbtReceiver, filter);
         }
-        return sb.toString().trim();
+
+        if (!bleManager.isConnected()) {
+            bleManager.startScanOrConnect();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        clockHandler.removeCallbacks(clockRunnable);
+        try {
+            unregisterReceiver(tbtReceiver);
+        } catch (Exception ignored) {}
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (pulseAnimator != null) {
+            pulseAnimator.cancel();
+        }
+        if (bleManager != null) {
+            bleManager.removeListener(this);
+        }
     }
 }

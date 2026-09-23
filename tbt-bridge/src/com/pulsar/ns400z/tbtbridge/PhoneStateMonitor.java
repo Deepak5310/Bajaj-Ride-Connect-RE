@@ -35,6 +35,7 @@ public class PhoneStateMonitor {
     private int batteryPercent = 85;
     private int signalBars = 4; // 0-4
     private boolean isRunning = false;
+    private boolean batteryReceiverRegistered = false;
 
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
         @Override
@@ -69,14 +70,17 @@ public class PhoneStateMonitor {
         initSignalListener();
     }
 
-    private void initBatteryListener() {
-        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent sticky = context.registerReceiver(batteryReceiver, filter);
-        if (sticky != null) {
-            int level = sticky.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-            int scale = sticky.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-            if (level >= 0 && scale > 0) {
-                batteryPercent = (int) ((level / (float) scale) * 100);
+    private synchronized void initBatteryListener() {
+        if (!batteryReceiverRegistered) {
+            IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+            Intent sticky = context.registerReceiver(batteryReceiver, filter);
+            batteryReceiverRegistered = true;
+            if (sticky != null) {
+                int level = sticky.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                int scale = sticky.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                if (level >= 0 && scale > 0) {
+                    batteryPercent = (int) ((level / (float) scale) * 100);
+                }
             }
         }
     }
@@ -111,6 +115,7 @@ public class PhoneStateMonitor {
     public synchronized void start() {
         if (!isRunning) {
             isRunning = true;
+            initBatteryListener();
             handler.post(heartbeatRunnable);
             Log.i(TAG, "Phone State Telemetry Monitor Started.");
         }
@@ -119,9 +124,12 @@ public class PhoneStateMonitor {
     public synchronized void stop() {
         isRunning = false;
         handler.removeCallbacks(heartbeatRunnable);
-        try {
-            context.unregisterReceiver(batteryReceiver);
-        } catch (Exception ignored) {}
+        if (batteryReceiverRegistered) {
+            try {
+                context.unregisterReceiver(batteryReceiver);
+            } catch (Exception ignored) {}
+            batteryReceiverRegistered = false;
+        }
         Log.i(TAG, "Phone State Telemetry Monitor Stopped.");
     }
 

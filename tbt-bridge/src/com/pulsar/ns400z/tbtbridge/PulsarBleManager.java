@@ -19,12 +19,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Enterprise-grade BLE GATT Engine for Bajaj Pulsar NS400Z motorcycle cluster.
@@ -61,7 +61,7 @@ public class PulsarBleManager {
     private boolean isConnecting = false;
     private String connectedDeviceName = "";
     private String connectedDeviceAddress = "";
-    private final List<BleListener> listeners = new ArrayList<>();
+    private final List<BleListener> listeners = new CopyOnWriteArrayList<>();
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private boolean isScanning = false;
@@ -119,13 +119,9 @@ public class PulsarBleManager {
         listeners.remove(listener);
     }
 
-    public void setListener(BleListener listener) {
-        addListener(listener);
-    }
-
     private void notifyConnectionState(boolean connected, String name, String addr) {
         mainHandler.post(() -> {
-            for (BleListener l : new ArrayList<>(listeners)) {
+            for (BleListener l : listeners) {
                 l.onConnectionStateChanged(connected, name, addr);
             }
         });
@@ -133,7 +129,7 @@ public class PulsarBleManager {
 
     private void notifyPacketSent(String charUuid, byte[] frame, boolean success) {
         mainHandler.post(() -> {
-            for (BleListener l : new ArrayList<>(listeners)) {
+            for (BleListener l : listeners) {
                 l.onPacketSent(charUuid, frame, success);
             }
         });
@@ -141,7 +137,7 @@ public class PulsarBleManager {
 
     private void notifyHandlebarEvent(PulsarProtocol.HandlebarEvent event) {
         mainHandler.post(() -> {
-            for (BleListener l : new ArrayList<>(listeners)) {
+            for (BleListener l : listeners) {
                 l.onHandlebarEvent(event);
             }
         });

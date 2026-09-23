@@ -356,4 +356,52 @@ public final class PulsarProtocol {
 
         return ev;
     }
+
+    // =========================================================================
+    // 5. Shared Display & Utility Helpers
+    // =========================================================================
+    public static String formatDistance(double meters) {
+        if (meters <= 0.0) return "--";
+        if (meters >= 1000.0) {
+            return String.format("%.1f km", meters / 1000.0);
+        }
+        return String.format("%.0f m", meters);
+    }
+
+    public static String formatEta(int hour, int min, boolean isPm) {
+        int h = (hour >= 1 && hour <= 12) ? hour : 12;
+        return String.format("%02d:%02d %s", h, min, isPm ? "PM" : "AM");
+    }
+
+    public static String getGlyphIcon(String maneuverName) {
+        if (maneuverName == null) return "↑";
+        switch (maneuverName) {
+            case "TURN_LEFT":
+            case "SHARP_LEFT": return "↰";
+            case "TURN_RIGHT":
+            case "SHARP_RIGHT": return "↱";
+            case "SLIGHT_LEFT":
+            case "KEEP_LEFT": return "↖";
+            case "SLIGHT_RIGHT":
+            case "KEEP_RIGHT": return "↗";
+            case "U_TURN_LEFT":
+            case "U_TURN_RIGHT": return "↺";
+            case "ROUNDABOUT_CW":
+            case "ROUNDABOUT_CCW": return "⮡";
+            case "RAMP_LEFT": return "↸";
+            case "RAMP_RIGHT": return "↹";
+            case "MERGE": return "⇶";
+            case "DESTINATION": return "🏁";
+            default: return "↑";
+        }
+    }
+
+    public static String bytesToHex(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) return "";
+        StringBuilder sb = new StringBuilder(bytes.length * 3);
+        for (byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+        return sb.toString().trim();
+    }
 }

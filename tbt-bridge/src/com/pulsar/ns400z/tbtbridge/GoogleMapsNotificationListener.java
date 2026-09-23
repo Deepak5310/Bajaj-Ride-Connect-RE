@@ -138,7 +138,7 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
         intent.putExtra("eta_min", etaMin);
         intent.putExtra("is_pm", isPm);
         intent.putExtra("street", street);
-        intent.putExtra("hex", bytesToHex(frame));
+        intent.putExtra("hex", PulsarProtocol.bytesToHex(frame));
         sendBroadcast(intent);
     }
 
@@ -234,17 +234,8 @@ public class GoogleMapsNotificationListener extends NotificationListenerService 
             intent.putExtra("eta_min", 0);
             intent.putExtra("is_pm", false);
             intent.putExtra("street", "");
-            intent.putExtra("hex", bytesToHex(stopPacket));
+            intent.putExtra("hex", PulsarProtocol.bytesToHex(stopPacket));
             sendBroadcast(intent);
         }
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        if (bytes == null) return "";
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02X ", b));
-        }
-        return sb.toString().trim();
     }
 }

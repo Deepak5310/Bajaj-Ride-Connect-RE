@@ -6,7 +6,9 @@
         <item name="android:colorPrimary">@color/pulsar_cyan</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:colorControlHighlight">#2600F0FF</item>
     </style>
 </resources>

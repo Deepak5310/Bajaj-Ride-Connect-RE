@@ -120,17 +120,13 @@ public class TelephonyCallHandler {
         if (phoneNumber == null || phoneNumber.isEmpty()) return null;
         try {
             Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber));
-            Cursor cursor = context.getContentResolver().query(uri, new String[]{ContactsContract.PhoneLookup.DISPLAY_NAME}, null, null, null);
-            if (cursor != null) {
-                if (cursor.moveToFirst()) {
+            try (Cursor cursor = context.getContentResolver().query(uri, new String[]{ContactsContract.PhoneLookup.DISPLAY_NAME}, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
                     int nameIdx = cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME);
                     if (nameIdx >= 0) {
-                        String name = cursor.getString(nameIdx);
-                        cursor.close();
-                        return name;
+                        return cursor.getString(nameIdx);
                     }
                 }
-                cursor.close();
             }
         } catch (Exception e) {
             Log.w(TAG, "Contact lookup error: " + e.getMessage());
