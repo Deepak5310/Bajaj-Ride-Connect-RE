@@ -160,6 +160,10 @@ public class MainActivity extends Activity implements TbtBleDispatcher.BleStateC
         } else {
             registerReceiver(tbtReceiver, filter);
         }
+
+        if (!bleDispatcher.isConnected()) {
+            bleDispatcher.startScanOrConnect();
+        }
     }
 
     @Override
