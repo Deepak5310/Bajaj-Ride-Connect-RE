@@ -317,60 +317,137 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Top Right Speed HUD Card -->
-                <!-- Speed & Limit HUD (Active Turn-by-Turn Mode Only) -->
+                <!-- Bottom-Left Cockpit HUD Container (Music Pill stacked above Speed HUD) -->
                 <LinearLayout
-                    android:id="@+id/cardSpeedHud"
+                    android:id="@+id/layoutBottomLeftHud"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="start|bottom"
                     android:layout_marginStart="14dp"
                     android:layout_marginBottom="14dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/bg_floating_pill"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
-                    android:visibility="gone"
-                    android:elevation="10dp">
+                    android:orientation="vertical"
+                    android:gravity="start">
 
+                    <!-- Floating Music Pill (Visible ONLY in Fullscreen Map Mode) -->
                     <LinearLayout
+                        android:id="@+id/layoutFullscreenMusicPill"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:layout_marginEnd="8dp">
+                        android:layout_height="44dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_music_pill"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:elevation="10dp"
+                        android:visibility="gone"
+                        android:clickable="true"
+                        android:focusable="true">
 
-                        <TextView
-                            android:id="@+id/tvCurrentSpeed"
+                        <ImageView
+                            android:id="@+id/ivPillAlbumArt"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:src="@drawable/ic_album_art_placeholder"
+                            android:layout_marginEnd="8dp" />
+
+                        <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/nav_speed"
-                            android:textColor="#FFFFFF"
-                            android:textSize="20sp"
-                            android:textStyle="bold" />
+                            android:orientation="vertical"
+                            android:layout_marginEnd="12dp">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/nav_speed_unit"
-                            android:textColor="#94A3B8"
-                            android:textSize="9sp" />
+                            <TextView
+                                android:id="@+id/tvPillTrack"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:maxWidth="130dp"
+                                android:ellipsize="end"
+                                android:text="No Media"
+                                android:textColor="#F8FAFC"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:singleLine="true" />
+
+                            <TextView
+                                android:id="@+id/tvPillArtist"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:maxWidth="130dp"
+                                android:ellipsize="end"
+                                android:text="Standby"
+                                android:textColor="#94A3B8"
+                                android:textSize="10sp"
+                                android:singleLine="true" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/btnPillPlayPause"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_media_pause"
+                            android:padding="5dp"
+                            android:layout_marginEnd="4dp" />
+
+                        <ImageView
+                            android:id="@+id/btnPillNext"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_media_next"
+                            android:padding="5dp" />
                     </LinearLayout>
 
-                    <!-- Circular Speed Limit Badge (80) -->
-                    <TextView
-                        android:id="@+id/tvSpeedLimit"
-                        android:layout_width="34dp"
-                        android:layout_height="34dp"
-                        android:gravity="center"
-                        android:text="@string/nav_speed_limit"
-                        android:textColor="#000000"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:background="@drawable/bg_speed_limit" />
+                    <!-- Speed & Limit HUD (Active Turn-by-Turn Mode Only) -->
+                    <LinearLayout
+                        android:id="@+id/cardSpeedHud"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_floating_pill"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"
+                        android:visibility="gone"
+                        android:elevation="10dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:layout_marginEnd="8dp">
+
+                            <TextView
+                                android:id="@+id/tvCurrentSpeed"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/nav_speed"
+                                android:textColor="#FFFFFF"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/nav_speed_unit"
+                                android:textColor="#94A3B8"
+                                android:textSize="9sp" />
+                        </LinearLayout>
+
+                        <!-- Circular Speed Limit Badge (80) -->
+                        <TextView
+                            android:id="@+id/tvSpeedLimit"
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
+                            android:gravity="center"
+                            android:text="@string/nav_speed_limit"
+                            android:textColor="#000000"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:background="@drawable/bg_speed_limit" />
+                    </LinearLayout>
                 </LinearLayout>
 
                 <!-- Right Side Floating Action Buttons Stack -->
@@ -711,71 +788,6 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Floating Bottom-Left Music Pill (Visible ONLY in Fullscreen Map Mode) -->
-                <LinearLayout
-                    android:id="@+id/layoutFullscreenMusicPill"
-                    android:layout_width="wrap_content"
-                    android:layout_height="48dp"
-                    android:layout_gravity="bottom|start"
-                    android:layout_marginStart="14dp"
-                    android:layout_marginBottom="14dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/bg_music_pill"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="12dp"
-                    android:visibility="gone"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <ImageView
-                        android:id="@+id/ivPillAlbumArt"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/ic_album_art_placeholder"
-                        android:layout_marginEnd="8dp" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="12dp">
-
-                        <TextView
-                            android:id="@+id/tvPillTrack"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="No Media"
-                            android:textColor="#F8FAFC"
-                            android:textSize="12sp"
-                            android:textStyle="bold"
-                            android:singleLine="true" />
-
-                        <TextView
-                            android:id="@+id/tvPillArtist"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Standby"
-                            android:textColor="#94A3B8"
-                            android:textSize="10sp"
-                            android:singleLine="true" />
-                    </LinearLayout>
-
-                    <ImageView
-                        android:id="@+id/btnPillPlayPause"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:src="@drawable/ic_media_pause"
-                        android:padding="6dp"
-                        android:layout_marginEnd="4dp" />
-
-                    <ImageView
-                        android:id="@+id/btnPillNext"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:src="@drawable/ic_media_next"
-                        android:padding="6dp" />
-                </LinearLayout>
 
                 <!-- Search Destination Overlay (Over the map container) -->
                 <FrameLayout
