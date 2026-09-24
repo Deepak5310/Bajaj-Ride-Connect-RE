@@ -166,6 +166,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private double currentRiderLat = 28.1319; // Saved default (Jhunjhunu, Rajasthan)
     private double currentRiderLng = 75.3991;
     private float currentRiderBearing = 0f;
+    private boolean shouldRecenterOnNextFix = false;
+    private boolean shouldAutoCenterOnLocationEnabled = false;
+    private boolean shouldCenterAfterPermission = false;
+    private boolean hasLiveGpsFix = false;
     private MapplsApiClient.RouteResult currentActiveRoute = null;
     private int currentRouteStepIndex = 0;
     private TextToSpeech tts;
@@ -677,19 +681,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         // Map HUD Controls
         if (btnCurrentLocation != null) {
-            btnCurrentLocation.setOnClickListener(v -> {
-                centerMapOnCurrentLocation();
-                hideRecenterButton();
-            });
+            btnCurrentLocation.setOnClickListener(v -> centerMapOnCurrentLocation());
         }
 
         if (layoutRecenterPill != null) {
-            layoutRecenterPill.setOnClickListener(v -> {
-                if (mapplsMapView != null) {
-                    mapplsMapView.centerOnCurrentLocation();
-                }
-                hideRecenterButton();
-            });
+            layoutRecenterPill.setOnClickListener(v -> centerMapOnCurrentLocation());
         }
 
         if (btnCompass != null) {
@@ -1476,32 +1472,119 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void requestAppPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            String[] perms = new String[]{
+        List<String> needed = new ArrayList<>();
+        String[] candidatePerms;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            candidatePerms = new String[]{
                     Manifest.permission.BLUETOOTH_SCAN,
                     Manifest.permission.BLUETOOTH_CONNECT,
                     Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.READ_PHONE_STATE,
                     Manifest.permission.READ_CONTACTS,
                     Manifest.permission.POST_NOTIFICATIONS
             };
-            boolean need = false;
-            for (String p : perms) {
-                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
-                    need = true;
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            candidatePerms = new String[]{
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.READ_PHONE_STATE,
+                    Manifest.permission.READ_CONTACTS
+            };
+        } else {
+            candidatePerms = new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.READ_PHONE_STATE,
+                    Manifest.permission.READ_CONTACTS
+            };
+        }
+        for (String p : candidatePerms) {
+            if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
+                needed.add(p);
+            }
+        }
+        if (!needed.isEmpty()) {
+            requestPermissions(needed.toArray(new String[0]), PERMISSION_REQ_CODE);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQ_CODE || requestCode == 1001) {
+            boolean locationGranted = false;
+            for (int i = 0; i < permissions.length; i++) {
+                if ((Manifest.permission.ACCESS_FINE_LOCATION.equals(permissions[i]) ||
+                        Manifest.permission.ACCESS_COARSE_LOCATION.equals(permissions[i])) &&
+                        grantResults.length > i && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    locationGranted = true;
                     break;
                 }
             }
-            if (need) {
-                requestPermissions(perms, PERMISSION_REQ_CODE);
+            if (locationGranted) {
+                initGpsTracking();
+                if (shouldCenterAfterPermission) {
+                    shouldCenterAfterPermission = false;
+                    centerMapOnCurrentLocation();
+                }
             }
         }
+    }
+
+    private boolean isLocationEnabled() {
+        try {
+            if (locationManager == null) {
+                locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            }
+            if (locationManager == null) return false;
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                return locationManager.isLocationEnabled();
+            } else {
+                boolean isGpsEnabled = false;
+                boolean isNetworkEnabled = false;
+                try {
+                    isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                } catch (Exception ignored) {}
+                try {
+                    isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+                } catch (Exception ignored) {}
+                return isGpsEnabled || isNetworkEnabled;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void showEnableLocationDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("📍 Turn On Device Location");
+        builder.setMessage("GPS / Location is currently turned off on your device.\n\nPlease turn on Location so Ride Connect can track your live position on the map.");
+        builder.setPositiveButton("Turn On", (dialog, which) -> {
+            shouldAutoCenterOnLocationEnabled = true;
+            shouldRecenterOnNextFix = true;
+            try {
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(intent);
+            } catch (Exception e) {
+                Toast.makeText(MainActivity.this, "Could not open Location Settings", Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        AlertDialog dialog = builder.create();
+        styleCockpitDialog(dialog);
+        dialog.show();
+        Toast.makeText(this, "Please turn ON GPS / Location", Toast.LENGTH_SHORT).show();
     }
 
     private final LocationListener gpsLocationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
             if (location == null) return;
+            hasLiveGpsFix = true;
             currentRiderLat = location.getLatitude();
             currentRiderLng = location.getLongitude();
             try {
@@ -1562,83 +1645,127 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (mapplsMapView != null) {
                 mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
             }
+
+            if (shouldRecenterOnNextFix) {
+                shouldRecenterOnNextFix = false;
+                if (mapplsMapView != null) {
+                    mapplsMapView.centerOnCurrentLocation();
+                }
+                hideRecenterButton();
+                Toast.makeText(MainActivity.this, String.format(Locale.getDefault(), "Live Location: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
+            }
+
             checkRouteProgress(location);
         }
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {}
         @Override
-        public void onProviderEnabled(String provider) {}
+        public void onProviderEnabled(String provider) {
+            initGpsTracking();
+            if (shouldRecenterOnNextFix || shouldAutoCenterOnLocationEnabled) {
+                shouldAutoCenterOnLocationEnabled = false;
+                centerMapOnCurrentLocation();
+            }
+        }
         @Override
-        public void onProviderDisabled(String provider) {}
+        public void onProviderDisabled(String provider) {
+            hasLiveGpsFix = false;
+        }
     };
 
     private void initGpsTracking() {
         try {
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             if (locationManager != null && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                if (last == null) {
-                    last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                }
-                if (last == null) {
-                    last = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-                }
-                if (last != null) {
-                    currentRiderLat = last.getLatitude();
-                    currentRiderLng = last.getLongitude();
-                    try {
-                        getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
-                                .edit()
-                                .putFloat("saved_rider_lat", (float) currentRiderLat)
-                                .putFloat("saved_rider_lng", (float) currentRiderLng)
-                                .apply();
-                    } catch (Exception ignored) {}
-                    if (mapplsMapView != null) {
-                        mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
+                if (isLocationEnabled()) {
+                    Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    if (last == null) {
+                        last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                     }
+                    if (last == null) {
+                        last = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+                    }
+                    if (last != null) {
+                        currentRiderLat = last.getLatitude();
+                        currentRiderLng = last.getLongitude();
+                        try {
+                            getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
+                                    .edit()
+                                    .putFloat("saved_rider_lat", (float) currentRiderLat)
+                                    .putFloat("saved_rider_lng", (float) currentRiderLng)
+                                    .apply();
+                        } catch (Exception ignored) {}
+                        if (mapplsMapView != null) {
+                            mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
+                        }
+                    }
+                    try {
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2.0f, gpsLocationListener);
+                    } catch (Exception ignored) {}
+                    try {
+                        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 5.0f, gpsLocationListener);
+                    } catch (Exception ignored) {}
                 }
-                try {
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2.0f, gpsLocationListener);
-                } catch (Exception ignored) {}
-                try {
-                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 5.0f, gpsLocationListener);
-                } catch (Exception ignored) {}
             }
         } catch (Exception ignored) {}
     }
 
     private void centerMapOnCurrentLocation() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            shouldCenterAfterPermission = true;
+            requestPermissions(new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, 1001);
+            Toast.makeText(this, "Location permission required to track live position", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!isLocationEnabled()) {
+            showEnableLocationDialog();
+            return;
+        }
+
+        initGpsTracking();
+
+        Location loc = null;
         try {
-            if (locationManager != null && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (locationManager != null) {
+                loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (loc == null) {
                     loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                 }
                 if (loc == null) {
                     loc = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
                 }
-                if (loc != null) {
-                    currentRiderLat = loc.getLatitude();
-                    currentRiderLng = loc.getLongitude();
-                    if (loc.hasBearing()) {
-                        currentRiderBearing = loc.getBearing();
-                    }
-                    try {
-                        getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
-                                .edit()
-                                .putFloat("saved_rider_lat", (float) currentRiderLat)
-                                .putFloat("saved_rider_lng", (float) currentRiderLng)
-                                .apply();
-                    } catch (Exception ignored) {}
-                }
             }
         } catch (Exception ignored) {}
 
-        if (mapplsMapView != null) {
-            mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
-            mapplsMapView.centerOnCurrentLocation();
-            Toast.makeText(this, String.format(Locale.getDefault(), "Location: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
+        if (loc != null) {
+            currentRiderLat = loc.getLatitude();
+            currentRiderLng = loc.getLongitude();
+            if (loc.hasBearing()) {
+                currentRiderBearing = loc.getBearing();
+            }
+            hasLiveGpsFix = true;
+            try {
+                getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
+                        .edit()
+                        .putFloat("saved_rider_lat", (float) currentRiderLat)
+                        .putFloat("saved_rider_lng", (float) currentRiderLng)
+                        .apply();
+            } catch (Exception ignored) {}
+
+            if (mapplsMapView != null) {
+                mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
+                mapplsMapView.centerOnCurrentLocation();
+            }
+            hideRecenterButton();
+            Toast.makeText(this, String.format(Locale.getDefault(), "Live Location: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
+        } else {
+            shouldRecenterOnNextFix = true;
+            Toast.makeText(this, "Acquiring live GPS fix...", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -2313,6 +2440,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         super.onResume();
         applyImmersiveFullscreen();
         initGpsTracking();
+        if (shouldAutoCenterOnLocationEnabled && isLocationEnabled()) {
+            shouldAutoCenterOnLocationEnabled = false;
+            centerMapOnCurrentLocation();
+        }
         clockHandler.post(clockRunnable);
 
         try {
