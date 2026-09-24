@@ -7,13 +7,11 @@ tools/
 dist/
 build/
 app/build/
-tbt-bridge/build/
 *.keystore
 *.jks
 
 # Logs & dumps
 *.log
-ns400z_dump/
 *.output
 *.tmp
 *.png
@@ -30,3 +28,4 @@ env/
 .idea/
 .vscode/
 .agents
+AGENTS.md

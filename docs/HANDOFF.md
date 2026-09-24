@@ -46,7 +46,7 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 | **Phone Telemetry Heartbeat** | `app/src/com/bajaj/rideconnect/re/PhoneStateMonitor.java` | ✅ **Verified on Bike** |
 | **Caller ID & Handlebar Calls** | `app/src/com/bajaj/rideconnect/re/TelephonyCallHandler.java` | ⚠️ **Implemented (Untested)** |
 | **Turn-by-Turn Navigation** | `app/src/com/bajaj/rideconnect/re/GoogleMapsNotificationListener.java` | ℹ️ **Implemented (Optional)** |
-| **Automotive Cockpit UI** | `app/src/com/bajaj/rideconnect/re/MainActivity.java` | ✅ **Complete & Active** |
+| **Automotive Cockpit UI & Drawer** | `app/src/com/bajaj/rideconnect/re/MainActivity.java` | ✅ **Complete & Active** (Clean drawer, in-drawer animated About sub-view, Developer: Deepak5310, Supported bikes: NS400Z v1/v2/v3, Dominar 400) |
 
 ---
 

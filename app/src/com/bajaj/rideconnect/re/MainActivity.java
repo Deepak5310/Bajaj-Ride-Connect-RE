@@ -238,6 +238,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private View itemSavedPlaces;
     private View itemAbout;
     private View btnDrawerExit;
+    private TextView tvDrawerTitle;
+    private ScrollView layoutDrawerAbout;
+    private View btnAboutBack;
+    private View btnAboutGithub;
 
     // Hardware & State
     private PulsarBleManager bleManager;
@@ -424,12 +428,15 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             } else if ("open_bike_info".equalsIgnoreCase(cmd)) {
                 showBikeInfoDialog();
             } else if ("open_about".equalsIgnoreCase(cmd)) {
-                showAboutDialog();
+                openDrawer();
+                showDrawerAboutView();
             } else if ("open_drawer".equalsIgnoreCase(cmd)) {
                 openDrawer();
             } else if ("scroll_drawer".equalsIgnoreCase(cmd)) {
                 int y = intent.getIntExtra("y", 400);
-                if (scrollDrawer != null) {
+                if (layoutDrawerAbout != null && layoutDrawerAbout.getVisibility() == View.VISIBLE) {
+                    layoutDrawerAbout.post(() -> layoutDrawerAbout.smoothScrollTo(0, y));
+                } else if (scrollDrawer != null) {
                     scrollDrawer.post(() -> scrollDrawer.smoothScrollTo(0, y));
                 }
             } else if ("close_drawer".equalsIgnoreCase(cmd)) {
@@ -613,6 +620,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         itemSavedPlaces = findViewById(R.id.itemSavedPlaces);
         itemAbout = findViewById(R.id.itemAbout);
         btnDrawerExit = findViewById(R.id.btnDrawerExit);
+        tvDrawerTitle = findViewById(R.id.tvDrawerTitle);
+        layoutDrawerAbout = findViewById(R.id.layoutDrawerAbout);
+        btnAboutBack = findViewById(R.id.btnAboutBack);
+        btnAboutGithub = findViewById(R.id.btnAboutGithub);
     }
 
     private void setupListeners() {
@@ -682,10 +693,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             closeDrawer();
             showSavedPlacesDialog();
         });
-        itemAbout.setOnClickListener(v -> {
-            closeDrawer();
-            showAboutDialog();
-        });
+        itemAbout.setOnClickListener(v -> showDrawerAboutView());
+        if (btnAboutBack != null) {
+            btnAboutBack.setOnClickListener(v -> hideDrawerAboutView());
+        }
+        if (btnAboutGithub != null) {
+            btnAboutGithub.setOnClickListener(v -> openGithubProfile());
+        }
 
         // Exit App Button
         if (btnDrawerExit != null) {
@@ -956,24 +970,42 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         dialog.show();
     }
 
-    private void showAboutDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-        builder.setTitle("🏍️ My Pulsar - Cockpit RE");
-        builder.setMessage(
-            "Version: 3.0.0 (Automotive Cockpit Edition)\n" +
-            "Bluetooth Protocol: Universal RE BLE 2.0\n" +
-            "Map Engine: Mappls Vector Tiles v3.0\n" +
-            "Audio & Calls: AVRCP / Telecom Engine\n\n" +
-            "Supported Motorcycles:\n" +
-            "• Bajaj Pulsar N250 / F250 / N160 / N150\n" +
-            "• Bajaj Pulsar NS400Z / NS200 / NS160\n" +
-            "• Bajaj Dominar 400 / 250\n" +
-            "• Bajaj Avenger Cruise & Street"
-        );
-        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        AlertDialog dialog = builder.create();
-        styleCockpitDialog(dialog);
-        dialog.show();
+    private void showDrawerAboutView() {
+        if (scrollDrawer == null || layoutDrawerAbout == null) return;
+        scrollDrawer.setVisibility(View.GONE);
+        layoutDrawerAbout.setVisibility(View.VISIBLE);
+        layoutDrawerAbout.scrollTo(0, 0);
+        if (tvDrawerTitle != null) tvDrawerTitle.setText("ABOUT COCKPIT");
+        layoutDrawerAbout.setAlpha(0f);
+        layoutDrawerAbout.setTranslationX(40f);
+        layoutDrawerAbout.animate()
+                .alpha(1f)
+                .translationX(0f)
+                .setDuration(220)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+    }
+
+    private void hideDrawerAboutView() {
+        if (scrollDrawer == null || layoutDrawerAbout == null) return;
+        layoutDrawerAbout.setVisibility(View.GONE);
+        scrollDrawer.setVisibility(View.VISIBLE);
+        if (tvDrawerTitle != null) tvDrawerTitle.setText("COCKPIT RE");
+        scrollDrawer.setAlpha(0f);
+        scrollDrawer.setTranslationX(-30f);
+        scrollDrawer.animate()
+                .alpha(1f)
+                .translationX(0f)
+                .setDuration(200)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+    }
+
+    private void openGithubProfile() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Deepak5310"));
+            startActivity(intent);
+        } catch (Exception ignored) {}
     }
 
     private void toggleBleConnection() {
@@ -1155,6 +1187,16 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void closeDrawer() {
+        if (layoutDrawerAbout != null && layoutDrawerAbout.getVisibility() == View.VISIBLE) {
+            layoutDrawerAbout.setVisibility(View.GONE);
+            if (scrollDrawer != null) {
+                scrollDrawer.setVisibility(View.VISIBLE);
+                scrollDrawer.setTranslationX(0f);
+                scrollDrawer.setAlpha(1f);
+            }
+            if (tvDrawerTitle != null) tvDrawerTitle.setText("COCKPIT RE");
+        }
+
         drawerBackdrop.animate()
                 .alpha(0f)
                 .setDuration(200)
@@ -1247,7 +1289,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
                 btnZoomIn, btnZoomOut, btnDrawerExit, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
                 layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle, viewSplitDivider,
-                itemSavedPlaces, itemAbout
+                itemSavedPlaces, itemAbout, btnAboutBack, btnAboutGithub
         };
         for (View view : tactileViews) {
             if (view != null) view.setOnTouchListener(tactileTouch);
@@ -2093,6 +2135,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
         if (currentActiveRoute != null) {
             endActiveNavigation();
+            return;
+        }
+        if (layoutDrawerAbout != null && layoutDrawerAbout.getVisibility() == View.VISIBLE) {
+            hideDrawerAboutView();
             return;
         }
         if (drawerBackdrop != null && drawerBackdrop.getVisibility() == View.VISIBLE) {
