@@ -235,14 +235,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         CONNECTED,
         FAILED
     }
-    private View itemRideStats;
-    private View itemService;
-    private View itemBikeInfo;
     private View itemSavedPlaces;
-    private View itemSettings;
-    private View itemHelp;
     private View itemAbout;
-    private View btnDrawerDisconnect;
+    private View btnDrawerExit;
 
     // Hardware & State
     private PulsarBleManager bleManager;
@@ -615,14 +610,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         btnDrawerBleConnect = findViewById(R.id.btnDrawerBleConnect);
         ivDrawerBleActionIcon = findViewById(R.id.ivDrawerBleActionIcon);
         tvDrawerBleActionText = findViewById(R.id.tvDrawerBleActionText);
-        itemRideStats = findViewById(R.id.itemRideStats);
-        itemService = findViewById(R.id.itemService);
-        itemBikeInfo = findViewById(R.id.itemBikeInfo);
         itemSavedPlaces = findViewById(R.id.itemSavedPlaces);
-        itemSettings = findViewById(R.id.itemSettings);
-        itemHelp = findViewById(R.id.itemHelp);
         itemAbout = findViewById(R.id.itemAbout);
-        btnDrawerDisconnect = findViewById(R.id.btnDrawerDisconnect);
+        btnDrawerExit = findViewById(R.id.btnDrawerExit);
     }
 
     private void setupListeners() {
@@ -688,43 +678,19 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
 
         // Drawer Actions
-        itemRideStats.setOnClickListener(v -> {
-            closeDrawer();
-            showRideStatsDialog();
-        });
-        itemService.setOnClickListener(v -> {
-            closeDrawer();
-            showServiceDialog();
-        });
-        itemBikeInfo.setOnClickListener(v -> {
-            closeDrawer();
-            showBikeInfoDialog();
-        });
         itemSavedPlaces.setOnClickListener(v -> {
             closeDrawer();
             showSavedPlacesDialog();
-        });
-        itemSettings.setOnClickListener(v -> {
-            closeDrawer();
-            openNotificationSettings();
-        });
-        itemHelp.setOnClickListener(v -> {
-            closeDrawer();
-            try {
-                Intent intent = new Intent(Intent.ACTION_DIAL);
-                intent.setData(Uri.parse("tel:18002096060"));
-                startActivity(intent);
-            } catch (Exception e) {
-                Toast.makeText(this, "Bajaj Roadside Assistance: 1800-209-6060", Toast.LENGTH_LONG).show();
-            }
         });
         itemAbout.setOnClickListener(v -> {
             closeDrawer();
             showAboutDialog();
         });
 
-        // Disconnect & Clean Exit Button
-        btnDrawerDisconnect.setOnClickListener(v -> terminateAppSession());
+        // Exit App Button
+        if (btnDrawerExit != null) {
+            btnDrawerExit.setOnClickListener(v -> terminateAppSession());
+        }
 
         if (btnDrawerBleConnect != null) {
             btnDrawerBleConnect.setOnClickListener(v -> startBikeBleConnection());
@@ -1167,14 +1133,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         View[] drawerItems = new View[]{
                 cardBikeStage,
                 cardBikeConnection,
-                itemRideStats,
-                itemService,
-                itemBikeInfo,
                 itemSavedPlaces,
-                itemSettings,
-                itemHelp,
                 itemAbout,
-                btnDrawerDisconnect
+                btnDrawerExit
         };
 
         for (int i = 0; i < drawerItems.length; i++) {
@@ -1284,10 +1245,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         View[] tactileViews = new View[]{
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
-                btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
+                btnZoomIn, btnZoomOut, btnDrawerExit, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
                 layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle, viewSplitDivider,
-                itemRideStats, itemService, itemBikeInfo, itemSavedPlaces,
-                itemSettings, itemHelp, itemAbout
+                itemSavedPlaces, itemAbout
         };
         for (View view : tactileViews) {
             if (view != null) view.setOnTouchListener(tactileTouch);

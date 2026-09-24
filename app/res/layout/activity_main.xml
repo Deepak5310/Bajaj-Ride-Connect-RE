@@ -1112,7 +1112,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="102dp"
                         android:layout_marginTop="2dp"
-                        android:layout_marginBottom="6dp">
+                        android:layout_marginBottom="2dp">
 
                         <ImageView
                             android:id="@+id/ivDrawerBikeImage"
@@ -1123,104 +1123,6 @@
                             android:scaleType="fitCenter"
                             android:src="@drawable/img_drawer_bike" />
                     </FrameLayout>
-
-                    <!-- Micro-Telemetry Strip -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:background="@drawable/bg_stage_telemetry"
-                        android:paddingStart="10dp"
-                        android:paddingEnd="10dp"
-                        android:paddingTop="6dp"
-                        android:paddingBottom="6dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="center">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="ODOMETER"
-                                android:textColor="#64748B"
-                                android:textSize="8sp"
-                                android:letterSpacing="0.08"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="1,420 km"
-                                android:textColor="#F1F5F9"
-                                android:textSize="11sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="1dp"
-                            android:layout_height="18dp"
-                            android:background="#161F33" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="center">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="TRIP A"
-                                android:textColor="#64748B"
-                                android:textSize="8sp"
-                                android:letterSpacing="0.08"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="42.8 km"
-                                android:textColor="#F1F5F9"
-                                android:textSize="11sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="1dp"
-                            android:layout_height="18dp"
-                            android:background="#161F33" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:gravity="center">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="BATTERY"
-                                android:textColor="#64748B"
-                                android:textSize="8sp"
-                                android:letterSpacing="0.08"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="12.8 V"
-                                android:textColor="#38BDF8"
-                                android:textSize="11sp"
-                                android:textStyle="bold" />
-                        </LinearLayout>
-                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -1313,139 +1215,7 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Category 1: Vehicle & Telemetry -->
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="VEHICLE &amp; TELEMETRY"
-                    android:textColor="#64748B"
-                    android:textSize="9sp"
-                    android:letterSpacing="0.12"
-                    android:textStyle="bold"
-                    android:layout_marginTop="2dp"
-                    android:layout_marginBottom="6dp" />
-
-                <!-- Menu Item 1: Ride Stats -->
-                <LinearLayout
-                    android:id="@+id/itemRideStats"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <FrameLayout
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:background="@drawable/bg_menu_tile"
-                        android:layout_marginEnd="12dp">
-
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_menu_stats"
-                            android:tint="#38BDF8" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/menu_ride_stats"
-                        android:textColor="#F1F5F9"
-                        android:textSize="13sp" />
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:src="@drawable/ic_chevron_right"
-                        android:tint="#475569" />
-                </LinearLayout>
-
-                <!-- Menu Item 2: Service & Maintenance -->
-                <LinearLayout
-                    android:id="@+id/itemService"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <FrameLayout
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:background="@drawable/bg_menu_tile"
-                        android:layout_marginEnd="12dp">
-
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_menu_service"
-                            android:tint="#38BDF8" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/menu_service"
-                        android:textColor="#F1F5F9"
-                        android:textSize="13sp" />
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:src="@drawable/ic_chevron_right"
-                        android:tint="#475569" />
-                </LinearLayout>
-
-                <!-- Menu Item 3: Bike Information -->
-                <LinearLayout
-                    android:id="@+id/itemBikeInfo"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <FrameLayout
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:background="@drawable/bg_menu_tile"
-                        android:layout_marginEnd="12dp">
-
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_menu_info"
-                            android:tint="#38BDF8" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/menu_bike_info"
-                        android:textColor="#F1F5F9"
-                        android:textSize="13sp" />
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:src="@drawable/ic_chevron_right"
-                        android:tint="#475569" />
-                </LinearLayout>
-
-                <!-- Category 2: Navigation & Places -->
+                <!-- Category: Navigation & Places -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -1454,7 +1224,7 @@
                     android:textSize="9sp"
                     android:letterSpacing="0.12"
                     android:textStyle="bold"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="6dp"
                     android:layout_marginBottom="6dp" />
 
                 <!-- Menu Item: Saved Places -->
@@ -1497,99 +1267,19 @@
                         android:tint="#475569" />
                 </LinearLayout>
 
-                <!-- Category 3: System & Preferences -->
+                <!-- Category: Application -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="SYSTEM &amp; SETTINGS"
+                    android:text="APPLICATION"
                     android:textColor="#64748B"
                     android:textSize="9sp"
                     android:letterSpacing="0.12"
                     android:textStyle="bold"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="10dp"
                     android:layout_marginBottom="6dp" />
 
-                <!-- Menu Item 7: Settings -->
-                <LinearLayout
-                    android:id="@+id/itemSettings"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <FrameLayout
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:background="@drawable/bg_menu_tile"
-                        android:layout_marginEnd="12dp">
-
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_menu_settings"
-                            android:tint="#38BDF8" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/menu_settings"
-                        android:textColor="#F1F5F9"
-                        android:textSize="13sp" />
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:src="@drawable/ic_chevron_right"
-                        android:tint="#475569" />
-                </LinearLayout>
-
-                <!-- Menu Item 8: Help & Support -->
-                <LinearLayout
-                    android:id="@+id/itemHelp"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <FrameLayout
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:background="@drawable/bg_menu_tile"
-                        android:layout_marginEnd="12dp">
-
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_menu_help"
-                            android:tint="#38BDF8" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/menu_help"
-                        android:textColor="#F1F5F9"
-                        android:textSize="13sp" />
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:src="@drawable/ic_chevron_right"
-                        android:tint="#475569" />
-                </LinearLayout>
-
-                <!-- Menu Item 9: About -->
+                <!-- Menu Item: About -->
                 <LinearLayout
                     android:id="@+id/itemAbout"
                     android:layout_width="match_parent"
@@ -1636,9 +1326,9 @@
                     android:layout_marginTop="10dp"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Disconnect Button -->
+                <!-- Exit App Button -->
                 <LinearLayout
-                    android:id="@+id/btnDrawerDisconnect"
+                    android:id="@+id/btnDrawerExit"
                     android:layout_width="match_parent"
                     android:layout_height="42dp"
                     android:orientation="horizontal"
@@ -1658,7 +1348,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/menu_disconnect"
+                        android:text="@string/menu_exit"
                         android:textColor="#EF4444"
                         android:textSize="12sp"
                         android:textStyle="bold" />
