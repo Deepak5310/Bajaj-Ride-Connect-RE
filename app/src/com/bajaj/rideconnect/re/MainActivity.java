@@ -6,6 +6,8 @@ import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.NotificationManager;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -163,8 +165,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private ImageView btnMapSearch;
     private ImageView btnCurrentLocation;
     private LocationManager locationManager;
-    private double currentRiderLat = 28.1319; // Saved default (Jhunjhunu, Rajasthan)
-    private double currentRiderLng = 75.3991;
+    private double currentRiderLat = 0.0;
+    private double currentRiderLng = 0.0;
     private float currentRiderBearing = 0f;
     private boolean shouldRecenterOnNextFix = false;
     private boolean shouldAutoCenterOnLocationEnabled = false;
@@ -189,18 +191,46 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private ArrayAdapter<MapplsApiClient.PlaceResult> searchAdapter;
     private final Handler searchDebounceHandler = new Handler(Looper.getMainLooper());
 
-    // Right Slide-out Drawer & Cockpit Telemetry
+    // Right Slide-out Drawer & Bike Controls
     private View drawerBackdrop;
     private View drawerPanel;
     private ImageView btnDrawerClose;
     private ImageView ivDrawerBikeImage;
     private TextView tvDrawerBikeName;
+    private TextView tvDrawerClock;
+    private LinearLayout cardBikeConnection;
     private View viewDrawerBtStatusDot;
     private TextView tvDrawerBtStatus;
-    private TextView tvDrawerClock;
-    private TextView tvDrawerBattery;
-    private TextView tvDrawerSignal;
-    private TextView tvDrawerRange;
+    private ProgressBar pbBleConnecting;
+    private TextView tvBleDetailMsg;
+    private LinearLayout btnDrawerBleConnect;
+    private ImageView ivDrawerBleActionIcon;
+    private TextView tvDrawerBleActionText;
+
+    private static final int REQUEST_ENABLE_BT = 1002;
+    private boolean isBleConnecting = false;
+    private final Handler bleTimeoutHandler = new Handler(Looper.getMainLooper());
+    private final Runnable bleTimeoutRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isBleConnecting) {
+                isBleConnecting = false;
+                if (bleManager != null) {
+                    bleManager.stopScan();
+                    bleManager.disconnect();
+                }
+                updateBleUiState(BleUiState.FAILED, null);
+                Toast.makeText(MainActivity.this, "Bike connection timed out (30s). Tap Retry.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
+
+    private enum BleUiState {
+        DISCONNECTED,
+        CONNECTING,
+        CONNECTED,
+        FAILED
+    }
     private View itemRideStats;
     private View itemService;
     private View itemBikeInfo;
@@ -287,8 +317,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         try {
             SharedPreferences prefs = getSharedPreferences("bajaj_ride_prefs", MODE_PRIVATE);
-            currentRiderLat = prefs.getFloat("saved_rider_lat", 28.1319f);
-            currentRiderLng = prefs.getFloat("saved_rider_lng", 75.3991f);
+            float sLat = prefs.getFloat("saved_rider_lat", 0.0f);
+            float sLng = prefs.getFloat("saved_rider_lng", 0.0f);
+            if (sLat != 0.0f && sLng != 0.0f) {
+                currentRiderLat = sLat;
+                currentRiderLng = sLng;
+            }
         } catch (Exception ignored) {}
 
         try {
@@ -414,6 +448,22 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
             } else if ("close_search".equalsIgnoreCase(cmd)) {
                 hideDestinationSearch();
+            } else if ("connect_bike".equalsIgnoreCase(cmd)) {
+                startBikeBleConnection();
+            } else if ("toggle_theme".equalsIgnoreCase(cmd)) {
+                if (btnLayers != null) btnLayers.performClick();
+            } else if ("test_ble_state".equalsIgnoreCase(cmd)) {
+                String s = intent.getStringExtra("state");
+                String name = intent.getStringExtra("name");
+                if ("connecting".equalsIgnoreCase(s)) {
+                    updateBleUiState(BleUiState.CONNECTING, null);
+                } else if ("connected".equalsIgnoreCase(s)) {
+                    updateBleUiState(BleUiState.CONNECTED, name != null ? name : "Bajaj Pulsar NS400Z");
+                } else if ("failed".equalsIgnoreCase(s)) {
+                    updateBleUiState(BleUiState.FAILED, null);
+                } else {
+                    updateBleUiState(BleUiState.DISCONNECTED, null);
+                }
             }
         }
     }
@@ -557,9 +607,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         viewDrawerBtStatusDot = findViewById(R.id.viewDrawerBtStatusDot);
         tvDrawerBtStatus = findViewById(R.id.tvDrawerBtStatus);
         tvDrawerClock = findViewById(R.id.tvDrawerClock);
-        tvDrawerBattery = findViewById(R.id.tvDrawerBattery);
-        tvDrawerSignal = findViewById(R.id.tvDrawerSignal);
-        tvDrawerRange = findViewById(R.id.tvDrawerRange);
+        cardBikeConnection = findViewById(R.id.cardBikeConnection);
+        pbBleConnecting = findViewById(R.id.pbBleConnecting);
+        tvBleDetailMsg = findViewById(R.id.tvBleDetailMsg);
+        btnDrawerBleConnect = findViewById(R.id.btnDrawerBleConnect);
+        ivDrawerBleActionIcon = findViewById(R.id.ivDrawerBleActionIcon);
+        tvDrawerBleActionText = findViewById(R.id.tvDrawerBleActionText);
         itemRideStats = findViewById(R.id.itemRideStats);
         itemService = findViewById(R.id.itemService);
         itemBikeInfo = findViewById(R.id.itemBikeInfo);
@@ -679,13 +732,32 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Disconnect & Clean Exit Button
         btnDrawerDisconnect.setOnClickListener(v -> terminateAppSession());
 
+        if (btnDrawerBleConnect != null) {
+            btnDrawerBleConnect.setOnClickListener(v -> startBikeBleConnection());
+        }
+
         // Map HUD Controls
         if (btnCurrentLocation != null) {
-            btnCurrentLocation.setOnClickListener(v -> centerMapOnCurrentLocation());
+            btnCurrentLocation.setOnClickListener(v -> {
+                if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    Toast.makeText(this, "Please turn ON device Location / GPS", Toast.LENGTH_LONG).show();
+                    try {
+                        startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    } catch (Exception ignored) {}
+                    return;
+                }
+                centerMapOnCurrentLocation();
+                hideRecenterButton();
+            });
         }
 
         if (layoutRecenterPill != null) {
-            layoutRecenterPill.setOnClickListener(v -> centerMapOnCurrentLocation());
+            layoutRecenterPill.setOnClickListener(v -> {
+                if (mapplsMapView != null) {
+                    mapplsMapView.centerOnCurrentLocation();
+                }
+                hideRecenterButton();
+            });
         }
 
         if (btnCompass != null) {
@@ -703,7 +775,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             mapplsMapView.setOnMapInteractionListener(new MapplsMapView.OnMapInteractionListener() {
                 @Override
                 public void onMapDragged() {
-                    showRecenterButton();
+                    if (currentActiveRoute != null) {
+                        showRecenterButton();
+                    }
                 }
 
                 @Override
@@ -755,11 +829,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
 
         btnLayers.setOnClickListener(v -> {
-            isSatelliteLayer = !isSatelliteLayer;
             if (mapplsMapView != null) {
-                mapplsMapView.setSatelliteMode(isSatelliteLayer);
+                mapplsMapView.toggleMapTheme();
+                boolean isDark = mapplsMapView.isDarkMode();
+                Toast.makeText(this, isDark ? "Map: Dark Mode" : "Map: Light Mode", Toast.LENGTH_SHORT).show();
             }
-            Toast.makeText(this, isSatelliteLayer ? "Layer: Satellite/Hybrid" : "Layer: Minimal Dark Vector", Toast.LENGTH_SHORT).show();
         });
 
         btnZoomIn.setOnClickListener(v -> {
@@ -817,16 +891,18 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     private void showSavedPlacesDialog() {
         final String[] placeNames = {
-            "🏠 Home (Jhunjhunu)",
-            "🏢 Office / Work (RIICO)",
-            "⛽ HP Fuel Station (NH 52)",
+            "🏠 Home (Saved)",
+            "🏢 Office / Work",
+            "⛽ Fuel Station (Nearby)",
             "📍 Jaipur Pink City (Hawa Mahal)",
             "📍 Delhi Aerocity (IGI Airport)"
         };
+        double refLat = (currentRiderLat != 0.0) ? currentRiderLat : 28.6139;
+        double refLng = (currentRiderLng != 0.0) ? currentRiderLng : 77.2090;
         final MapplsApiClient.PlaceResult[] places = {
-            new MapplsApiClient.PlaceResult("Home (Jhunjhunu)", "Mandawa Road, Jhunjhunu, Rajasthan", "", 28.1319, 75.3991, 0, "HOME"),
-            new MapplsApiClient.PlaceResult("Office / Work", "RIICO Industrial Area, Jhunjhunu", "", 28.1250, 75.3850, 0, "WORK"),
-            new MapplsApiClient.PlaceResult("HP Fuel Station", "NH 52 Highway Express, Rajasthan", "", 28.0120, 75.4120, 0, "FUEL"),
+            new MapplsApiClient.PlaceResult("Home", "Saved Primary Location", "", refLat + 0.015, refLng + 0.012, 0, "HOME"),
+            new MapplsApiClient.PlaceResult("Office / Work", "Business District Area", "", refLat - 0.020, refLng - 0.015, 0, "WORK"),
+            new MapplsApiClient.PlaceResult("Fuel Station", "Highway Fuel & Service Hub", "", refLat + 0.035, refLng - 0.008, 0, "FUEL"),
             new MapplsApiClient.PlaceResult("Jaipur (Pink City)", "Hawa Mahal Rd, Jaipur, Rajasthan", "3T7XV6", 26.9239, 75.8267, 0, "CITY"),
             new MapplsApiClient.PlaceResult("Delhi Aerocity", "IGI Airport, New Delhi", "", 28.5562, 77.1000, 0, "AIRPORT")
         };
@@ -918,8 +994,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             "• Rear Brake Pads: Good (3.8 mm)\n" +
             "• Chain Slack: 25 mm (Optimal)\n" +
             "• Air Filter: Checked\n\n" +
-            "Authorized Care Center:\n" +
-            "Bajaj Auto Service Center, Jhunjhunu"
+            "Authorized Care Network:\n" +
+            "Bajaj Authorized Service Centers (Nationwide Assistance)"
         );
         builder.setPositiveButton("Call Service", (dialog, which) -> {
             try {
@@ -945,7 +1021,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             "• Transmission: 6-Speed Assist & Slipper Clutch\n" +
             "• Ride Modes: Road | Rain | Sport | Off-Road\n" +
             "• Cluster: " + (bleManager != null && bleManager.isConnected() ? "Connected (BLE OK)" : "Disconnected") + "\n" +
-            "• Estimated Range: ~312 km (Eco Mode)"
+            "• Fuel Tank Capacity: 12 Litres (High-Octane)\n" +
+            "• Fuel Status: Optimal"
         );
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
         AlertDialog dialog = builder.create();
@@ -984,7 +1061,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             "• Bajaj Pulsar N250 / F250 / N160 / N150\n" +
             "• Bajaj Pulsar NS400Z / NS200 / NS160\n" +
             "• Bajaj Dominar 400 / 250\n" +
-            "• Chetak Electric EV Series"
+            "• Bajaj Avenger Cruise & Street"
         );
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
         AlertDialog dialog = builder.create();
@@ -993,15 +1070,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void toggleBleConnection() {
-        if (bleManager.isConnected()) {
-            bleManager.disconnect();
-            Toast.makeText(this, "Disconnected from Bike", Toast.LENGTH_SHORT).show();
-        } else {
-            requestAppPermissions();
-            bleManager.setAutoReconnect(true);
-            bleManager.startScanOrConnect();
-            setConnectingState();
-        }
+        startBikeBleConnection();
     }
 
     private void toggleMediaPlayback() {
@@ -1157,6 +1226,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         View[] drawerItems = new View[]{
                 ivDrawerBikeImage,
                 tvDrawerBikeName,
+                cardBikeConnection,
                 itemRideStats,
                 itemService,
                 itemBikeInfo,
@@ -1243,25 +1313,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void updateBatteryDisplay(int percent, boolean charging) {
-        if (tvDrawerBattery == null) return;
-        if (percent < 0) {
-            tvDrawerBattery.setText("🔋 --%");
-            return;
-        }
-        String icon = charging ? "⚡ " : (percent <= 20 ? "🪫 " : "🔋 ");
-        tvDrawerBattery.setText(icon + percent + "%");
-        int color = (percent <= 20 && !charging) ? 0xFFEF4444 : (charging ? 0xFFF59E0B : 0xFF10B981);
-        tvDrawerBattery.setTextColor(color);
+        // Cockpit telemetry simplified for ICE motorcycles
     }
 
     private void updateSignalDisplay(int bars) {
-        if (tvDrawerSignal == null) return;
-        if (bars < 0) {
-            tvDrawerSignal.setText("📶 --");
-            return;
-        }
-        String graph = bars >= 4 ? "●●●●" : bars == 3 ? "●●●○" : bars == 2 ? "●●○○" : bars == 1 ? "●○○○" : "○○○○";
-        tvDrawerSignal.setText("📶 " + graph);
+        // Cockpit telemetry simplified for ICE motorcycles
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -1289,7 +1345,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         View[] tactileViews = new View[]{
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
-                btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
+                btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
                 layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle,
                 itemRideStats, itemService, itemBikeInfo, itemProfile, itemSavedPlaces, itemOfflineMaps,
                 itemSettings, itemHelp, itemAbout
@@ -1389,29 +1445,224 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         return String.format(Locale.getDefault(), "%d:%02d", m, s);
     }
 
-    private void setConnectingState() {
-        if (tvDrawerBtStatus != null) {
-            tvDrawerBtStatus.setText("Connecting...");
-            tvDrawerBtStatus.setTextColor(0xFFF59E0B);
+    private void startBikeBleConnection() {
+        if (bleManager != null && bleManager.isConnected()) {
+            bleManager.setAutoReconnect(false);
+            bleManager.disconnect();
+            updateBleUiState(BleUiState.DISCONNECTED, null);
+            Toast.makeText(this, "Disconnected from Bike", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (isBleConnecting) {
+            isBleConnecting = false;
+            bleTimeoutHandler.removeCallbacks(bleTimeoutRunnable);
+            if (bleManager != null) {
+                bleManager.stopScan();
+                bleManager.disconnect();
+            }
+            updateBleUiState(BleUiState.DISCONNECTED, null);
+            Toast.makeText(this, "Connection cancelled", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        BluetoothManager bm = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : BluetoothAdapter.getDefaultAdapter();
+        if (adapter == null) {
+            Toast.makeText(this, "Bluetooth not supported on this device", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!adapter.isEnabled()) {
+            Toast.makeText(this, "Turning on Bluetooth...", Toast.LENGTH_SHORT).show();
+            try {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            } catch (Exception e) {
+                Toast.makeText(this, "Please enable Bluetooth in settings", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                }, 1003);
+                return;
+            }
+        }
+
+        isBleConnecting = true;
+        updateBleUiState(BleUiState.CONNECTING, null);
+        bleTimeoutHandler.removeCallbacks(bleTimeoutRunnable);
+        bleTimeoutHandler.postDelayed(bleTimeoutRunnable, 30000);
+
+        if (bleManager != null) {
+            bleManager.setAutoReconnect(true);
+            bleManager.startScanOrConnect();
+        }
+    }
+
+    private void setStatusDotColor(int color, float alpha) {
+        if (viewDrawerBtStatusDot != null) {
+            GradientDrawable dot = new GradientDrawable();
+            dot.setShape(GradientDrawable.OVAL);
+            dot.setColor(color);
+            viewDrawerBtStatusDot.setBackground(dot);
+            viewDrawerBtStatusDot.setAlpha(alpha);
+        }
+    }
+
+    private void updateBleUiState(BleUiState state, String bikeName) {
+        if (tvDrawerBtStatus == null) return;
+        int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : 0xFF00E5FF;
+        float density = getResources().getDisplayMetrics().density;
+
+        switch (state) {
+            case DISCONNECTED:
+                isBleConnecting = false;
+                setStatusDotColor(0xFF64748B, 0.4f);
+                tvDrawerBtStatus.setText("Disconnected");
+                tvDrawerBtStatus.setTextColor(0xFF94A3B8);
+                if (pbBleConnecting != null) pbBleConnecting.setVisibility(View.GONE);
+                if (tvBleDetailMsg != null) {
+                    tvBleDetailMsg.setText("Tap connect to pair with bike cluster");
+                    tvBleDetailMsg.setTextColor(0xFF64748B);
+                }
+                if (ivDrawerBleActionIcon != null) {
+                    ivDrawerBleActionIcon.setImageResource(R.drawable.ic_bluetooth);
+                    ivDrawerBleActionIcon.setColorFilter(0xFF000000);
+                }
+                if (tvDrawerBleActionText != null) {
+                    tvDrawerBleActionText.setText("Connect to Bike");
+                    tvDrawerBleActionText.setTextColor(0xFF000000);
+                }
+                if (btnDrawerBleConnect != null) {
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setShape(GradientDrawable.RECTANGLE);
+                    bg.setCornerRadius(10 * density);
+                    bg.setColor(accent);
+                    btnDrawerBleConnect.setBackground(bg);
+                }
+                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Bajaj Pulsar");
+                break;
+
+            case CONNECTING:
+                setStatusDotColor(0xFFF59E0B, 1.0f);
+                tvDrawerBtStatus.setText("Connecting...");
+                tvDrawerBtStatus.setTextColor(0xFFF59E0B);
+                if (pbBleConnecting != null) pbBleConnecting.setVisibility(View.VISIBLE);
+                if (tvBleDetailMsg != null) {
+                    tvBleDetailMsg.setText("Scanning for bike BLE beacon (30s)...");
+                    tvBleDetailMsg.setTextColor(0xFFF59E0B);
+                }
+                if (ivDrawerBleActionIcon != null) {
+                    ivDrawerBleActionIcon.setImageResource(R.drawable.ic_close);
+                    ivDrawerBleActionIcon.setColorFilter(0xFFEF4444);
+                }
+                if (tvDrawerBleActionText != null) {
+                    tvDrawerBleActionText.setText("Cancel");
+                    tvDrawerBleActionText.setTextColor(0xFFEF4444);
+                }
+                if (btnDrawerBleConnect != null) {
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setShape(GradientDrawable.RECTANGLE);
+                    bg.setCornerRadius(10 * density);
+                    bg.setColor(0x22EF4444);
+                    bg.setStroke((int) (1.2f * density), 0xFFEF4444);
+                    btnDrawerBleConnect.setBackground(bg);
+                }
+                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Searching Bike...");
+                break;
+
+            case CONNECTED:
+                isBleConnecting = false;
+                String displayName = (bikeName != null && !bikeName.trim().isEmpty()) ? bikeName : "Bajaj Pulsar NS400Z";
+                setStatusDotColor(0xFF10B981, 1.0f);
+                tvDrawerBtStatus.setText("Connected: " + displayName);
+                tvDrawerBtStatus.setTextColor(0xFF10B981);
+                if (pbBleConnecting != null) pbBleConnecting.setVisibility(View.GONE);
+                if (tvBleDetailMsg != null) {
+                    tvBleDetailMsg.setText("BLE Live Telemetry & Nav Sync Active");
+                    tvBleDetailMsg.setTextColor(0xFF10B981);
+                }
+                if (ivDrawerBleActionIcon != null) {
+                    ivDrawerBleActionIcon.setImageResource(R.drawable.ic_bluetooth);
+                    ivDrawerBleActionIcon.setColorFilter(0xFFEF4444);
+                }
+                if (tvDrawerBleActionText != null) {
+                    tvDrawerBleActionText.setText("Disconnect");
+                    tvDrawerBleActionText.setTextColor(0xFFEF4444);
+                }
+                if (btnDrawerBleConnect != null) {
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setShape(GradientDrawable.RECTANGLE);
+                    bg.setCornerRadius(10 * density);
+                    bg.setColor(0x22EF4444);
+                    bg.setStroke((int) (1.2f * density), 0xFFEF4444);
+                    btnDrawerBleConnect.setBackground(bg);
+                }
+                if (tvDrawerBikeName != null) tvDrawerBikeName.setText(displayName);
+                break;
+
+            case FAILED:
+                isBleConnecting = false;
+                setStatusDotColor(0xFFEF4444, 1.0f);
+                tvDrawerBtStatus.setText("Connection Failed");
+                tvDrawerBtStatus.setTextColor(0xFFEF4444);
+                if (pbBleConnecting != null) pbBleConnecting.setVisibility(View.GONE);
+                if (tvBleDetailMsg != null) {
+                    tvBleDetailMsg.setText("Bike cluster not found within 30s");
+                    tvBleDetailMsg.setTextColor(0xFFEF4444);
+                }
+                if (ivDrawerBleActionIcon != null) {
+                    ivDrawerBleActionIcon.setImageResource(R.drawable.ic_refresh);
+                    ivDrawerBleActionIcon.setColorFilter(0xFF000000);
+                }
+                if (tvDrawerBleActionText != null) {
+                    tvDrawerBleActionText.setText("Retry Connection");
+                    tvDrawerBleActionText.setTextColor(0xFF000000);
+                }
+                if (btnDrawerBleConnect != null) {
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setShape(GradientDrawable.RECTANGLE);
+                    bg.setCornerRadius(10 * density);
+                    bg.setColor(accent);
+                    btnDrawerBleConnect.setBackground(bg);
+                }
+                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Bajaj Pulsar");
+                break;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_ENABLE_BT) {
+            BluetoothManager bm = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+            BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : BluetoothAdapter.getDefaultAdapter();
+            if (adapter != null && adapter.isEnabled()) {
+                Toast.makeText(this, "Bluetooth enabled, starting connection...", Toast.LENGTH_SHORT).show();
+                startBikeBleConnection();
+            } else {
+                Toast.makeText(this, "Bluetooth is required to connect to bike", Toast.LENGTH_LONG).show();
+                updateBleUiState(BleUiState.DISCONNECTED, null);
+            }
         }
     }
 
     @Override
     public void onConnectionStateChanged(boolean connected, String deviceName, String deviceAddress) {
+        bleTimeoutHandler.removeCallbacks(bleTimeoutRunnable);
+        isBleConnecting = false;
         runOnUiThread(() -> {
             if (connected) {
-                String displayName = (deviceName != null && !deviceName.isEmpty()) ? deviceName : "Bajaj Pulsar NS400Z";
-                if (tvDrawerBikeName != null) tvDrawerBikeName.setText(displayName);
-                if (tvDrawerBtStatus != null) {
-                    tvDrawerBtStatus.setText("Connected (BLE OK)");
-                    tvDrawerBtStatus.setTextColor(0xFF10B981);
-                }
+                updateBleUiState(BleUiState.CONNECTED, deviceName);
             } else {
-                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Bajaj Pulsar NS400Z");
-                if (tvDrawerBtStatus != null) {
-                    tvDrawerBtStatus.setText("Disconnected");
-                    tvDrawerBtStatus.setTextColor(0xFFEF4444);
-                }
+                updateBleUiState(BleUiState.DISCONNECTED, null);
             }
         });
     }
@@ -1472,119 +1723,32 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void requestAppPermissions() {
-        List<String> needed = new ArrayList<>();
-        String[] candidatePerms;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            candidatePerms = new String[]{
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            String[] perms = new String[]{
                     Manifest.permission.BLUETOOTH_SCAN,
                     Manifest.permission.BLUETOOTH_CONNECT,
                     Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.READ_PHONE_STATE,
                     Manifest.permission.READ_CONTACTS,
                     Manifest.permission.POST_NOTIFICATIONS
             };
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            candidatePerms = new String[]{
-                    Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.BLUETOOTH_CONNECT,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.READ_PHONE_STATE,
-                    Manifest.permission.READ_CONTACTS
-            };
-        } else {
-            candidatePerms = new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.READ_PHONE_STATE,
-                    Manifest.permission.READ_CONTACTS
-            };
-        }
-        for (String p : candidatePerms) {
-            if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
-                needed.add(p);
-            }
-        }
-        if (!needed.isEmpty()) {
-            requestPermissions(needed.toArray(new String[0]), PERMISSION_REQ_CODE);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQ_CODE || requestCode == 1001) {
-            boolean locationGranted = false;
-            for (int i = 0; i < permissions.length; i++) {
-                if ((Manifest.permission.ACCESS_FINE_LOCATION.equals(permissions[i]) ||
-                        Manifest.permission.ACCESS_COARSE_LOCATION.equals(permissions[i])) &&
-                        grantResults.length > i && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                    locationGranted = true;
+            boolean need = false;
+            for (String p : perms) {
+                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
+                    need = true;
                     break;
                 }
             }
-            if (locationGranted) {
-                initGpsTracking();
-                if (shouldCenterAfterPermission) {
-                    shouldCenterAfterPermission = false;
-                    centerMapOnCurrentLocation();
-                }
+            if (need) {
+                requestPermissions(perms, PERMISSION_REQ_CODE);
             }
         }
-    }
-
-    private boolean isLocationEnabled() {
-        try {
-            if (locationManager == null) {
-                locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            }
-            if (locationManager == null) return false;
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                return locationManager.isLocationEnabled();
-            } else {
-                boolean isGpsEnabled = false;
-                boolean isNetworkEnabled = false;
-                try {
-                    isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                } catch (Exception ignored) {}
-                try {
-                    isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-                } catch (Exception ignored) {}
-                return isGpsEnabled || isNetworkEnabled;
-            }
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private void showEnableLocationDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-        builder.setTitle("📍 Turn On Device Location");
-        builder.setMessage("GPS / Location is currently turned off on your device.\n\nPlease turn on Location so Ride Connect can track your live position on the map.");
-        builder.setPositiveButton("Turn On", (dialog, which) -> {
-            shouldAutoCenterOnLocationEnabled = true;
-            shouldRecenterOnNextFix = true;
-            try {
-                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                startActivity(intent);
-            } catch (Exception e) {
-                Toast.makeText(MainActivity.this, "Could not open Location Settings", Toast.LENGTH_SHORT).show();
-            }
-        });
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-        AlertDialog dialog = builder.create();
-        styleCockpitDialog(dialog);
-        dialog.show();
-        Toast.makeText(this, "Please turn ON GPS / Location", Toast.LENGTH_SHORT).show();
     }
 
     private final LocationListener gpsLocationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
             if (location == null) return;
-            hasLiveGpsFix = true;
             currentRiderLat = location.getLatitude();
             currentRiderLng = location.getLongitude();
             try {
@@ -1645,131 +1809,100 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (mapplsMapView != null) {
                 mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
             }
-
-            if (shouldRecenterOnNextFix) {
-                shouldRecenterOnNextFix = false;
-                if (mapplsMapView != null) {
-                    mapplsMapView.centerOnCurrentLocation();
-                }
-                hideRecenterButton();
-                Toast.makeText(MainActivity.this, String.format(Locale.getDefault(), "Live Location: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
-            }
-
             checkRouteProgress(location);
         }
 
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {}
         @Override
-        public void onProviderEnabled(String provider) {
-            initGpsTracking();
-            if (shouldRecenterOnNextFix || shouldAutoCenterOnLocationEnabled) {
-                shouldAutoCenterOnLocationEnabled = false;
-                centerMapOnCurrentLocation();
-            }
-        }
+        public void onProviderEnabled(String provider) {}
         @Override
-        public void onProviderDisabled(String provider) {
-            hasLiveGpsFix = false;
-        }
+        public void onProviderDisabled(String provider) {}
     };
 
     private void initGpsTracking() {
         try {
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
             if (locationManager != null && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                if (isLocationEnabled()) {
-                    Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    if (last == null) {
-                        last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                    }
-                    if (last == null) {
-                        last = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-                    }
-                    if (last != null) {
-                        currentRiderLat = last.getLatitude();
-                        currentRiderLng = last.getLongitude();
-                        try {
-                            getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
-                                    .edit()
-                                    .putFloat("saved_rider_lat", (float) currentRiderLat)
-                                    .putFloat("saved_rider_lng", (float) currentRiderLng)
-                                    .apply();
-                        } catch (Exception ignored) {}
-                        if (mapplsMapView != null) {
-                            mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
-                        }
-                    }
-                    try {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2.0f, gpsLocationListener);
-                    } catch (Exception ignored) {}
-                    try {
-                        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 5.0f, gpsLocationListener);
-                    } catch (Exception ignored) {}
+                Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                if (last == null) {
+                    last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                 }
+                if (last == null) {
+                    last = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+                }
+                if (last != null) {
+                    currentRiderLat = last.getLatitude();
+                    currentRiderLng = last.getLongitude();
+                    try {
+                        getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
+                                .edit()
+                                .putFloat("saved_rider_lat", (float) currentRiderLat)
+                                .putFloat("saved_rider_lng", (float) currentRiderLng)
+                                .apply();
+                    } catch (Exception ignored) {}
+                    if (mapplsMapView != null) {
+                        mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
+                    }
+                }
+                try {
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2.0f, gpsLocationListener);
+                } catch (Exception ignored) {}
+                try {
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 5.0f, gpsLocationListener);
+                } catch (Exception ignored) {}
             }
         } catch (Exception ignored) {}
     }
 
     private void centerMapOnCurrentLocation() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            shouldCenterAfterPermission = true;
-            requestPermissions(new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-            }, 1001);
-            Toast.makeText(this, "Location permission required to track live position", Toast.LENGTH_SHORT).show();
+        if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            Toast.makeText(this, "Please turn ON device Location / GPS", Toast.LENGTH_LONG).show();
+            try {
+                startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+            } catch (Exception ignored) {}
             return;
         }
 
-        if (!isLocationEnabled()) {
-            showEnableLocationDialog();
-            return;
-        }
-
-        initGpsTracking();
-
-        Location loc = null;
         try {
-            if (locationManager != null) {
-                loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (locationManager != null && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (loc == null) {
                     loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                 }
                 if (loc == null) {
                     loc = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
                 }
+                if (loc != null) {
+                    currentRiderLat = loc.getLatitude();
+                    currentRiderLng = loc.getLongitude();
+                    if (loc.hasBearing()) {
+                        currentRiderBearing = loc.getBearing();
+                    }
+                    try {
+                        getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
+                                .edit()
+                                .putFloat("saved_rider_lat", (float) currentRiderLat)
+                                .putFloat("saved_rider_lng", (float) currentRiderLng)
+                                .apply();
+                    } catch (Exception ignored) {}
+                }
             }
         } catch (Exception ignored) {}
 
-        if (loc != null) {
-            currentRiderLat = loc.getLatitude();
-            currentRiderLng = loc.getLongitude();
-            if (loc.hasBearing()) {
-                currentRiderBearing = loc.getBearing();
-            }
-            hasLiveGpsFix = true;
-            try {
-                getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
-                        .edit()
-                        .putFloat("saved_rider_lat", (float) currentRiderLat)
-                        .putFloat("saved_rider_lng", (float) currentRiderLng)
-                        .apply();
-            } catch (Exception ignored) {}
-
-            if (mapplsMapView != null) {
+        if (mapplsMapView != null) {
+            if (currentRiderLat != 0.0 && currentRiderLng != 0.0) {
                 mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
                 mapplsMapView.centerOnCurrentLocation();
+                Toast.makeText(this, String.format(Locale.getDefault(), "Live GPS: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Acquiring live GPS fix...", Toast.LENGTH_SHORT).show();
             }
-            hideRecenterButton();
-            Toast.makeText(this, String.format(Locale.getDefault(), "Live Location: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
-        } else {
-            shouldRecenterOnNextFix = true;
-            Toast.makeText(this, "Acquiring live GPS fix...", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void showRecenterButton() {
+        if (currentActiveRoute == null) return;
         if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() != View.VISIBLE) {
             layoutRecenterPill.setVisibility(View.VISIBLE);
             layoutRecenterPill.setAlpha(0f);
@@ -2440,10 +2573,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         super.onResume();
         applyImmersiveFullscreen();
         initGpsTracking();
-        if (shouldAutoCenterOnLocationEnabled && isLocationEnabled()) {
-            shouldAutoCenterOnLocationEnabled = false;
-            centerMapOnCurrentLocation();
-        }
         clockHandler.post(clockRunnable);
 
         try {
@@ -2668,8 +2797,20 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (btnDrawerClose != null) {
             btnDrawerClose.setColorFilter(palette.accentPrimary);
         }
-        if (tvDrawerSignal != null && currentSignalBars >= 0) {
-            tvDrawerSignal.setTextColor(palette.accentPrimary);
+        if (cardBikeConnection != null) {
+            GradientDrawable cardBg = new GradientDrawable();
+            cardBg.setShape(GradientDrawable.RECTANGLE);
+            cardBg.setCornerRadius(14 * density);
+            cardBg.setColor(0xEE0B0E14);
+            cardBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            cardBikeConnection.setBackground(cardBg);
+        }
+        if (btnDrawerBleConnect != null && !isBleConnecting && (bleManager == null || !bleManager.isConnected())) {
+            GradientDrawable btnBg = new GradientDrawable();
+            btnBg.setShape(GradientDrawable.RECTANGLE);
+            btnBg.setCornerRadius(10 * density);
+            btnBg.setColor(palette.accentPrimary);
+            btnDrawerBleConnect.setBackground(btnBg);
         }
 
         // 12. Search Overlay Box & Input Field

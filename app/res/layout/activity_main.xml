@@ -993,44 +993,23 @@
                     android:src="@drawable/ic_bike_ns400z"
                     android:layout_marginTop="8dp" />
 
-                <!-- Bike Name -->
-                <TextView
-                    android:id="@+id/tvDrawerBikeName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Bajaj Pulsar NS400Z"
-                    android:textColor="#F8FAFC"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:layout_marginTop="8dp" />
-
-                <!-- Connection Status & Clock Row -->
+                <!-- Bike Name & Clock Header Row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="3dp">
-
-                    <View
-                        android:id="@+id/viewDrawerBtStatusDot"
-                        android:layout_width="8dp"
-                        android:layout_height="8dp"
-                        android:background="@drawable/bg_pulse_dot"
-                        android:layout_marginEnd="6dp" />
+                    android:layout_marginTop="8dp">
 
                     <TextView
-                        android:id="@+id/tvDrawerBtStatus"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Connected (BLE OK)"
-                        android:textColor="#10B981"
-                        android:textSize="12sp" />
-
-                    <View
+                        android:id="@+id/tvDrawerBikeName"
                         android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1" />
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Bajaj Pulsar"
+                        android:textColor="#F8FAFC"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/tvDrawerClock"
@@ -1042,71 +1021,87 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Telemetry Pills (Battery, Signal, Range) -->
+                <!-- Bike BLE Connection Card -->
                 <LinearLayout
+                    android:id="@+id/cardBikeConnection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_cockpit_card"
+                    android:padding="12dp"
                     android:layout_marginTop="10dp">
 
-                    <!-- Battery Pill -->
+                    <!-- Connection Status Header Row -->
                     <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:layout_weight="1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center"
-                        android:background="@drawable/bg_chip_action"
-                        android:layout_marginEnd="6dp">
+                        android:gravity="center_vertical">
+
+                        <View
+                            android:id="@+id/viewDrawerBtStatusDot"
+                            android:layout_width="8dp"
+                            android:layout_height="8dp"
+                            android:background="@drawable/bg_pulse_dot"
+                            android:layout_marginEnd="8dp" />
 
                         <TextView
-                            android:id="@+id/tvDrawerBattery"
-                            android:layout_width="wrap_content"
+                            android:id="@+id/tvDrawerBtStatus"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="🔋 85%"
-                            android:textColor="#10B981"
-                            android:textSize="11sp"
+                            android:layout_weight="1"
+                            android:text="Disconnected"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp"
                             android:textStyle="bold" />
+
+                        <ProgressBar
+                            android:id="@+id/pbBleConnecting"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:indeterminate="true"
+                            android:indeterminateTint="@color/pulsar_cyan"
+                            android:visibility="gone" />
                     </LinearLayout>
 
-                    <!-- Cellular Signal Pill -->
+                    <TextView
+                        android:id="@+id/tvBleDetailMsg"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Tap connect to pair with bike cluster"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="10dp" />
+
+                    <!-- Action Button: Connect / Retry / Disconnect -->
                     <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:layout_weight="1"
+                        android:id="@+id/btnDrawerBleConnect"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
                         android:orientation="horizontal"
                         android:gravity="center"
-                        android:background="@drawable/bg_chip_action"
-                        android:layout_marginEnd="6dp">
+                        android:background="@drawable/bg_chip_primary"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/ivDrawerBleActionIcon"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_bluetooth"
+                            android:tint="#000000"
+                            android:layout_marginEnd="6dp" />
 
                         <TextView
-                            android:id="@+id/tvDrawerSignal"
+                            android:id="@+id/tvDrawerBleActionText"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="📶 4G"
-                            android:textColor="#38BDF8"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <!-- Fuel Range Pill -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="32dp"
-                        android:layout_weight="1"
-                        android:orientation="horizontal"
-                        android:gravity="center"
-                        android:background="@drawable/bg_chip_action">
-
-                        <TextView
-                            android:id="@+id/tvDrawerRange"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="⛽ 312 km"
-                            android:textColor="#E2E8F0"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
+                            android:text="Connect to Bike"
+                            android:textColor="#000000"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.04" />
                     </LinearLayout>
                 </LinearLayout>
 

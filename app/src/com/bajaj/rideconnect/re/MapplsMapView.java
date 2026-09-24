@@ -35,6 +35,7 @@ public class MapplsMapView extends FrameLayout {
     private float lastBearing = 0f;
     private String currentAccentHex = "#38BDF8";
     private String currentAccentRgb = "56, 189, 248";
+    private boolean isDarkMode = true;
 
     public interface OnMapReadyCallback {
         void onMapReady();
@@ -91,10 +92,12 @@ public class MapplsMapView extends FrameLayout {
 
         try {
             android.content.SharedPreferences prefs = context.getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE);
-            float savedLat = prefs.getFloat("saved_rider_lat", 28.1319f); // Default to Jhunjhunu, Rajasthan
-            float savedLng = prefs.getFloat("saved_rider_lng", 75.3991f);
-            lastLat = savedLat;
-            lastLng = savedLng;
+            float savedLat = prefs.getFloat("saved_rider_lat", 0.0f);
+            float savedLng = prefs.getFloat("saved_rider_lng", 0.0f);
+            if (savedLat != 0.0f && savedLng != 0.0f) {
+                lastLat = savedLat;
+                lastLng = savedLng;
+            }
         } catch (Exception ignored) {}
 
         webView = new WebView(context);
@@ -120,6 +123,7 @@ public class MapplsMapView extends FrameLayout {
                                 "setMapAccentColor('%s', '%s');", currentAccentHex, currentAccentRgb);
                         webView.evaluateJavascript(script, null);
                     }
+                    webView.evaluateJavascript("setMapTheme(" + isDarkMode + ");", null);
                     if (mapReadyCallback != null) {
                         mapReadyCallback.onMapReady();
                     }
@@ -210,9 +214,12 @@ public class MapplsMapView extends FrameLayout {
                 "  <script src='https://apis.mappls.com/advancedmaps/api/" + apiKey + "/map_sdk?v=3.0&layer=vector&callback=initMap'></script>\n" +
                 "  <style>\n" +
                 "    :root { --accent-hex: " + currentAccentHex + "; --accent-rgb: " + currentAccentRgb + "; }\n" +
-                "    body, html { margin:0; padding:0; height:100%; width:100%; background:#000000; overflow:hidden; font-family:sans-serif; }\n" +
-                "    #map { position:absolute; top:0; bottom:0; width:100%; height:100%; background:#000000; }\n" +
-                "    #map canvas { filter: invert(92%) hue-rotate(180deg) brightness(85%) contrast(108%); }\n" +
+                "    body, html { margin:0; padding:0; height:100%; width:100%; overflow:hidden; font-family:sans-serif; }\n" +
+                "    #map { position:absolute; top:0; bottom:0; width:100%; height:100%; }\n" +
+                "    body.dark-mode, body.dark-mode #map { background:#000000 !important; }\n" +
+                "    body.light-mode, body.light-mode #map { background:#F8FAFC !important; }\n" +
+                "    body.dark-mode #map canvas { filter: invert(92%) hue-rotate(180deg) brightness(85%) contrast(108%) !important; }\n" +
+                "    body.light-mode #map canvas { filter: none !important; }\n" +
                 "    .mapboxgl-ctrl-attrib, .maplibregl-ctrl-attrib, .mappls-ctrl-attrib, .mappls-attrib,\n" +
                 "    .mapboxgl-ctrl-bottom-right, .maplibregl-ctrl-bottom-right, .mappls-ctrl-bottom-right,\n" +
                 "    .mapboxgl-ctrl-bottom-left, .maplibregl-ctrl-bottom-left, .mappls-ctrl-bottom-left,\n" +
@@ -240,7 +247,7 @@ public class MapplsMapView extends FrameLayout {
                 "    }\n" +
                 "  </style>\n" +
                 "</head>\n" +
-                "<body>\n" +
+                "<body class='dark-mode'>\n" +
                 "<div id='map'></div>\n" +
                 "<script>\n" +
                 "  var map = null;\n" +
@@ -521,12 +528,14 @@ public class MapplsMapView extends FrameLayout {
                 "\n" +
                 "  function zoomIn() { if (map && map.zoomIn) map.zoomIn(); }\n" +
                 "  function zoomOut() { if (map && map.zoomOut) map.zoomOut(); }\n" +
-                "  function setSatellite(isSat) {\n" +
-                "    var c = document.querySelector('#map canvas');\n" +
-                "    if (c) {\n" +
-                "      c.style.filter = isSat ? 'none' : 'invert(92%) hue-rotate(180deg) brightness(85%) contrast(108%)';\n" +
+                "  function setMapTheme(isDark) {\n" +
+                "    document.body.className = isDark ? 'dark-mode' : 'light-mode';\n" +
+                "    var canvases = document.querySelectorAll('canvas');\n" +
+                "    for (var i = 0; i < canvases.length; i++) {\n" +
+                "      canvases[i].style.filter = isDark ? 'invert(92%) hue-rotate(180deg) brightness(85%) contrast(108%) !important' : 'none !important';\n" +
                 "    }\n" +
                 "  }\n" +
+                "  function setSatellite(isSat) { setMapTheme(!isSat); }\n" +
                 "</script>\n" +
                 "</body>\n" +
                 "</html>";
@@ -622,9 +631,22 @@ public class MapplsMapView extends FrameLayout {
         mainHandler.post(() -> webView.evaluateJavascript("zoomOut();", null));
     }
 
-    public void setSatelliteMode(boolean satellite) {
+    public boolean isDarkMode() {
+        return isDarkMode;
+    }
+
+    public void setMapTheme(boolean dark) {
+        this.isDarkMode = dark;
         if (!isMapLoaded) return;
-        mainHandler.post(() -> webView.evaluateJavascript("setSatellite(" + satellite + ");", null));
+        mainHandler.post(() -> webView.evaluateJavascript("setMapTheme(" + dark + ");", null));
+    }
+
+    public void toggleMapTheme() {
+        setMapTheme(!isDarkMode);
+    }
+
+    public void setSatelliteMode(boolean satellite) {
+        setMapTheme(!satellite);
     }
 
     public void centerOnCurrentLocation() {
