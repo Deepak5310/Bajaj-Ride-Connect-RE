@@ -1357,7 +1357,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
                 btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
-                layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle,
+                layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle, viewSplitDivider,
                 itemRideStats, itemService, itemBikeInfo, itemProfile, itemSavedPlaces, itemOfflineMaps,
                 itemSettings, itemHelp, itemAbout
         };
@@ -1379,6 +1379,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 int standbyAccent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
                 btnMediaPlayPause.setColorFilter(standbyAccent);
                 btnPillPlayPause.setColorFilter(standbyAccent);
+                View dotStandby = findViewById(R.id.viewMediaPulseDot);
+                if (dotStandby != null) {
+                    dotStandby.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF64748B));
+                }
                 currentMediaDurSec = 0;
                 if (pbMediaTrack != null) {
                     pbMediaTrack.setProgress(0);
@@ -1405,6 +1409,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
                 boolean isPlaying = (state == 2);
                 int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
+                View dotActive = findViewById(R.id.viewMediaPulseDot);
+                if (dotActive != null) {
+                    dotActive.setBackgroundTintList(android.content.res.ColorStateList.valueOf(isPlaying ? accent : 0xFF64748B));
+                }
                 if (isPlaying) { // 2 = Playing
                     btnMediaPlayPause.setImageResource(R.drawable.ic_media_pause);
                     btnPillPlayPause.setImageResource(R.drawable.ic_media_pause);
@@ -2641,8 +2649,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (btnMediaPlayPause != null) {
             GradientDrawable playBg = new GradientDrawable();
             playBg.setShape(GradientDrawable.OVAL);
-            playBg.setColor(0xFF0F1117);
-            playBg.setStroke((int) (1.8f * density), palette.accentPrimary);
+            playBg.setColor(0xFF0F1522);
+            playBg.setStroke((int) (2.0f * density), palette.accentPrimary);
             btnMediaPlayPause.setBackground(playBg);
             btnMediaPlayPause.setColorFilter(palette.accentPrimary);
         }
@@ -2653,10 +2661,49 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             btnMediaNext.setColorFilter(palette.accentPrimary);
         }
         if (btnMediaPrev != null) {
-            btnMediaPrev.setColorFilter(0xFFCBD5E1);
+            btnMediaPrev.setColorFilter(palette.accentPrimary);
         }
         if (btnPillNext != null) {
             btnPillNext.setColorFilter(palette.accentPrimary);
+        }
+        if (tvMediaSource != null) {
+            tvMediaSource.setTextColor(palette.accentPrimary);
+        }
+
+        // Left Media Panel Container & Art Stage
+        if (layoutLeftPanel != null) {
+            GradientDrawable mediaBg = new GradientDrawable();
+            mediaBg.setShape(GradientDrawable.RECTANGLE);
+            mediaBg.setCornerRadius(22 * density);
+            mediaBg.setColor(0xF807090F);
+            mediaBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            layoutLeftPanel.setBackground(mediaBg);
+        }
+        View cardMediaArtStage = findViewById(R.id.cardMediaArtStage);
+        if (cardMediaArtStage != null) {
+            GradientDrawable stageBg = new GradientDrawable();
+            stageBg.setShape(GradientDrawable.RECTANGLE);
+            stageBg.setCornerRadius(16 * density);
+            stageBg.setColor(0xF5080B12);
+            stageBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            cardMediaArtStage.setBackground(stageBg);
+        }
+        View layoutSplitHandle = findViewById(R.id.layoutSplitHandle);
+        if (layoutSplitHandle != null) {
+            GradientDrawable handleBg = new GradientDrawable();
+            handleBg.setShape(GradientDrawable.RECTANGLE);
+            handleBg.setCornerRadius(10 * density);
+            handleBg.setColor(0xF50B0F18);
+            handleBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            layoutSplitHandle.setBackground(handleBg);
+        }
+        ImageView ivSplitHandleChevron = findViewById(R.id.ivSplitHandleChevron);
+        if (ivSplitHandleChevron != null) {
+            ivSplitHandleChevron.setColorFilter(palette.accentPrimary);
+        }
+        View viewMediaPulseDot = findViewById(R.id.viewMediaPulseDot);
+        if (viewMediaPulseDot != null) {
+            viewMediaPulseDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(palette.accentPrimary));
         }
 
         // 3. Mappls Map route polyline, vehicle puck arrow and radar glow

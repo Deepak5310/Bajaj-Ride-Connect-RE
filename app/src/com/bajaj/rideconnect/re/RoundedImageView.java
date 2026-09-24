@@ -45,21 +45,21 @@ public class RoundedImageView extends ImageView {
             clipPath = new Path();
         }
         float density = context.getResources().getDisplayMetrics().density;
-        // Default: Top corners rounded to 20dp to match the outer card's 22dp curvature
-        topLeftRadius = 20f * density;
-        topRightRadius = 20f * density;
-        bottomLeftRadius = 12f * density;
-        bottomRightRadius = 12f * density;
+        // Default: Uniform 15dp rounded corners matching the inner artwork stage
+        topLeftRadius = 15f * density;
+        topRightRadius = 15f * density;
+        bottomLeftRadius = 15f * density;
+        bottomRightRadius = 15f * density;
 
         setOutlineProvider(new ViewOutlineProvider() {
             @Override
             public void getOutline(View view, Outline outline) {
                 if (view.getWidth() > 0 && view.getHeight() > 0) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight() + (int) bottomLeftRadius, topLeftRadius);
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), topLeftRadius);
                 }
             }
         });
-        setClipToOutline(false);
+        setClipToOutline(true);
     }
 
     public void setCornerRadii(float tlDp, float trDp, float blDp, float brDp) {
