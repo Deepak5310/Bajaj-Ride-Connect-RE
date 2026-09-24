@@ -18,7 +18,9 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Outline;
 import android.graphics.drawable.GradientDrawable;
+import android.view.ViewOutlineProvider;
 import android.media.AudioManager;
 import android.os.BatteryManager;
 import android.os.Build;
@@ -369,7 +371,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (intent.getBooleanExtra("open_search", false)) {
             layoutSearchOverlay.postDelayed(this::showDestinationSearch, 300);
         }
-        if (intent.hasExtra("map_fullscreen")) {
+        if (intent.hasExtra("map_fullscreen") && !intent.hasExtra("cmd")) {
             boolean fs = intent.getBooleanExtra("map_fullscreen", false);
             layoutMapContainer.postDelayed(() -> setMapFullscreen(fs), 300);
         }
@@ -529,6 +531,16 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         layoutLeftPanel = findViewById(R.id.layoutLeftPanel);
         viewSplitDivider = findViewById(R.id.viewSplitDivider);
         layoutMapContainer = findViewById(R.id.layoutMapContainer);
+        if (layoutMapContainer != null) {
+            float density = getResources().getDisplayMetrics().density;
+            layoutMapContainer.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 22 * density);
+                }
+            });
+            layoutMapContainer.setClipToOutline(true);
+        }
 
         // Media View
         viewTabMedia = findViewById(R.id.viewTabMedia);
@@ -1101,6 +1113,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     public void setMapFullscreen(boolean fullscreen) {
         isMapFullscreen = fullscreen;
+        float density = getResources().getDisplayMetrics().density;
         if (fullscreen) {
             layoutLeftPanel.animate()
                     .alpha(0f)
@@ -1109,8 +1122,18 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     .setInterpolator(new AccelerateInterpolator(1.8f))
                     .withEndAction(() -> {
                         layoutLeftPanel.setVisibility(View.GONE);
-                        viewSplitDivider.setVisibility(View.GONE);
+                        if (viewSplitDivider != null) viewSplitDivider.setVisibility(View.GONE);
                     }).start();
+
+            if (viewSplitDivider != null) {
+                viewSplitDivider.animate().alpha(0f).setDuration(160).start();
+            }
+
+            if (layoutMapContainer != null && layoutMapContainer.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+                LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) layoutMapContainer.getLayoutParams();
+                lp.setMarginStart(0);
+                layoutMapContainer.setLayoutParams(lp);
+            }
 
             layoutFullscreenMusicPill.setVisibility(View.VISIBLE);
             layoutFullscreenMusicPill.setAlpha(0f);
@@ -1122,8 +1145,18 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     .setInterpolator(new OvershootInterpolator(1.4f))
                     .start();
         } else {
+            if (layoutMapContainer != null && layoutMapContainer.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+                LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) layoutMapContainer.getLayoutParams();
+                lp.setMarginStart((int) (8 * density));
+                layoutMapContainer.setLayoutParams(lp);
+            }
+
             layoutLeftPanel.setVisibility(View.VISIBLE);
-            viewSplitDivider.setVisibility(View.VISIBLE);
+            if (viewSplitDivider != null) {
+                viewSplitDivider.setVisibility(View.VISIBLE);
+                viewSplitDivider.setAlpha(0f);
+                viewSplitDivider.animate().alpha(1f).setDuration(260).start();
+            }
             layoutLeftPanel.setTranslationX(-140f);
             layoutLeftPanel.setAlpha(0f);
             layoutLeftPanel.animate()
@@ -2639,6 +2672,26 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         View viewMediaPulseDot = findViewById(R.id.viewMediaPulseDot);
         if (viewMediaPulseDot != null) {
             viewMediaPulseDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(palette.accentPrimary));
+        }
+
+        // Right Map Container & MapView (Matching Rounded Cockpit Card with Neon Accent Border)
+        if (layoutMapContainer != null) {
+            GradientDrawable mapBg = new GradientDrawable();
+            mapBg.setShape(GradientDrawable.RECTANGLE);
+            mapBg.setCornerRadius(22 * density);
+            mapBg.setColor(0xF807090F);
+            mapBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            layoutMapContainer.setBackground(mapBg);
+            layoutMapContainer.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 22 * density);
+                }
+            });
+            layoutMapContainer.setClipToOutline(true);
+        }
+        if (mapplsMapView != null) {
+            mapplsMapView.setCornerRadius(22f);
         }
 
         // 3. Mappls Map route polyline, vehicle puck arrow and radar glow

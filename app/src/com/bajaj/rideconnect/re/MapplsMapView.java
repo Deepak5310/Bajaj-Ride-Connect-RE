@@ -2,10 +2,16 @@ package com.bajaj.rideconnect.re;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Outline;
+import android.graphics.Path;
+import android.graphics.RectF;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
+import android.view.View;
+import android.view.ViewOutlineProvider;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -36,6 +42,9 @@ public class MapplsMapView extends FrameLayout {
     private String currentAccentHex = "#38BDF8";
     private String currentAccentRgb = "56, 189, 248";
     private boolean isDarkMode = true;
+    private final Path clipPath = new Path();
+    private final RectF rectF = new RectF();
+    private float cornerRadiusDp = 22f;
 
     public interface OnMapReadyCallback {
         void onMapReady();
@@ -88,7 +97,17 @@ public class MapplsMapView extends FrameLayout {
 
     @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
     private void init(Context context) {
-        setBackgroundColor(Color.BLACK);
+        setBackgroundColor(Color.TRANSPARENT);
+        float density = context.getResources().getDisplayMetrics().density;
+        setOutlineProvider(new ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, Outline outline) {
+                if (view.getWidth() > 0 && view.getHeight() > 0) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadiusDp * density);
+                }
+            }
+        });
+        setClipToOutline(true);
 
         try {
             android.content.SharedPreferences prefs = context.getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE);
@@ -686,5 +705,52 @@ public class MapplsMapView extends FrameLayout {
                 lng, lat);
             webView.evaluateJavascript(script, null);
         });
+    }
+
+    public void setCornerRadius(float radiusDp) {
+        this.cornerRadiusDp = radiusDp;
+        updateClipPath();
+        invalidateOutline();
+        invalidate();
+    }
+
+    private void updateClipPath() {
+        clipPath.reset();
+        int w = getWidth();
+        int h = getHeight();
+        if (w <= 0 || h <= 0) return;
+        rectF.set(0, 0, w, h);
+        float r = cornerRadiusDp * getResources().getDisplayMetrics().density;
+        clipPath.addRoundRect(rectF, r, r, Path.Direction.CW);
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        updateClipPath();
+    }
+
+    @Override
+    public void draw(Canvas canvas) {
+        if (clipPath != null && !clipPath.isEmpty()) {
+            canvas.save();
+            canvas.clipPath(clipPath);
+            super.draw(canvas);
+            canvas.restore();
+        } else {
+            super.draw(canvas);
+        }
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas canvas) {
+        if (clipPath != null && !clipPath.isEmpty()) {
+            canvas.save();
+            canvas.clipPath(clipPath);
+            super.dispatchDraw(canvas);
+            canvas.restore();
+        } else {
+            super.dispatchDraw(canvas);
+        }
     }
 }

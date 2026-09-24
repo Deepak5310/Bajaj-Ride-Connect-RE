@@ -228,48 +228,51 @@
             </LinearLayout>
 
             <!-- ========================================================= -->
-            <!-- COCKPIT SPLIT DOCK HANDLE (PANEL COLLAPSE/EXPAND)          -->
-            <!-- ========================================================= -->
-            <LinearLayout
-                android:id="@+id/viewSplitDivider"
-                android:layout_width="18dp"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:clickable="true"
-                android:focusable="true">
-
-                <LinearLayout
-                    android:id="@+id/layoutSplitHandle"
-                    android:layout_width="16dp"
-                    android:layout_height="48dp"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="@drawable/bg_split_handle">
-
-                    <ImageView
-                        android:id="@+id/ivSplitHandleChevron"
-                        android:layout_width="12dp"
-                        android:layout_height="12dp"
-                        android:src="@drawable/ic_chevron_left"
-                        android:tint="#38BDF8" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- ========================================================= -->
-            <!-- RIGHT MAP AREA (72-75%)                                   -->
+            <!-- RIGHT MAP AREA (74%)                                      -->
             <!-- ========================================================= -->
             <FrameLayout
                 android:id="@+id/layoutMapContainer"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="74"
+                android:layout_marginStart="8dp"
+                android:clipToOutline="true"
                 android:background="@drawable/bg_cockpit_frosted">
 
-                <!-- Interactive Mappls Vector Map Engine -->
+                <!-- Interactive Mappls Vector Map Engine (Clipped to Rounded Cockpit Card) -->
                 <com.bajaj.rideconnect.re.MapplsMapView
                     android:id="@+id/mapplsMapView"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
+
+                <!-- Split Collapse / Dock Handle (Floating on the left border of the map) -->
+                <LinearLayout
+                    android:id="@+id/viewSplitDivider"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="4dp"
+                    android:gravity="center"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:elevation="12dp">
+
+                    <LinearLayout
+                        android:id="@+id/layoutSplitHandle"
+                        android:layout_width="18dp"
+                        android:layout_height="48dp"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:background="@drawable/bg_split_handle">
+
+                        <ImageView
+                            android:id="@+id/ivSplitHandleChevron"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:src="@drawable/ic_chevron_left"
+                            android:tint="#38BDF8" />
+                    </LinearLayout>
+                </LinearLayout>
 
                 <!-- Top Left Turn Instruction Card (Cockpit Frosted Pill matching Speed HUD) -->
                 <LinearLayout
