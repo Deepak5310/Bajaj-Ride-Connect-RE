@@ -60,6 +60,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -194,6 +195,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     // Right Slide-out Drawer & Bike Controls
     private View drawerBackdrop;
     private View drawerPanel;
+    private ScrollView scrollDrawer;
+    private ImageView btnDrawerClose;
     private View cardBikeStage;
     private ImageView ivDrawerBikeImage;
     private TextView tvDrawerBikeName;
@@ -425,6 +428,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 showAboutDialog();
             } else if ("open_drawer".equalsIgnoreCase(cmd)) {
                 openDrawer();
+            } else if ("scroll_drawer".equalsIgnoreCase(cmd)) {
+                int y = intent.getIntExtra("y", 400);
+                if (scrollDrawer != null) {
+                    scrollDrawer.post(() -> scrollDrawer.smoothScrollTo(0, y));
+                }
             } else if ("close_drawer".equalsIgnoreCase(cmd)) {
                 closeDrawer();
             } else if ("toggle_orientation".equalsIgnoreCase(cmd)) {
@@ -603,6 +611,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Drawer & Cockpit Telemetry
         drawerBackdrop = findViewById(R.id.drawerBackdrop);
         drawerPanel = findViewById(R.id.drawerPanel);
+        scrollDrawer = findViewById(R.id.scrollDrawer);
+        btnDrawerClose = findViewById(R.id.btnDrawerClose);
         cardBikeStage = findViewById(R.id.cardBikeStage);
         ivDrawerBikeImage = findViewById(R.id.ivDrawerBikeImage);
         tvDrawerBikeName = findViewById(R.id.tvDrawerBikeName);
@@ -685,6 +695,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Right Navigation Drawer
         btnOpenDrawer.setOnClickListener(v -> openDrawer());
         drawerBackdrop.setOnClickListener(v -> closeDrawer());
+        if (btnDrawerClose != null) {
+            btnDrawerClose.setOnClickListener(v -> closeDrawer());
+        }
 
         // Drawer Actions
         itemRideStats.setOnClickListener(v -> {
@@ -1342,7 +1355,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         View[] tactileViews = new View[]{
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
-                btnOpenDrawer, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
+                btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
                 btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
                 layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle,
                 itemRideStats, itemService, itemBikeInfo, itemProfile, itemSavedPlaces, itemOfflineMaps,
@@ -1524,7 +1537,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 tvDrawerBtStatus.setTextColor(0xFF94A3B8);
                 if (pbBleConnecting != null) pbBleConnecting.setVisibility(View.GONE);
                 if (tvBleDetailMsg != null) {
-                    tvBleDetailMsg.setText("Tap connect to pair with bike cluster");
+                    tvBleDetailMsg.setText("Tap connect to pair bike");
                     tvBleDetailMsg.setTextColor(0xFF64748B);
                 }
                 if (ivDrawerBleActionIcon != null) {
@@ -1542,7 +1555,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     bg.setColor(accent);
                     btnDrawerBleConnect.setBackground(bg);
                 }
-                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Bajaj Pulsar");
+                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Pulsar NS400Z");
                 break;
 
             case CONNECTING:
@@ -1628,7 +1641,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     bg.setColor(accent);
                     btnDrawerBleConnect.setBackground(bg);
                 }
-                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Bajaj Pulsar");
+                if (tvDrawerBikeName != null) tvDrawerBikeName.setText("Pulsar NS400Z");
                 break;
         }
     }
@@ -2770,9 +2783,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (drawerPanel != null) {
             GradientDrawable drawerBg = new GradientDrawable();
             drawerBg.setShape(GradientDrawable.RECTANGLE);
+            drawerBg.setCornerRadii(new float[]{24 * density, 24 * density, 0, 0, 0, 0, 24 * density, 24 * density});
             drawerBg.setColor(0xF8050608);
             drawerBg.setStroke((int) (1.2f * density), palette.accentBorder);
             drawerPanel.setBackground(drawerBg);
+        }
+        if (btnDrawerClose != null) {
+            btnDrawerClose.setColorFilter(palette.accentPrimary);
         }
         if (cardBikeStage != null) {
             GradientDrawable stageBg = new GradientDrawable(

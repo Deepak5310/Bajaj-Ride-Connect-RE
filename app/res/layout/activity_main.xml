@@ -926,17 +926,69 @@
     <!-- Sliding Drawer Panel -->
     <LinearLayout
         android:id="@+id/drawerPanel"
-        android:layout_width="320dp"
+        android:layout_width="330dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
         android:orientation="vertical"
         android:background="@drawable/bg_drawer_panel"
         android:visibility="gone">
 
+        <!-- Drawer Top Header Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="46dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="6dp">
+
+            <ImageView
+                android:id="@+id/btnDrawerClose"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_close"
+                android:background="@drawable/bg_circle_action"
+                android:tint="#94A3B8"
+                android:padding="6dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginEnd="10dp" />
+
+            <View
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:background="@drawable/bg_pulse_dot"
+                android:backgroundTint="#00E5FF" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="COCKPIT RE"
+                android:textColor="#38BDF8"
+                android:textSize="11sp"
+                android:letterSpacing="0.14"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvDrawerClock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="32dp"
+                android:text="10:24 AM"
+                android:textColor="#64748B"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <!-- Drawer Scrollable Content -->
         <ScrollView
+            android:id="@+id/scrollDrawer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:scrollbars="none">
 
             <LinearLayout
@@ -945,7 +997,7 @@
                 android:orientation="vertical"
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
-                android:paddingTop="16dp"
+                android:paddingTop="6dp"
                 android:paddingBottom="24dp">
 
                 <!-- Hero Bike Showcase Stage Card -->
@@ -958,137 +1010,274 @@
                     android:paddingStart="14dp"
                     android:paddingEnd="14dp"
                     android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:layout_marginBottom="10dp">
+                    android:paddingBottom="10dp"
+                    android:layout_marginBottom="8dp">
 
-                    <!-- Bike Stage Header: Title & Clock -->
+                    <!-- Bike Stage Header: Brand Subhead & Title & Badge -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="8dp">
+                        android:layout_marginBottom="4dp">
 
-                        <TextView
-                            android:id="@+id/tvDrawerBikeName"
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Bajaj Pulsar NS400Z"
-                            android:textColor="#F8FAFC"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="BAJAJ AUTO"
+                                android:textColor="#38BDF8"
+                                android:textSize="9sp"
+                                android:letterSpacing="0.12"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvDrawerBikeName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Pulsar NS400Z"
+                                android:textColor="#F8FAFC"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
 
                         <TextView
-                            android:id="@+id/tvDrawerClock"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="10:24 AM"
+                            android:background="@drawable/bg_stage_telemetry"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="3dp"
+                            android:paddingBottom="3dp"
+                            android:text="APEX 400cc"
                             android:textColor="#94A3B8"
-                            android:textSize="11sp"
+                            android:textSize="9sp"
+                            android:letterSpacing="0.06"
                             android:textStyle="bold" />
                     </LinearLayout>
 
-                    <ImageView
-                        android:id="@+id/ivDrawerBikeImage"
+                    <!-- Vehicle Body Container -->
+                    <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:adjustViewBounds="true"
-                        android:scaleType="fitCenter"
-                        android:src="@drawable/img_drawer_bike" />
+                        android:layout_height="102dp"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="6dp">
 
-                </LinearLayout>
+                        <ImageView
+                            android:id="@+id/ivDrawerBikeImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="98dp"
+                            android:layout_gravity="center"
+                            android:adjustViewBounds="true"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/img_drawer_bike" />
+                    </FrameLayout>
 
-                <!-- Bike BLE Connection Card -->
-                <LinearLayout
-                    android:id="@+id/cardBikeConnection"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:background="@drawable/bg_cockpit_card"
-                    android:padding="12dp"
-                    android:layout_marginTop="10dp">
-
-                    <!-- Connection Status Header Row -->
+                    <!-- Micro-Telemetry Strip -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="center_vertical">
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_stage_telemetry"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:paddingTop="6dp"
+                        android:paddingBottom="6dp">
 
-                        <View
-                            android:id="@+id/viewDrawerBtStatusDot"
-                            android:layout_width="8dp"
-                            android:layout_height="8dp"
-                            android:background="@drawable/bg_pulse_dot"
-                            android:layout_marginEnd="8dp" />
-
-                        <TextView
-                            android:id="@+id/tvDrawerBtStatus"
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="ODOMETER"
+                                android:textColor="#64748B"
+                                android:textSize="8sp"
+                                android:letterSpacing="0.08"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="1,420 km"
+                                android:textColor="#F1F5F9"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="1dp"
+                            android:layout_height="18dp"
+                            android:background="#161F33" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="TRIP A"
+                                android:textColor="#64748B"
+                                android:textSize="8sp"
+                                android:letterSpacing="0.08"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="42.8 km"
+                                android:textColor="#F1F5F9"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="1dp"
+                            android:layout_height="18dp"
+                            android:background="#161F33" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="BATTERY"
+                                android:textColor="#64748B"
+                                android:textSize="8sp"
+                                android:letterSpacing="0.08"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="12.8 V"
+                                android:textColor="#38BDF8"
+                                android:textSize="11sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Bike BLE Quick Link Card -->
+                <LinearLayout
+                    android:id="@+id/cardBikeConnection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_cockpit_card"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="9dp"
+                    android:paddingBottom="9dp"
+                    android:layout_marginBottom="8dp">
+
+                    <View
+                        android:id="@+id/viewDrawerBtStatusDot"
+                        android:layout_width="8dp"
+                        android:layout_height="8dp"
+                        android:background="@drawable/bg_pulse_dot"
+                        android:layout_marginEnd="10dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvDrawerBtStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
                             android:text="Disconnected"
                             android:textColor="#94A3B8"
                             android:textSize="12sp"
                             android:textStyle="bold" />
 
-                        <ProgressBar
-                            android:id="@+id/pbBleConnecting"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:indeterminate="true"
-                            android:indeterminateTint="@color/pulsar_cyan"
-                            android:visibility="gone" />
+                        <TextView
+                            android:id="@+id/tvBleDetailMsg"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Tap connect to pair bike"
+                            android:textColor="#64748B"
+                            android:textSize="10sp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/tvBleDetailMsg"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Tap connect to pair with bike cluster"
-                        android:textColor="#64748B"
-                        android:textSize="11sp"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginBottom="10dp" />
+                    <ProgressBar
+                        android:id="@+id/pbBleConnecting"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:indeterminate="true"
+                        android:indeterminateTint="@color/pulsar_cyan"
+                        android:layout_marginEnd="8dp"
+                        android:visibility="gone" />
 
                     <!-- Action Button: Connect / Retry / Disconnect -->
                     <LinearLayout
                         android:id="@+id/btnDrawerBleConnect"
-                        android:layout_width="match_parent"
-                        android:layout_height="38dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
                         android:orientation="horizontal"
                         android:gravity="center"
                         android:background="@drawable/bg_chip_primary"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
                         android:clickable="true"
                         android:focusable="true">
 
                         <ImageView
                             android:id="@+id/ivDrawerBleActionIcon"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
                             android:src="@drawable/ic_bluetooth"
                             android:tint="#000000"
-                            android:layout_marginEnd="6dp" />
+                            android:layout_marginEnd="5dp" />
 
                         <TextView
                             android:id="@+id/tvDrawerBleActionText"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Connect to Bike"
+                            android:text="Connect"
                             android:textColor="#000000"
-                            android:textSize="12sp"
+                            android:textSize="11sp"
                             android:textStyle="bold"
                             android:letterSpacing="0.04" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <View
+                <!-- Category 1: Vehicle & Telemetry -->
+                <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1E2330"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_height="wrap_content"
+                    android:text="VEHICLE &amp; TELEMETRY"
+                    android:textColor="#64748B"
+                    android:textSize="9sp"
+                    android:letterSpacing="0.12"
+                    android:textStyle="bold"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="6dp" />
 
                 <!-- Menu Item 1: Ride Stats -->
                 <LinearLayout
@@ -1097,27 +1286,37 @@
                     android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_menu_stats"
-                        android:layout_marginEnd="14dp" />
+                    <FrameLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_stats"
+                            android:tint="#38BDF8" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/menu_ride_stats"
-                        android:textColor="#E2E8F0"
+                        android:textColor="#F1F5F9"
                         android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
 
                 <!-- Menu Item 2: Service & Maintenance -->
@@ -1127,27 +1326,37 @@
                     android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_menu_service"
-                        android:layout_marginEnd="14dp" />
+                    <FrameLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_service"
+                            android:tint="#38BDF8" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/menu_service"
-                        android:textColor="#E2E8F0"
+                        android:textColor="#F1F5F9"
                         android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
 
                 <!-- Menu Item 3: Bike Information -->
@@ -1157,51 +1366,74 @@
                     android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_menu_info"
-                        android:layout_marginEnd="14dp" />
+                    <FrameLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_info"
+                            android:tint="#38BDF8" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/menu_bike_info"
-                        android:textColor="#E2E8F0"
+                        android:textColor="#F1F5F9"
                         android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
 
-                <View
+                <!-- Category 2: Rider & Navigation -->
+                <TextView
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1E2330"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_height="wrap_content"
+                    android:text="RIDER &amp; NAVIGATION"
+                    android:textColor="#64748B"
+                    android:textSize="9sp"
+                    android:letterSpacing="0.12"
+                    android:textStyle="bold"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="6dp" />
 
-                <!-- Menu Item 4: My Profile (Deepak Jangir) -->
+                <!-- Menu Item 4: My Profile -->
                 <LinearLayout
                     android:id="@+id/itemProfile"
                     android:layout_width="match_parent"
                     android:layout_height="52dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/ic_user_avatar"
-                        android:layout_marginEnd="12dp" />
+                    <FrameLayout
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_user_avatar" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -1213,8 +1445,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/menu_my_profile"
-                            android:textColor="#94A3B8"
-                            android:textSize="10sp" />
+                            android:textColor="#64748B"
+                            android:textSize="9sp" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -1228,22 +1460,16 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/menu_user_email"
-                            android:textColor="#64748B"
+                            android:textColor="#475569"
                             android:textSize="10sp" />
                     </LinearLayout>
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#1E2330"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp" />
 
                 <!-- Menu Item 5: Saved Places -->
                 <LinearLayout
@@ -1252,27 +1478,37 @@
                     android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_menu_saved"
-                        android:layout_marginEnd="14dp" />
+                    <FrameLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_saved"
+                            android:tint="#38BDF8" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/menu_saved_places"
-                        android:textColor="#E2E8F0"
+                        android:textColor="#F1F5F9"
                         android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
 
                 <!-- Menu Item 6: Offline Maps -->
@@ -1282,28 +1518,50 @@
                     android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_menu_offline"
-                        android:layout_marginEnd="14dp" />
+                    <FrameLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_offline"
+                            android:tint="#38BDF8" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/menu_offline_maps"
-                        android:textColor="#E2E8F0"
+                        android:textColor="#F1F5F9"
                         android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
+
+                <!-- Category 3: System & Preferences -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="SYSTEM &amp; SETTINGS"
+                    android:textColor="#64748B"
+                    android:textSize="9sp"
+                    android:letterSpacing="0.12"
+                    android:textStyle="bold"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="6dp" />
 
                 <!-- Menu Item 7: Settings -->
                 <LinearLayout
@@ -1312,27 +1570,37 @@
                     android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_menu_settings"
-                        android:layout_marginEnd="14dp" />
+                    <FrameLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_settings"
+                            android:tint="#38BDF8" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/menu_settings"
-                        android:textColor="#E2E8F0"
+                        android:textColor="#F1F5F9"
                         android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
 
                 <!-- Menu Item 8: Help & Support -->
@@ -1342,27 +1610,37 @@
                     android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_menu_help"
-                        android:layout_marginEnd="14dp" />
+                    <FrameLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_help"
+                            android:tint="#38BDF8" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/menu_help"
-                        android:textColor="#E2E8F0"
+                        android:textColor="#F1F5F9"
                         android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
 
                 <!-- Menu Item 9: About -->
@@ -1372,63 +1650,84 @@
                     android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
                     android:focusable="true">
 
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_menu_info"
-                        android:layout_marginEnd="14dp" />
+                    <FrameLayout
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_menu_tile"
+                        android:layout_marginEnd="12dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_menu_info"
+                            android:tint="#38BDF8" />
+                    </FrameLayout>
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/menu_about"
-                        android:textColor="#E2E8F0"
+                        android:textColor="#F1F5F9"
                         android:textSize="13sp" />
 
                     <ImageView
-                        android:layout_width="16dp"
-                        android:layout_height="16dp"
-                        android:src="@drawable/ic_chevron_right" />
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:tint="#475569" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#1E2330"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginBottom="16dp" />
+                    android:background="#161F33"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="12dp" />
 
                 <!-- Disconnect Button -->
                 <LinearLayout
                     android:id="@+id/btnDrawerDisconnect"
                     android:layout_width="match_parent"
-                    android:layout_height="44dp"
+                    android:layout_height="42dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:background="@drawable/bg_chip_action"
-                    android:paddingStart="14dp"
-                    android:paddingEnd="14dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
                     android:clickable="true"
                     android:focusable="true">
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:src="@drawable/ic_disconnect"
-                        android:layout_marginEnd="12dp" />
+                        android:layout_marginEnd="10dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/menu_disconnect"
                         android:textColor="#EF4444"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="BAJAJ RIDECONNECT RE • V2.4.0"
+                    android:textColor="#475569"
+                    android:textSize="8sp"
+                    android:letterSpacing="0.12"
+                    android:gravity="center"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="6dp" />
 
             </LinearLayout>
         </ScrollView>
