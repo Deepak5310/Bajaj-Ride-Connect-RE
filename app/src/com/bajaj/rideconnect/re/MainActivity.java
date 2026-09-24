@@ -237,9 +237,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private View itemRideStats;
     private View itemService;
     private View itemBikeInfo;
-    private View itemProfile;
     private View itemSavedPlaces;
-    private View itemOfflineMaps;
     private View itemSettings;
     private View itemHelp;
     private View itemAbout;
@@ -628,9 +626,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         itemRideStats = findViewById(R.id.itemRideStats);
         itemService = findViewById(R.id.itemService);
         itemBikeInfo = findViewById(R.id.itemBikeInfo);
-        itemProfile = findViewById(R.id.itemProfile);
         itemSavedPlaces = findViewById(R.id.itemSavedPlaces);
-        itemOfflineMaps = findViewById(R.id.itemOfflineMaps);
         itemSettings = findViewById(R.id.itemSettings);
         itemHelp = findViewById(R.id.itemHelp);
         itemAbout = findViewById(R.id.itemAbout);
@@ -712,17 +708,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             closeDrawer();
             showBikeInfoDialog();
         });
-        itemProfile.setOnClickListener(v -> {
-            closeDrawer();
-            showRiderProfileDialog();
-        });
         itemSavedPlaces.setOnClickListener(v -> {
             closeDrawer();
             showSavedPlacesDialog();
-        });
-        itemOfflineMaps.setOnClickListener(v -> {
-            closeDrawer();
-            showOfflineMapsDialog();
         });
         itemSettings.setOnClickListener(v -> {
             closeDrawer();
@@ -1242,7 +1230,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 itemService,
                 itemBikeInfo,
                 itemSavedPlaces,
-                itemOfflineMaps,
                 itemSettings,
                 itemHelp,
                 itemAbout,
@@ -1358,7 +1345,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
                 btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
                 layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle, viewSplitDivider,
-                itemRideStats, itemService, itemBikeInfo, itemProfile, itemSavedPlaces, itemOfflineMaps,
+                itemRideStats, itemService, itemBikeInfo, itemSavedPlaces,
                 itemSettings, itemHelp, itemAbout
         };
         for (View view : tactileViews) {
