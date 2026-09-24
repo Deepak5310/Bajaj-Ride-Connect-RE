@@ -5,19 +5,16 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import android.telephony.CellInfo;
-import android.telephony.CellInfoLte;
-import android.telephony.CellSignalStrengthLte;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-
-import java.util.List;
 
 /**
  * Monitors Phone Battery Level & Cellular Signal Strength,
@@ -64,17 +61,54 @@ public class PhoneStateMonitor {
         context.sendBroadcast(intent);
     }
 
+    private boolean isHeadsetConnected() {
+        try {
+            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    AudioDeviceInfo[] devices = am.getDevices(AudioManager.GET_DEVICES_OUTPUTS);
+                    for (AudioDeviceInfo dev : devices) {
+                        int t = dev.getType();
+                        if (t == AudioDeviceInfo.TYPE_WIRED_HEADSET
+                                || t == AudioDeviceInfo.TYPE_WIRED_HEADPHONES
+                                || t == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                                || t == AudioDeviceInfo.TYPE_BLUETOOTH_SCO
+                                || t == AudioDeviceInfo.TYPE_BLE_HEADSET
+                                || t == AudioDeviceInfo.TYPE_BLE_SPEAKER) {
+                            return true;
+                        }
+                    }
+                } else {
+                    return am.isWiredHeadsetOn() || am.isBluetoothA2dpOn();
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
     private final Runnable heartbeatRunnable = new Runnable() {
         @Override
         public void run() {
             if (isRunning) {
                 broadcastTelemetry();
                 if (bleManager.isConnected()) {
-                    int callState = callHandler != null ? callHandler.getCurrentCallState() : 0;
+                    int rawState = callHandler != null ? callHandler.getCurrentCallState() : 0;
+                    int callState = 0;
+                    if (rawState == TelephonyManager.CALL_STATE_RINGING) {
+                        callState = 1; // INCOMING_CALL
+                    } else if (rawState == TelephonyManager.CALL_STATE_OFFHOOK) {
+                        callState = 3; // ACTIVE_CALL
+                    }
                     String caller = callHandler != null ? callHandler.getActiveCaller() : "";
                     int unreadMessages = PulsarNotificationService.getUnreadMessageCount();
+
+                    MediaStateListener media = MediaStateListener.getInstance();
+                    int vol = (media != null) ? media.getCurrentVolumeTenths() : 5;
+                    boolean isHeadset = isHeadsetConnected();
+
                     bleManager.sendTelemetry(batteryPercent >= 0 ? batteryPercent : 85,
-                            signalBars >= 0 ? signalBars : 4, callState, caller, 0, unreadMessages);
+                            signalBars >= 0 ? signalBars : 4, callState, caller, 0, unreadMessages,
+                            vol, isHeadset);
                 }
                 handler.postDelayed(this, 4000); // 4-second interval heartbeat
             }

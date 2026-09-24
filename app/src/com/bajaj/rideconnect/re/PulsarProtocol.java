@@ -19,6 +19,14 @@ public final class PulsarProtocol {
     // =========================================================================
     // 2. Phone Telemetry & Status Frame (0210 - 55 / 89 Bytes)
     // =========================================================================
+    public static int getBatteryLevel(int percent) {
+        if (percent < 20) return 0;
+        if (percent < 40) return 1;
+        if (percent < 60) return 2;
+        if (percent < 80) return 3;
+        return 4;
+    }
+
     public static byte[] buildTelemetryFrame(
             int batteryPercent,
             int signalBars, // 0-4
@@ -31,35 +39,43 @@ public final class PulsarProtocol {
     ) {
         byte[] frame = new byte[89];
 
-        // Byte 0: Audio volume / Headset
-        frame[0] = (byte) (0x0F | 0xC0);
+        // Byte 0: Audio volume / Headset (0xC0 | volume)
+        frame[0] = (byte) (0x05 | 0xC0);
 
-        // Byte 1: DND (bit 7), Battery Bars (bits 4-5), Call State (bits 0-3)
-        int batteryBars = Math.min(3, Math.max(0, batteryPercent / 25));
-        frame[1] = (byte) (((batteryBars & 0x03) << 4) | (callState & 0x0F));
+        // Byte 1: (callState & 0x07) | (batteryLevel << 3)
+        int batteryLevel = getBatteryLevel(batteryPercent);
+        frame[1] = (byte) ((callState & 0x07) | ((batteryLevel & 0x07) << 3));
 
         // Byte 2: Cellular Signal Bars (0-4)
         frame[2] = (byte) (Math.min(4, Math.max(0, signalBars)) & 0x07);
-        frame[3] = 0; // Birthday month
+        frame[3] = (byte) (callState == 3 ? 1 : 0);
+        frame[4] = (byte) (callState == 3 ? 0 : 1);
 
         // ACKs
         frame[13] = (byte) (missedCalls & 0xFF);
         frame[15] = (byte) (unreadSms & 0xFF);
 
         // Caller Info (Bytes 18-51)
-        if (callerNameOrNumber != null && !callerNameOrNumber.isEmpty()) {
-            frame[18] = 1; // Caller Active
+        if ((callState == 1 || callState == 2 || callState == 3) && callerNameOrNumber != null && !callerNameOrNumber.isEmpty()) {
             String cleanCaller = callerNameOrNumber.replaceAll("[^a-zA-Z0-9 +.\\-]", "").trim();
-            if (cleanCaller.length() > 31) cleanCaller = cleanCaller.substring(0, 31);
-            frame[19] = (byte) cleanCaller.length();
-            byte[] callerBytes = cleanCaller.getBytes(StandardCharsets.UTF_8);
-            System.arraycopy(callerBytes, 0, frame, 20, Math.min(callerBytes.length, 32));
+            if (!cleanCaller.isEmpty()) {
+                frame[18] = 1; // Caller Active
+                if (cleanCaller.length() > 30) cleanCaller = cleanCaller.substring(0, 30);
+                byte[] callerBytes = cleanCaller.getBytes(StandardCharsets.UTF_8);
+                int len = Math.min(callerBytes.length, 30);
+                frame[20] = (byte) len;
+                System.arraycopy(callerBytes, 0, frame, 21, len);
+            } else {
+                frame[18] = 0;
+                frame[20] = 0;
+            }
         } else {
             frame[18] = 0; // No active caller
-            frame[19] = 0;
+            frame[20] = 0;
         }
 
-        // Byte 54: Sequence Heartbeat
+        // Byte 53: Sequence Heartbeat
+        frame[53] = seqCounter;
         frame[54] = seqCounter;
 
         // Bytes 55-87: Phone Model Name
@@ -88,27 +104,63 @@ public final class PulsarProtocol {
             String callerNameOrNumber,
             int missedCalls,
             int unreadSms,
-            byte seqCounter
+            byte seqCounter,
+            int volumeLevel,
+            boolean isHeadset
     ) {
         byte[] frame = new byte[55];
-        frame[0] = (byte) (0x0F | 0xC0);
-        int batteryBars = Math.min(3, Math.max(0, batteryPercent / 25));
-        frame[1] = (byte) (((batteryBars & 0x03) << 4) | (callState & 0x0F));
+        // Byte 0: ((isHeadset ? 1 : 0) << 4) | (volumeLevel & 0x0F) | 0xC0
+        frame[0] = (byte) (((isHeadset ? 1 : 0) << 4) | (Math.max(0, Math.min(volumeLevel, 10)) & 0x0F) | 0xC0);
+
+        // Byte 1: (callState & 0x07) | (batteryLevel << 3)
+        int batteryLevel = getBatteryLevel(batteryPercent);
+        frame[1] = (byte) ((callState & 0x07) | ((batteryLevel & 0x07) << 3));
+
+        // Byte 2: Cellular Signal Bars (0-4)
         frame[2] = (byte) (Math.min(4, Math.max(0, signalBars)) & 0x07);
+
+        // Bytes 3-4: Active Call flags
+        frame[3] = (byte) (callState == 3 ? 1 : 0);
+        frame[4] = (byte) (callState == 3 ? 0 : 1);
+
         frame[13] = (byte) (missedCalls & 0xFF);
         frame[15] = (byte) (unreadSms & 0xFF);
 
-        if (callerNameOrNumber != null && !callerNameOrNumber.isEmpty()) {
-            frame[18] = 1;
+        // Caller Info (Bytes 18-51)
+        if ((callState == 1 || callState == 2 || callState == 3) && callerNameOrNumber != null && !callerNameOrNumber.isEmpty()) {
             String clean = callerNameOrNumber.replaceAll("[^a-zA-Z0-9 +.\\-]", "").trim();
-            if (clean.length() > 31) clean = clean.substring(0, 31);
-            frame[19] = (byte) clean.length();
-            byte[] bytes = clean.getBytes(StandardCharsets.UTF_8);
-            System.arraycopy(bytes, 0, frame, 20, Math.min(bytes.length, 32));
+            if (!clean.isEmpty()) {
+                frame[18] = 1;
+                if (clean.length() > 30) clean = clean.substring(0, 30);
+                byte[] bytes = clean.getBytes(StandardCharsets.UTF_8);
+                int len = Math.min(bytes.length, 30);
+                frame[20] = (byte) len;
+                System.arraycopy(bytes, 0, frame, 21, len);
+            } else {
+                frame[18] = 0;
+                frame[20] = 0;
+            }
+        } else {
+            frame[18] = 0;
+            frame[20] = 0;
         }
 
+        frame[53] = seqCounter;
         frame[54] = seqCounter;
         return frame;
+    }
+
+    public static byte[] buildCompactTelemetryFrame(
+            int batteryPercent,
+            int signalBars,
+            int callState,
+            String callerNameOrNumber,
+            int missedCalls,
+            int unreadSms,
+            byte seqCounter
+    ) {
+        return buildCompactTelemetryFrame(batteryPercent, signalBars, callState, callerNameOrNumber,
+                missedCalls, unreadSms, seqCounter, 5, false);
     }
 
     // =========================================================================
@@ -174,7 +226,19 @@ public final class PulsarProtocol {
         public boolean musicStop;
         public boolean callAccept;
         public boolean callReject;
+        public boolean volumeChanged;
         public int volumeLevel;
+
+        public boolean hasAction() {
+            return musicPlay || musicPause || musicNext || musicPrev || musicStop || callAccept || callReject || volumeChanged;
+        }
+
+        @Override
+        public String toString() {
+            return "HandlebarEvent[play=" + musicPlay + ", pause=" + musicPause + ", next=" + musicNext +
+                    ", prev=" + musicPrev + ", stop=" + musicStop + ", accept=" + callAccept +
+                    ", reject=" + callReject + ", vol=" + volumeLevel + ", volChanged=" + volumeChanged + "]";
+        }
     }
 
     private static int lastCallAcceptCtr = 0;
@@ -184,10 +248,12 @@ public final class PulsarProtocol {
     private static int lastMusicNextCtr = 0;
     private static int lastMusicPrevCtr = 0;
     private static int lastMusicStopCtr = 0;
+    private static int lastVolumeNibble = -1;
     private static boolean handlebarInitialized = false;
 
     public static synchronized void resetHandlebarCounters() {
         handlebarInitialized = false;
+        lastVolumeNibble = -1;
     }
 
     public static synchronized HandlebarEvent parseHandlebarPacket(byte[] data) {
@@ -200,6 +266,7 @@ public final class PulsarProtocol {
         int musicNext = data[8] & 0xFF;
         int musicPrev = data[9] & 0xFF;
         int musicStop = data[10] & 0xFF;
+        int volNibble = data[0] & 0x0F;
 
         // On first packet after connection, seed previous counters to avoid phantom clicks
         if (!handlebarInitialized) {
@@ -210,13 +277,18 @@ public final class PulsarProtocol {
             lastMusicNextCtr = musicNext;
             lastMusicPrevCtr = musicPrev;
             lastMusicStopCtr = musicStop;
+            lastVolumeNibble = volNibble;
             handlebarInitialized = true;
             return null;
         }
 
         HandlebarEvent ev = new HandlebarEvent();
-        ev.volumeLevel = data[0] & 0x0F;
+        ev.volumeLevel = volNibble;
 
+        if (volNibble != lastVolumeNibble) {
+            ev.volumeChanged = true;
+            lastVolumeNibble = volNibble;
+        }
         if (callAccept != lastCallAcceptCtr) {
             ev.callAccept = true;
             lastCallAcceptCtr = callAccept;

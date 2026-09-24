@@ -93,6 +93,29 @@ public class PulsarBleManager {
         }
     };
 
+    /**
+     * Periodic 500ms ticker for polling handlebar controls (0a10).
+     * NS400Z cluster characteristic 0a10 is PROPERTY_READ only and does not notify autonomously.
+     */
+    private final Runnable controlsPollRunnable = new Runnable() {
+        @SuppressLint("MissingPermission")
+        @Override
+        public void run() {
+            if (isConnected && bluetoothGatt != null && charControls != null) {
+                synchronized (writeQueue) {
+                    if (!isWriting) {
+                        try {
+                            bluetoothGatt.readCharacteristic(charControls);
+                        } catch (Exception e) {
+                            Log.w(TAG, "Error polling handlebar controls: " + e.getMessage());
+                        }
+                    }
+                }
+                mainHandler.postDelayed(this, 500);
+            }
+        }
+    };
+
     private PulsarBleManager(Context context) {
         this.context = context.getApplicationContext();
         BluetoothManager manager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
@@ -289,6 +312,7 @@ public class PulsarBleManager {
     public void disconnect() {
         autoReconnect = false;
         mainHandler.removeCallbacks(reconnectRunnable);
+        mainHandler.removeCallbacks(controlsPollRunnable);
         if (isScanning) {
             stopScan();
         }
@@ -324,6 +348,19 @@ public class PulsarBleManager {
             int missedCalls,
             int unreadSms
     ) {
+        return sendTelemetry(batteryPercent, signalBars, callState, callerNameOrNumber, missedCalls, unreadSms, 5, false);
+    }
+
+    public boolean sendTelemetry(
+            int batteryPercent,
+            int signalBars,
+            int callState,
+            String callerNameOrNumber,
+            int missedCalls,
+            int unreadSms,
+            int volumeLevel,
+            boolean isHeadset
+    ) {
         if (charTelemetry == null || !isConnected) return false;
         telemetrySeq++;
         byte[] frame = PulsarProtocol.buildCompactTelemetryFrame(
@@ -333,7 +370,9 @@ public class PulsarBleManager {
                 callerNameOrNumber,
                 missedCalls,
                 unreadSms,
-                telemetrySeq
+                telemetrySeq,
+                volumeLevel,
+                isHeadset
         );
         enqueueWrite(charTelemetry, frame, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
         return true;
@@ -414,6 +453,7 @@ public class PulsarBleManager {
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Disconnected from NS400Z (status=" + status + ").");
                 isConnected = false;
+                mainHandler.removeCallbacks(controlsPollRunnable);
                 charTelemetry = null;
                 charMedia = null;
                 charControls = null;
@@ -449,6 +489,19 @@ public class PulsarBleManager {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "GATT Services discovered for " + connectedDeviceName);
+                List<BluetoothGattService> services = gatt.getServices();
+                if (services != null) {
+                    for (BluetoothGattService s : services) {
+                        Log.i(TAG, "[SERVICE] " + s.getUuid().toString());
+                        for (BluetoothGattCharacteristic c : s.getCharacteristics()) {
+                            Log.i(TAG, "  └── [CHAR] " + c.getUuid().toString() + " (props=0x" + Integer.toHexString(c.getProperties()) + ")");
+                            for (BluetoothGattDescriptor d : c.getDescriptors()) {
+                                Log.i(TAG, "      └── [DESC] " + d.getUuid().toString());
+                            }
+                        }
+                    }
+                }
+
                 BluetoothGattService service = gatt.getService(SERVICE_UUID);
                 if (service != null) {
                     charTelemetry = service.getCharacteristic(CHAR_TELEMETRY_UUID);
@@ -459,14 +512,28 @@ public class PulsarBleManager {
                             ", Media=" + (charMedia != null) +
                             ", Controls=" + (charControls != null));
 
-                    // Subscribe to Handlebar Switch Notifications (0a10)
-                    if (charControls != null) {
-                        gatt.setCharacteristicNotification(charControls, true);
-                        BluetoothGattDescriptor descriptor = charControls.getDescriptor(CCCD_UUID);
-                        if (descriptor != null) {
-                            gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                            Log.i(TAG, "Subscribed to Handlebar controls CCCD notification.");
+                    // Subscribe to all notification-capable characteristics in the service
+                    for (BluetoothGattCharacteristic c : service.getCharacteristics()) {
+                        int props = c.getProperties();
+                        boolean hasNotify = (props & (BluetoothGattCharacteristic.PROPERTY_NOTIFY | BluetoothGattCharacteristic.PROPERTY_INDICATE)) != 0;
+                        BluetoothGattDescriptor cccd = c.getDescriptor(CCCD_UUID);
+                        if (hasNotify || cccd != null || CHAR_CONTROLS_UUID.equals(c.getUuid())) {
+                            gatt.setCharacteristicNotification(c, true);
+                            if (cccd != null) {
+                                byte[] val = (props & BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
+                                        ? BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+                                        : BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
+                                gatt.writeDescriptor(cccd, val);
+                                Log.i(TAG, "Writing CCCD subscription for " + c.getUuid());
+                            }
                         }
+                    }
+
+                    // Start active periodic 500ms poller for handlebar controls
+                    mainHandler.removeCallbacks(controlsPollRunnable);
+                    if (charControls != null) {
+                        Log.i(TAG, "Starting periodic 500ms Handlebar Controls poller (0a10)...");
+                        mainHandler.postDelayed(controlsPollRunnable, 500);
                     }
 
                     notifyConnectionState(isConnected && charTelemetry != null, connectedDeviceName, connectedDeviceAddress);
@@ -477,29 +544,76 @@ public class PulsarBleManager {
         }
 
         @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            Log.i(TAG, "onDescriptorWrite: " + descriptor.getUuid() + " | status=" + status);
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                byte[] val = characteristic.getValue();
+                if (val != null) {
+                    handleCharacteristicData(characteristic, val);
+                }
+            }
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value, int status) {
+            if (status == BluetoothGatt.GATT_SUCCESS && value != null) {
+                handleCharacteristicData(characteristic, value);
+            }
+        }
+
+        @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             synchronized (writeQueue) {
                 isWriting = false;
                 byte[] data = currentTask != null ? currentTask.data : null;
                 currentTask = null;
+                Log.d(TAG, "Write completed: " + characteristic.getUuid() + " | status=" + status + " | len=" + (data != null ? data.length : 0));
                 notifyPacketSent(characteristic.getUuid().toString(), data, status == BluetoothGatt.GATT_SUCCESS);
                 processNextWrite();
             }
         }
 
         @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value) {
-            handleCharacteristicChanged(characteristic, value);
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            byte[] val = characteristic.getValue();
+            if (val != null) {
+                handleCharacteristicData(characteristic, val);
+            }
         }
 
-        private void handleCharacteristicChanged(BluetoothGattCharacteristic characteristic, byte[] value) {
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value) {
+            if (value != null) {
+                handleCharacteristicData(characteristic, value);
+            }
+        }
+
+        private void handleCharacteristicData(BluetoothGattCharacteristic characteristic, byte[] value) {
             if (characteristic == null || value == null) return;
+            String hex = bytesToHex(value);
+
             if (CHAR_CONTROLS_UUID.equals(characteristic.getUuid())) {
                 PulsarProtocol.HandlebarEvent event = PulsarProtocol.parseHandlebarPacket(value);
-                if (event != null) {
+                if (event != null && event.hasAction()) {
+                    Log.i(TAG, ">>> [HANDLEBAR ACTION] " + event + " | Raw: " + hex);
                     notifyHandlebarEvent(event);
                 }
+            } else {
+                Log.i(TAG, ">>> RECV [" + characteristic.getUuid() + "] (" + value.length + "B): " + hex);
             }
         }
     };
+
+    private static String bytesToHex(byte[] bytes) {
+        if (bytes == null) return "null";
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+        return sb.toString().trim();
+    }
 }

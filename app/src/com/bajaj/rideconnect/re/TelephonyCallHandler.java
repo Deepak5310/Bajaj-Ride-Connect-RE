@@ -7,6 +7,7 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
+import android.telecom.TelecomManager;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -71,19 +72,28 @@ public class TelephonyCallHandler {
             String name = resolveContactName(incomingNumber);
             this.activeCaller = name != null ? name : (incomingNumber != null ? incomingNumber : "INCOMING CALL");
             Log.i(TAG, "Incoming Call: " + activeCaller + " -> Pushing to Cluster LCD");
-            pushCallTelemetry(1, activeCaller);
+            pushCallTelemetry(1, activeCaller); // 1 = INCOMING_CALL
         } else if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
             Log.i(TAG, "Call in progress (Offhook)");
-            pushCallTelemetry(2, activeCaller);
+            pushCallTelemetry(3, activeCaller); // 3 = ACTIVE_CALL
         } else {
             Log.i(TAG, "Call Idle / Ended");
             this.activeCaller = "";
-            pushCallTelemetry(0, "");
+            pushCallTelemetry(0, ""); // 0 = NO_CALL
         }
     }
 
     private void pushCallTelemetry(int callState, String caller) {
-        bleManager.sendTelemetry(100, 4, callState, caller, 0, 0);
+        int battery = 85;
+        int signal = 4;
+        PhoneStateMonitor mon = PhoneStateMonitor.getInstance();
+        if (mon != null) {
+            if (mon.getBatteryPercent() >= 0) battery = mon.getBatteryPercent();
+            if (mon.getSignalBars() >= 0) signal = mon.getSignalBars();
+        }
+        MediaStateListener media = MediaStateListener.getInstance();
+        int vol = (media != null) ? media.getCurrentVolumeTenths() : 5;
+        bleManager.sendTelemetry(battery, signal, callState, caller, 0, 0, vol, false);
     }
 
     @SuppressLint("MissingPermission")
@@ -91,23 +101,52 @@ public class TelephonyCallHandler {
         if (ev == null) return;
 
         try {
+            TelecomManager tm = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
+
             if (ev.callAccept && currentCallState == TelephonyManager.CALL_STATE_RINGING) {
-                Log.i(TAG, "Handlebar: Answering Incoming Phone Call");
-                AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-                if (am != null) {
-                    am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_HEADSETHOOK));
-                    am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_HEADSETHOOK));
+                Log.i(TAG, "Handlebar: Answering Incoming Phone Call (TelecomManager + KeyEvent fallback)");
+                boolean answered = false;
+                if (tm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    try {
+                        tm.acceptRingingCall();
+                        answered = true;
+                        Log.i(TAG, "Answered via TelecomManager.acceptRingingCall()");
+                    } catch (SecurityException se) {
+                        Log.w(TAG, "ANSWER_PHONE_CALLS permission not granted: " + se.getMessage());
+                    } catch (Exception e) {
+                        Log.w(TAG, "TelecomManager answer error: " + e.getMessage());
+                    }
+                }
+                if (!answered) {
+                    AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                    if (am != null) {
+                        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_HEADSETHOOK));
+                        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_HEADSETHOOK));
+                    }
                 }
             } else if (ev.callReject && (currentCallState == TelephonyManager.CALL_STATE_RINGING || currentCallState == TelephonyManager.CALL_STATE_OFFHOOK)) {
-                Log.i(TAG, "Handlebar: Ending / Rejecting Phone Call");
-                AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-                if (am != null) {
-                    am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENDCALL));
-                    am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENDCALL));
+                Log.i(TAG, "Handlebar: Ending / Rejecting Phone Call (TelecomManager + KeyEvent fallback)");
+                boolean ended = false;
+                if (tm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    try {
+                        ended = tm.endCall();
+                        Log.i(TAG, "Ended call via TelecomManager.endCall() -> " + ended);
+                    } catch (SecurityException se) {
+                        Log.w(TAG, "ANSWER_PHONE_CALLS permission not granted: " + se.getMessage());
+                    } catch (Exception e) {
+                        Log.w(TAG, "TelecomManager endCall error: " + e.getMessage());
+                    }
+                }
+                if (!ended) {
+                    AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                    if (am != null) {
+                        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENDCALL));
+                        am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENDCALL));
+                    }
                 }
             }
-        } catch (SecurityException e) {
-            Log.e(TAG, "Call answer/end permission error: " + e.getMessage());
+        } catch (Exception e) {
+            Log.e(TAG, "Call answer/end error: " + e.getMessage());
         }
     }
 

@@ -3,6 +3,7 @@ package com.bajaj.rideconnect.re;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.database.ContentObserver;
 import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
@@ -80,11 +81,36 @@ public class MediaStateListener {
         return false;
     }
 
+    private ContentObserver volumeObserver;
+
     public MediaStateListener(Context context, PulsarBleManager bleManager) {
         this.context = context.getApplicationContext();
         this.bleManager = bleManager;
         instance = this;
         initMediaSessions();
+        registerVolumeObserver();
+    }
+
+    private void registerVolumeObserver() {
+        if (volumeObserver == null) {
+            volumeObserver = new ContentObserver(handler) {
+                @Override
+                public void onChange(boolean selfChange) {
+                    super.onChange(selfChange);
+                    PhoneStateMonitor mon = PhoneStateMonitor.getInstance();
+                    if (mon != null) {
+                        mon.triggerImmediateUpdate();
+                    }
+                }
+            };
+            try {
+                context.getContentResolver().registerContentObserver(
+                        Settings.System.CONTENT_URI, true, volumeObserver);
+                Log.i(TAG, "Registered System Settings Volume ContentObserver");
+            } catch (Exception e) {
+                Log.w(TAG, "Could not register volume ContentObserver: " + e.getMessage());
+            }
+        }
     }
 
     public void registerObserver(MediaObserver observer) {
@@ -224,6 +250,12 @@ public class MediaStateListener {
                         currentPosSec = currentDurSec;
                     }
                     dispatchMediaUpdate();
+
+                    // Stream updated elapsed time via BLE to bike cluster every second
+                    if (bleManager != null && bleManager.isConnected()) {
+                        bleManager.sendMedia(currentTitle, currentArtist, currentAlbum, currentPosSec, currentDurSec, 2);
+                    }
+
                     handler.postDelayed(this, 1000);
                     return;
                 }
@@ -266,13 +298,10 @@ public class MediaStateListener {
             }
             if (currentAlbum == null) currentAlbum = "";
 
-            long durMs = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
-            if (durMs <= 0) {
-                try {
-                    String durStr = metadata.getString(MediaMetadata.METADATA_KEY_DURATION);
-                    if (durStr != null) durMs = Long.parseLong(durStr);
-                } catch (Exception ignored) {}
-            }
+            long durMs = 0;
+            try {
+                durMs = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION);
+            } catch (Exception ignored) {}
             currentDurSec = (int) (durMs / 1000);
 
             // Extract Album Artwork
@@ -464,10 +493,60 @@ public class MediaStateListener {
         handler.postDelayed(this::syncMetadata, 300);
     }
 
+    public void setVolumeFromCluster(int volumeNibble) {
+        if (volumeNibble < 0 || volumeNibble > 10) return;
+        try {
+            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                int maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                if (maxVol > 0) {
+                    double d = ((double) volumeNibble) * (((double) maxVol) / 10.0d);
+                    int targetVol = (int) d;
+                    if (d - ((double) targetVol) >= 0.5d) {
+                        targetVol = (int) (d + 0.5d);
+                    }
+                    targetVol = Math.max(0, Math.min(targetVol, maxVol));
+                    am.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, AudioManager.FLAG_SHOW_UI);
+                    Log.i(TAG, "Cluster volume adjusted: " + volumeNibble + "/10 -> " + targetVol + "/" + maxVol);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error setting volume from cluster: " + e.getMessage());
+        }
+    }
+
+    public int getCurrentVolumeTenths() {
+        try {
+            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                int maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                int curVol = am.getStreamVolume(AudioManager.STREAM_MUSIC);
+                if (maxVol > 0) {
+                    return Math.max(0, Math.min(10, (int) Math.round((curVol * 10.0) / maxVol)));
+                }
+            }
+        } catch (Exception ignored) {}
+        return 5;
+    }
+
     public void handleHandlebarMedia(PulsarProtocol.HandlebarEvent ev) {
         if (ev == null) return;
         Log.i(TAG, "handleHandlebarMedia: play=" + ev.musicPlay + " pause=" + ev.musicPause
-                + " next=" + ev.musicNext + " prev=" + ev.musicPrev + " stop=" + ev.musicStop);
+                + " next=" + ev.musicNext + " prev=" + ev.musicPrev + " stop=" + ev.musicStop
+                + " vol=" + ev.volumeLevel + " volChanged=" + ev.volumeChanged);
+
+        if (ev.volumeChanged) {
+            int curVol = getCurrentVolumeTenths();
+            if (ev.volumeLevel == 0 && curVol > 1) {
+                Log.i(TAG, "Ignoring cluster volume=0 idle pulse (current phone volume=" + curVol + "/10)");
+            } else {
+                setVolumeFromCluster(ev.volumeLevel);
+                PhoneStateMonitor mon = PhoneStateMonitor.getInstance();
+                if (mon != null) {
+                    mon.triggerImmediateUpdate();
+                }
+            }
+        }
 
         if (activeController == null) {
             updateActiveController();
