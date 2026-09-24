@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">My Pulsar</string>
+    <!-- Drawer Menu Items -->
+    <string name="menu_saved_places">Saved Places</string>
+    <string name="menu_about">About</string>
+    <string name="menu_exit">Exit</string>
+
+    <!-- Navigation HUD -->
+    <string name="nav_turn_dist">-- m</string>
+    <string name="nav_turn_desc">Continue straight</string>
+    <string name="nav_eta_duration">-- min</string>
+    <string name="nav_eta_sub">-- km • --:--</string>
+    <string name="nav_speed">0</string>
+    <string name="nav_speed_unit">km/h</string>
+    <string name="nav_speed_limit">80</string>
+</resources>

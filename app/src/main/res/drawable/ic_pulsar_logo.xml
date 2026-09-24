@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Pulsar Twin Dynamic Speed Wing / Wolf-Eyed Emblem -->
+    <!-- Left Wing -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M8,14 L18,8 L22,12 L12,28 L6,28 Z" />
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M14,14 L20,10 L24,14 L18,26 L12,26 Z" />
+    <!-- Right Wing -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M40,14 L30,8 L26,12 L36,28 L42,28 Z" />
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M34,14 L28,10 L24,14 L30,26 L36,26 Z" />
+    <!-- Central Speed Spark / Dagger Core -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,4 L26,18 L24,40 L22,18 Z" />
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M24,20 L28,32 L24,44 L20,32 Z" />
+</vector>
+

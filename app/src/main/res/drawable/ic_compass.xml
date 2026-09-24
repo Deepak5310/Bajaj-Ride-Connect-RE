@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <!-- Outer Precision Ring -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#475569"
+        android:strokeWidth="1.5"
+        android:pathData="M14,2 C20.63,2 26,7.37 26,14 C26,20.63 20.63,26 14,26 C7.37,26 2,20.63 2,14 C2,7.37 7.37,2 14,2 Z" />
+    <!-- Compass Cardinal Ticks -->
+    <path
+        android:strokeColor="#94A3B8"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M14,3 L14,5 M14,23 L14,25 M3,14 L5,14 M23,14 L25,14" />
+    <!-- North Arrow Left Half (Bright Red) -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M14,5.5 L10,14 L14,12.5 Z" />
+    <!-- North Arrow Right Half (Deep Red shadow) -->
+    <path
+        android:fillColor="#DC2626"
+        android:pathData="M14,5.5 L18,14 L14,12.5 Z" />
+    <!-- South Arrow Left Half (Silver White) -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M14,22.5 L10,14 L14,12.5 Z" />
+    <!-- South Arrow Right Half (Medium Silver) -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M14,22.5 L18,14 L14,12.5 Z" />
+    <!-- Center Pivot Pin -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M14,12.5 C14.83,12.5 15.5,13.17 15.5,14 C15.5,14.83 14.83,15.5 14,15.5 C13.17,15.5 12.5,14.83 12.5,14 C12.5,13.17 13.17,12.5 14,12.5 Z" />
+</vector>
