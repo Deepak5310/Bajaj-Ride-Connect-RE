@@ -144,9 +144,10 @@ public class MapplsApiClient {
         }
 
         executor.execute(() -> {
+            HttpURLConnection conn = null;
             try {
                 URL url = URI.create("https://outpost.mappls.com/api/security/oauth/token").toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                 conn.setConnectTimeout(8000);
@@ -178,6 +179,10 @@ public class MapplsApiClient {
             } catch (Exception e) {
                 Log.w(TAG, "OAuth token fetch failed: " + e.getMessage());
                 mainHandler.post(() -> callback.onError(e.getMessage()));
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
             }
         });
     }
@@ -187,6 +192,7 @@ public class MapplsApiClient {
             @Override
             public void onSuccess(String token) {
                 executor.execute(() -> {
+                    HttpURLConnection conn = null;
                     try {
                         StringBuilder sb = new StringBuilder("https://atlas.mappls.com/api/places/search/json?");
                         sb.append("query=").append(URLEncoder.encode(query, "UTF-8"));
@@ -196,7 +202,7 @@ public class MapplsApiClient {
                         sb.append("&bridge=true");
 
                         URL url = URI.create(sb.toString()).toURL();
-                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                        conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("GET");
                         conn.setRequestProperty("Authorization", "bearer " + token);
                         conn.setRequestProperty("Accept", "application/json");
@@ -229,6 +235,10 @@ public class MapplsApiClient {
                     } catch (Exception e) {
                         Log.w(TAG, "Search places failed: " + e.getMessage());
                         mainHandler.post(() -> callback.onError(e.getMessage()));
+                    } finally {
+                        if (conn != null) {
+                            conn.disconnect();
+                        }
                     }
                 });
             }
@@ -266,6 +276,7 @@ public class MapplsApiClient {
     }
 
     private RouteResult requestRoute(String profile, double startLat, double startLng, double destLat, double destLng, String destEloc) {
+        HttpURLConnection conn = null;
         try {
             String coords;
             if (destEloc != null && !destEloc.trim().isEmpty()) {
@@ -278,7 +289,7 @@ public class MapplsApiClient {
                     + "?steps=true&overview=full&geometries=polyline6&alternatives=true";
 
             URL url = URI.create(urlStr).toURL();
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
             conn.setConnectTimeout(9000);
@@ -343,6 +354,10 @@ public class MapplsApiClient {
         } catch (Exception e) {
             Log.d(TAG, "Route profile " + profile + " error: " + e.getMessage());
             return null;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
         }
     }
 

@@ -1,7 +1,6 @@
 package com.bajaj.rideconnect.re;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 /**
  * Binary Protocol Frame Builder and Parser for Bajaj Pulsar NS400Z Digital Cluster (OTC Engineering).

@@ -753,4 +753,31 @@ public class MapplsMapView extends FrameLayout {
             super.dispatchDraw(canvas);
         }
     }
+
+    public void onResume() {
+        if (webView != null) {
+            webView.onResume();
+        }
+    }
+
+    public void onPause() {
+        if (webView != null) {
+            webView.onPause();
+        }
+    }
+
+    public void onDestroy() {
+        mainHandler.removeCallbacksAndMessages(null);
+        if (webView != null) {
+            removeView(webView);
+            webView.stopLoading();
+            webView.clearHistory();
+            webView.clearCache(true);
+            webView.loadUrl("about:blank");
+            webView.onPause();
+            webView.removeAllViews();
+            webView.destroy();
+            webView = null;
+        }
+    }
 }

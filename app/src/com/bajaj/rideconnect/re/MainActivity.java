@@ -35,15 +35,12 @@ import android.telephony.SignalStrength;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.speech.tts.TextToSpeech;
-import android.telecom.TelecomManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.location.Location;
@@ -423,12 +420,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
             } else if ("open_saved_places".equalsIgnoreCase(cmd)) {
                 showSavedPlacesDialog();
-            } else if ("open_stats".equalsIgnoreCase(cmd)) {
-                showRideStatsDialog();
-            } else if ("open_service".equalsIgnoreCase(cmd)) {
-                showServiceDialog();
-            } else if ("open_bike_info".equalsIgnoreCase(cmd)) {
-                showBikeInfoDialog();
             } else if ("open_about".equalsIgnoreCase(cmd)) {
                 openDrawer();
                 showDrawerAboutView();
@@ -914,73 +905,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         });
     }
 
-    private void showRideStatsDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-        builder.setTitle("📊 Ride Statistics & Diagnostics");
-        builder.setMessage(
-            "• Odometer: 1,420 km\n" +
-            "• Trip A: 240.2 km | Trip B: 85.0 km\n" +
-            "• Average Speed: 42 km/h\n" +
-            "• Top Speed: 112 km/h\n" +
-            "• Fuel Economy: 42.5 km/L (Eco Mode)\n" +
-            "• Engine Run Time: 34 hrs 12 mins\n" +
-            "• Battery Voltage: 12.8 V (Optimal)\n" +
-            "• Coolant Temp: Normal (88°C)"
-        );
-        builder.setPositiveButton("Reset Trip A", (dialog, which) -> {
-            Toast.makeText(this, "Trip A reset to 0.0 km", Toast.LENGTH_SHORT).show();
-        });
-        builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
-        AlertDialog dialog = builder.create();
-        styleCockpitDialog(dialog);
-        dialog.show();
-    }
 
-    private void showServiceDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-        builder.setTitle("🔧 Periodic Maintenance & Service");
-        builder.setMessage(
-            "• Next Service Due: In 2,150 km or 45 days\n" +
-            "• Engine Oil (10W-50): 82% life remaining\n" +
-            "• Front Brake Pads: Good (4.2 mm)\n" +
-            "• Rear Brake Pads: Good (3.8 mm)\n" +
-            "• Chain Slack: 25 mm (Optimal)\n" +
-            "• Air Filter: Checked\n\n" +
-            "Authorized Care Network:\n" +
-            "Bajaj Authorized Service Centers (Nationwide Assistance)"
-        );
-        builder.setPositiveButton("Call Service", (dialog, which) -> {
-            try {
-                Intent intent = new Intent(Intent.ACTION_DIAL);
-                intent.setData(Uri.parse("tel:18002096060"));
-                startActivity(intent);
-            } catch (Exception ignored) {}
-        });
-        builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
-        AlertDialog dialog = builder.create();
-        styleCockpitDialog(dialog);
-        dialog.show();
-    }
-
-    private void showBikeInfoDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-        builder.setTitle("🏍️ Vehicle Information");
-        builder.setMessage(
-            "• Model: Bajaj Pulsar NS400Z\n" +
-            "• Engine: 373cc Liquid-Cooled DOHC 4V\n" +
-            "• Max Power: 40 PS @ 8,800 RPM\n" +
-            "• Max Torque: 35 Nm @ 6,500 RPM\n" +
-            "• Transmission: 6-Speed Assist & Slipper Clutch\n" +
-            "• Ride Modes: Road | Rain | Sport | Off-Road\n" +
-            "• Cluster: " + (bleManager != null && bleManager.isConnected() ? "Connected (BLE OK)" : "Disconnected") + "\n" +
-            "• Fuel Tank Capacity: 12 Litres (High-Octane)\n" +
-            "• Fuel Status: Optimal"
-        );
-        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        AlertDialog dialog = builder.create();
-        styleCockpitDialog(dialog);
-        dialog.show();
-    }
 
     private void showDrawerAboutView() {
         if (scrollDrawer == null || layoutDrawerAbout == null) return;
@@ -2574,12 +2499,18 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (!bleManager.isConnected()) {
             bleManager.startScanOrConnect();
         }
+        if (mapplsMapView != null) {
+            mapplsMapView.onResume();
+        }
         handleIntent(getIntent());
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        if (mapplsMapView != null) {
+            mapplsMapView.onPause();
+        }
         MediaStateListener msl = MediaStateListener.getInstance();
         if (msl != null) {
             msl.unregisterObserver(mediaObserver);
@@ -2878,6 +2809,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        bleTimeoutHandler.removeCallbacksAndMessages(null);
+        searchDebounceHandler.removeCallbacksAndMessages(null);
+        clockHandler.removeCallbacksAndMessages(null);
         MaterialYouTheme.unregisterWallpaperListener(this);
         if (pulseAnimator != null) {
             pulseAnimator.cancel();
@@ -2895,6 +2829,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 tts.stop();
                 tts.shutdown();
             } catch (Exception ignored) {}
+        }
+        if (mapplsMapView != null) {
+            mapplsMapView.onDestroy();
         }
     }
 }
