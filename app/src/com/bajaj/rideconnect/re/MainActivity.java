@@ -194,7 +194,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     // Right Slide-out Drawer & Bike Controls
     private View drawerBackdrop;
     private View drawerPanel;
-    private ImageView btnDrawerClose;
+    private View cardBikeStage;
     private ImageView ivDrawerBikeImage;
     private TextView tvDrawerBikeName;
     private TextView tvDrawerClock;
@@ -419,6 +419,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 showServiceDialog();
             } else if ("open_bike_info".equalsIgnoreCase(cmd)) {
                 showBikeInfoDialog();
+            } else if ("open_profile".equalsIgnoreCase(cmd)) {
+                showRiderProfileDialog();
             } else if ("open_about".equalsIgnoreCase(cmd)) {
                 showAboutDialog();
             } else if ("open_drawer".equalsIgnoreCase(cmd)) {
@@ -601,7 +603,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Drawer & Cockpit Telemetry
         drawerBackdrop = findViewById(R.id.drawerBackdrop);
         drawerPanel = findViewById(R.id.drawerPanel);
-        btnDrawerClose = findViewById(R.id.btnDrawerClose);
+        cardBikeStage = findViewById(R.id.cardBikeStage);
         ivDrawerBikeImage = findViewById(R.id.ivDrawerBikeImage);
         tvDrawerBikeName = findViewById(R.id.tvDrawerBikeName);
         viewDrawerBtStatusDot = findViewById(R.id.viewDrawerBtStatusDot);
@@ -682,7 +684,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         // Right Navigation Drawer
         btnOpenDrawer.setOnClickListener(v -> openDrawer());
-        btnDrawerClose.setOnClickListener(v -> closeDrawer());
         drawerBackdrop.setOnClickListener(v -> closeDrawer());
 
         // Drawer Actions
@@ -700,7 +701,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         });
         itemProfile.setOnClickListener(v -> {
             closeDrawer();
-            Toast.makeText(this, "Rider Profile: Deepak Jangir (Owner)", Toast.LENGTH_SHORT).show();
+            showRiderProfileDialog();
         });
         itemSavedPlaces.setOnClickListener(v -> {
             closeDrawer();
@@ -766,7 +767,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     mapplsMapView.toggleOrientation();
                 } else {
                     btnCompass.animate().rotation(0f).setDuration(350).start();
-                    Toast.makeText(this, "2D North-Up View", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -798,11 +798,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                         if (is3D) {
                             btnCompass.setBackgroundResource(R.drawable.bg_circle_action_active);
                             btnCompass.animate().rotation((float) -bearing).setDuration(350).start();
-                            Toast.makeText(MainActivity.this, "Cockpit 3D Perspective (Heading Up)", Toast.LENGTH_SHORT).show();
                         } else {
                             btnCompass.setBackgroundResource(R.drawable.bg_circle_action);
                             btnCompass.animate().rotation(0f).setDuration(350).start();
-                            Toast.makeText(MainActivity.this, "2D North-Up View", Toast.LENGTH_SHORT).show();
                         }
                     }
                 }
@@ -817,7 +815,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             btnVoiceNav.setImageResource(isVoiceMuted ? R.drawable.ic_volume_off : R.drawable.ic_volume_up);
             btnVoiceNav.setAlpha(isVoiceMuted ? 0.6f : 1.0f);
             String msg = isVoiceMuted ? "Voice Guidance Muted" : "Voice Guidance Active";
-            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
             speakVoiceGuidance(msg);
         });
 
@@ -831,8 +828,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         btnLayers.setOnClickListener(v -> {
             if (mapplsMapView != null) {
                 mapplsMapView.toggleMapTheme();
-                boolean isDark = mapplsMapView.isDarkMode();
-                Toast.makeText(this, isDark ? "Map: Dark Mode" : "Map: Light Mode", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -866,13 +861,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             TelecomManager tm = (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
             if (tm != null && checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
                 tm.acceptRingingCall();
-                Toast.makeText(this, "Call Answered", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Call Answered", Toast.LENGTH_SHORT).show();
             }
-        } catch (Exception e) {
-            Toast.makeText(this, "Call Answered", Toast.LENGTH_SHORT).show();
-        }
+        } catch (Exception ignored) {}
     }
 
     private void rejectIncomingCall() {
@@ -880,13 +870,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             TelecomManager tm = (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
             if (tm != null && checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
                 tm.endCall();
-                Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show();
             }
-        } catch (Exception e) {
-            Toast.makeText(this, "Call Ended", Toast.LENGTH_SHORT).show();
-        }
+        } catch (Exception ignored) {}
     }
 
     private void showSavedPlacesDialog() {
@@ -1030,6 +1015,23 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         dialog.show();
     }
 
+    private void showRiderProfileDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
+        builder.setTitle("👤 Rider Profile");
+        builder.setMessage(
+            "• Rider Name: Deepak Jangir\n" +
+            "• Ownership: Primary Owner (Pulsar NS400Z)\n" +
+            "• Blood Group: O+\n" +
+            "• Emergency Contact: Configured\n" +
+            "• License Status: Active & Verified\n" +
+            "• Bajaj Care ID: BJ-NS400-9F2A"
+        );
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+        AlertDialog dialog = builder.create();
+        styleCockpitDialog(dialog);
+        dialog.show();
+    }
+
     private void showOfflineMapsDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
         builder.setTitle("🗺️ Offline Map Regions");
@@ -1040,10 +1042,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             "Storage Allocated: 450 MB / 128 GB\n" +
             "Status: All regional vector tile packages are up to date."
         );
-        builder.setPositiveButton("Check Updates", (dialog, which) -> {
-            Toast.makeText(this, "All offline regions are up to date", Toast.LENGTH_SHORT).show();
-        });
-        builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
         AlertDialog dialog = builder.create();
         styleCockpitDialog(dialog);
         dialog.show();
@@ -1224,8 +1223,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         // Staggered cascade entrance for drawer items
         View[] drawerItems = new View[]{
-                ivDrawerBikeImage,
-                tvDrawerBikeName,
+                cardBikeStage,
                 cardBikeConnection,
                 itemRideStats,
                 itemService,
@@ -1344,7 +1342,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         View[] tactileViews = new View[]{
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
-                btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
+                btnOpenDrawer, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
                 btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
                 layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle,
                 itemRideStats, itemService, itemBikeInfo, itemProfile, itemSavedPlaces, itemOfflineMaps,
@@ -1450,7 +1448,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             bleManager.setAutoReconnect(false);
             bleManager.disconnect();
             updateBleUiState(BleUiState.DISCONNECTED, null);
-            Toast.makeText(this, "Disconnected from Bike", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -1462,7 +1459,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 bleManager.disconnect();
             }
             updateBleUiState(BleUiState.DISCONNECTED, null);
-            Toast.makeText(this, "Connection cancelled", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -1474,7 +1470,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
 
         if (!adapter.isEnabled()) {
-            Toast.makeText(this, "Turning on Bluetooth...", Toast.LENGTH_SHORT).show();
             try {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
@@ -1645,7 +1640,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             BluetoothManager bm = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
             BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : BluetoothAdapter.getDefaultAdapter();
             if (adapter != null && adapter.isEnabled()) {
-                Toast.makeText(this, "Bluetooth enabled, starting connection...", Toast.LENGTH_SHORT).show();
                 startBikeBleConnection();
             } else {
                 Toast.makeText(this, "Bluetooth is required to connect to bike", Toast.LENGTH_LONG).show();
@@ -1668,8 +1662,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void terminateAppSession() {
-        Toast.makeText(this, "Exiting My Pulsar and closing all services...", Toast.LENGTH_SHORT).show();
-
         if (bleManager != null) {
             bleManager.setAutoReconnect(false);
             bleManager.stopScan();
@@ -1704,14 +1696,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     @Override
     public void onHandlebarEvent(PulsarProtocol.HandlebarEvent event) {
-        runOnUiThread(() -> {
-            if (event.musicNext) Toast.makeText(this, "Handlebar: Track Next", Toast.LENGTH_SHORT).show();
-            else if (event.musicPrev) Toast.makeText(this, "Handlebar: Track Prev", Toast.LENGTH_SHORT).show();
-            else if (event.musicPlay) Toast.makeText(this, "Handlebar: Music Play", Toast.LENGTH_SHORT).show();
-            else if (event.musicPause) Toast.makeText(this, "Handlebar: Music Pause", Toast.LENGTH_SHORT).show();
-            else if (event.callAccept) Toast.makeText(this, "Handlebar: Answer Call", Toast.LENGTH_SHORT).show();
-            else if (event.callReject) Toast.makeText(this, "Handlebar: End Call", Toast.LENGTH_SHORT).show();
-        });
+        // Handlebar actions are processed silently to avoid visual distraction during riding
     }
 
     private void openNotificationSettings() {
@@ -1894,7 +1879,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (currentRiderLat != 0.0 && currentRiderLng != 0.0) {
                 mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
                 mapplsMapView.centerOnCurrentLocation();
-                Toast.makeText(this, String.format(Locale.getDefault(), "Live GPS: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "Acquiring live GPS fix...", Toast.LENGTH_SHORT).show();
             }
@@ -2219,7 +2203,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     private void previewRoute(MapplsApiClient.PlaceResult selected) {
         if (selected == null) return;
-        Toast.makeText(this, "Calculating route to " + selected.name + "...", Toast.LENGTH_SHORT).show();
         MapplsApiClient.getInstance().getDirections(currentRiderLat, currentRiderLng, selected.lat, selected.lng, selected.mapplsPin, new MapplsApiClient.RouteCallback() {
             @Override
             public void onSuccess(MapplsApiClient.RouteResult route) {
@@ -2364,8 +2347,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         } else {
             speakVoiceGuidance("Starting route to " + pendingDestName);
         }
-
-        Toast.makeText(this, "Mappls Navigation Active to " + pendingDestName, Toast.LENGTH_SHORT).show();
     }
 
     private void cancelRoutePreview() {
@@ -2531,7 +2512,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             centerMapOnCurrentLocation();
         }
         speakVoiceGuidance("Navigation ended");
-        Toast.makeText(this, "Navigation Ended", Toast.LENGTH_SHORT).show();
     }
 
     private static List<double[]> decodePolyline(String encoded, boolean isPolyline6) {
@@ -2794,8 +2774,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             drawerBg.setStroke((int) (1.2f * density), palette.accentBorder);
             drawerPanel.setBackground(drawerBg);
         }
-        if (btnDrawerClose != null) {
-            btnDrawerClose.setColorFilter(palette.accentPrimary);
+        if (cardBikeStage != null) {
+            GradientDrawable stageBg = new GradientDrawable(
+                    GradientDrawable.Orientation.TOP_BOTTOM,
+                    new int[]{0xFF0F172A, 0xFF0B1120, 0xFF060A13}
+            );
+            stageBg.setCornerRadius(18 * density);
+            stageBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            cardBikeStage.setBackground(stageBg);
         }
         if (cardBikeConnection != null) {
             GradientDrawable cardBg = new GradientDrawable();
