@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattConnectionSettings;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
@@ -279,11 +278,7 @@ public class PulsarBleManager {
                 bluetoothGatt = null;
             }
 
-            BluetoothGattConnectionSettings settings = new BluetoothGattConnectionSettings.Builder()
-                    .setAutoConnectEnabled(false)
-                    .setTransport(BluetoothDevice.TRANSPORT_LE)
-                    .build();
-            bluetoothGatt = device.connectGatt(settings, context.getMainExecutor(), gattCallback);
+            bluetoothGatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
         } catch (Exception e) {
             isConnecting = false;
             Log.e(TAG, "Error connecting to GATT: " + e.getMessage());
