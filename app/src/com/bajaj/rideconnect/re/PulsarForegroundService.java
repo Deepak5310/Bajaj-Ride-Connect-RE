@@ -90,7 +90,7 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
                     nm.cancel(NOTIFICATION_ID);
                     nm.cancelAll();
                 }
-                stopForeground(true);
+                stopForeground(STOP_FOREGROUND_REMOVE);
                 stopSelf();
                 return START_NOT_STICKY;
             } else if (ACTION_CONNECT.equals(action)) {
@@ -132,12 +132,7 @@ public class PulsarForegroundService extends Service implements PulsarBleManager
                 PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0)
         );
 
-        Notification.Builder builder;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder = new Notification.Builder(this, CHANNEL_ID);
-        } else {
-            builder = new Notification.Builder(this);
-        }
+        Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID);
 
         builder.setContentTitle(title)
                 .setContentText(content)

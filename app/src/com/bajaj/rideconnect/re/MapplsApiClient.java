@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -144,7 +145,7 @@ public class MapplsApiClient {
 
         executor.execute(() -> {
             try {
-                URL url = new URL("https://outpost.mappls.com/api/security/oauth/token");
+                URL url = URI.create("https://outpost.mappls.com/api/security/oauth/token").toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
@@ -194,7 +195,7 @@ public class MapplsApiClient {
                         }
                         sb.append("&bridge=true");
 
-                        URL url = new URL(sb.toString());
+                        URL url = URI.create(sb.toString()).toURL();
                         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("GET");
                         conn.setRequestProperty("Authorization", "bearer " + token);
@@ -276,7 +277,7 @@ public class MapplsApiClient {
                     + "/route_adv/" + profile + "/" + coords
                     + "?steps=true&overview=full&geometries=polyline6&alternatives=true";
 
-            URL url = new URL(urlStr);
+            URL url = URI.create(urlStr).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");

@@ -53,6 +53,7 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.window.OnBackInvokedDispatcher;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -316,6 +317,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         setContentView(R.layout.activity_main);
         setupEdgeToEdge();
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    this::handleBackPress
+            );
+        }
+
         try {
             SharedPreferences prefs = getSharedPreferences("bajaj_ride_prefs", MODE_PRIVATE);
             float sLat = prefs.getFloat("saved_rider_lat", 0.0f);
@@ -420,8 +428,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 showServiceDialog();
             } else if ("open_bike_info".equalsIgnoreCase(cmd)) {
                 showBikeInfoDialog();
-            } else if ("open_profile".equalsIgnoreCase(cmd)) {
-                showRiderProfileDialog();
             } else if ("open_about".equalsIgnoreCase(cmd)) {
                 showAboutDialog();
             } else if ("open_drawer".equalsIgnoreCase(cmd)) {
@@ -479,11 +485,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private void setupEdgeToEdge() {
         Window window = getWindow();
         if (window == null) return;
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        window.setStatusBarColor(Color.TRANSPARENT);
-        window.setNavigationBarColor(Color.TRANSPARENT);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true);
@@ -498,24 +501,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             Window window = getWindow();
             if (window == null) return;
             View decor = window.getDecorView();
-            if (decor == null) return;
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (decor != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 WindowInsetsController controller = decor.getWindowInsetsController();
                 if (controller != null) {
                     controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
                     controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
                 }
             }
-
-            decor.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            );
         } catch (Exception ignored) {}
     }
 
@@ -857,24 +849,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         } catch (Exception ignored) {}
     }
 
-    private void answerIncomingCall() {
-        try {
-            TelecomManager tm = (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
-            if (tm != null && checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
-                tm.acceptRingingCall();
-            }
-        } catch (Exception ignored) {}
-    }
-
-    private void rejectIncomingCall() {
-        try {
-            TelecomManager tm = (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
-            if (tm != null && checkSelfPermission(Manifest.permission.ANSWER_PHONE_CALLS) == PackageManager.PERMISSION_GRANTED) {
-                tm.endCall();
-            }
-        } catch (Exception ignored) {}
-    }
-
     private void showSavedPlacesDialog() {
         final String[] placeNames = {
             "🏠 Home (Saved)",
@@ -1009,39 +983,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             "• Cluster: " + (bleManager != null && bleManager.isConnected() ? "Connected (BLE OK)" : "Disconnected") + "\n" +
             "• Fuel Tank Capacity: 12 Litres (High-Octane)\n" +
             "• Fuel Status: Optimal"
-        );
-        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        AlertDialog dialog = builder.create();
-        styleCockpitDialog(dialog);
-        dialog.show();
-    }
-
-    private void showRiderProfileDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-        builder.setTitle("👤 Rider Profile");
-        builder.setMessage(
-            "• Rider Name: Deepak Jangir\n" +
-            "• Ownership: Primary Owner (Pulsar NS400Z)\n" +
-            "• Blood Group: O+\n" +
-            "• Emergency Contact: Configured\n" +
-            "• License Status: Active & Verified\n" +
-            "• Bajaj Care ID: BJ-NS400-9F2A"
-        );
-        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        AlertDialog dialog = builder.create();
-        styleCockpitDialog(dialog);
-        dialog.show();
-    }
-
-    private void showOfflineMapsDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
-        builder.setTitle("🗺️ Offline Map Regions");
-        builder.setMessage(
-            "• Rajasthan North (Downloaded • 145 MB)\n" +
-            "• Delhi NCR & Haryana (Downloaded • 210 MB)\n" +
-            "• Western Express Highways (Downloaded • 95 MB)\n\n" +
-            "Storage Allocated: 450 MB / 128 GB\n" +
-            "Status: All regional vector tile packages are up to date."
         );
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
         AlertDialog dialog = builder.create();
@@ -1471,7 +1412,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
 
         BluetoothManager bm = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : BluetoothAdapter.getDefaultAdapter();
+        BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : null;
         if (adapter == null) {
             Toast.makeText(this, "Bluetooth not supported on this device", Toast.LENGTH_SHORT).show();
             return;
@@ -1646,7 +1587,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_ENABLE_BT) {
             BluetoothManager bm = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-            BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : BluetoothAdapter.getDefaultAdapter();
+            BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : null;
             if (adapter != null && adapter.isEnabled()) {
                 startBikeBleConnection();
             } else {
@@ -1804,13 +1745,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             }
             checkRouteProgress(location);
         }
-
-        @Override
-        public void onStatusChanged(String provider, int status, Bundle extras) {}
-        @Override
-        public void onProviderEnabled(String provider) {}
-        @Override
-        public void onProviderDisabled(String provider) {}
     };
 
     private void initGpsTracking() {
@@ -2115,7 +2049,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     if (cockpitKeyboard != null && cockpitKeyboard.isVisible()) {
                         cockpitKeyboard.hide();
                         etSearchQuery.setShowSoftInputOnFocus(true);
-                        imm.showSoftInput(etSearchQuery, InputMethodManager.SHOW_FORCED);
+                        imm.showSoftInput(etSearchQuery, 0);
                     } else {
                         imm.hideSoftInputFromWindow(etSearchQuery.getWindowToken(), 0);
                         etSearchQuery.setShowSoftInputOnFocus(false);
@@ -2188,8 +2122,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
     }
 
-    @Override
-    public void onBackPressed() {
+    private void handleBackPress() {
         if (layoutSearchOverlay != null && layoutSearchOverlay.getVisibility() == View.VISIBLE) {
             hideDestinationSearch();
             return;
@@ -2206,7 +2139,16 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             closeDrawer();
             return;
         }
-        super.onBackPressed();
+        finish();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            handleBackPress();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     private void previewRoute(MapplsApiClient.PlaceResult selected) {

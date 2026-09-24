@@ -222,7 +222,9 @@ def merge_and_patch_apk(extracted_dir: str, output_apk: str, old_pkg: str, new_p
     env["JAVA_HOME"] = JAVA_HOME
 
     cmd_sign = [
-        APKSIGNER_BIN, "sign",
+        APKSIGNER_BIN,
+        "-J-enable-native-access=ALL-UNNAMED",
+        "sign",
         "--ks", keystore_path,
         "--ks-pass", "pass:android",
         "--ks-key-alias", "androiddebugkey",

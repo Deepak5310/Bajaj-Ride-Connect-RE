@@ -6,10 +6,12 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattConnectionSettings;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothStatusCodes;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
@@ -80,6 +82,7 @@ public class PulsarBleManager {
     }
     private final Queue<GattWriteTask> writeQueue = new LinkedList<>();
     private boolean isWriting = false;
+    private GattWriteTask currentTask;
 
     private final Runnable reconnectRunnable = new Runnable() {
         @Override
@@ -276,11 +279,11 @@ public class PulsarBleManager {
                 bluetoothGatt = null;
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                bluetoothGatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE);
-            } else {
-                bluetoothGatt = device.connectGatt(context, false, gattCallback);
-            }
+            BluetoothGattConnectionSettings settings = new BluetoothGattConnectionSettings.Builder()
+                    .setAutoConnectEnabled(false)
+                    .setTransport(BluetoothDevice.TRANSPORT_LE)
+                    .build();
+            bluetoothGatt = device.connectGatt(settings, context.getMainExecutor(), gattCallback);
         } catch (Exception e) {
             isConnecting = false;
             Log.e(TAG, "Error connecting to GATT: " + e.getMessage());
@@ -373,12 +376,13 @@ public class PulsarBleManager {
             }
 
             isWriting = true;
-            task.characteristic.setValue(task.data);
-            task.characteristic.setWriteType(task.writeType);
-            boolean result = bluetoothGatt.writeCharacteristic(task.characteristic);
+            currentTask = task;
+            int status = bluetoothGatt.writeCharacteristic(task.characteristic, task.data, task.writeType);
+            boolean result = (status == BluetoothStatusCodes.SUCCESS);
 
             if (task.writeType == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE || !result) {
                 isWriting = false;
+                currentTask = null;
                 notifyPacketSent(task.characteristic.getUuid().toString(), task.data, result);
                 // Continue queue on main loop
                 mainHandler.post(this::processNextWrite);
@@ -465,12 +469,7 @@ public class PulsarBleManager {
                         gatt.setCharacteristicNotification(charControls, true);
                         BluetoothGattDescriptor descriptor = charControls.getDescriptor(CCCD_UUID);
                         if (descriptor != null) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                            } else {
-                                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                                gatt.writeDescriptor(descriptor);
-                            }
+                            gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
                             Log.i(TAG, "Subscribed to Handlebar controls CCCD notification.");
                         }
                     }
@@ -486,7 +485,9 @@ public class PulsarBleManager {
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             synchronized (writeQueue) {
                 isWriting = false;
-                notifyPacketSent(characteristic.getUuid().toString(), characteristic.getValue(), status == BluetoothGatt.GATT_SUCCESS);
+                byte[] data = currentTask != null ? currentTask.data : null;
+                currentTask = null;
+                notifyPacketSent(characteristic.getUuid().toString(), data, status == BluetoothGatt.GATT_SUCCESS);
                 processNextWrite();
             }
         }
@@ -494,14 +495,6 @@ public class PulsarBleManager {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value) {
             handleCharacteristicChanged(characteristic, value);
-        }
-
-        @SuppressWarnings("deprecation")
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            if (characteristic != null) {
-                handleCharacteristicChanged(characteristic, characteristic.getValue());
-            }
         }
 
         private void handleCharacteristicChanged(BluetoothGattCharacteristic characteristic, byte[] value) {

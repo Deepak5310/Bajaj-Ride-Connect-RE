@@ -48,7 +48,7 @@ echo "[3/4] Aligning APK..."
 
 # 4. Sign
 echo "[4/4] Signing APK..."
-"$BUILD_TOOLS/apksigner" sign --ks "$KS" --ks-pass pass:android \
+"$BUILD_TOOLS/apksigner" -J-enable-native-access=ALL-UNNAMED sign --ks "$KS" --ks-pass pass:android \
   --ks-key-alias androiddebugkey --key-pass pass:android \
   --min-sdk-version 24 --v1-signing-enabled true --v2-signing-enabled true \
   --v3-signing-enabled true --out "$APK" "$BUILD/aligned.apk"

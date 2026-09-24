@@ -107,7 +107,6 @@ public class MapplsMapView extends FrameLayout {
         WebSettings ws = webView.getSettings();
         ws.setJavaScriptEnabled(true);
         ws.setDomStorageEnabled(true);
-        ws.setDatabaseEnabled(true);
         ws.setAllowFileAccess(true);
         ws.setCacheMode(WebSettings.LOAD_DEFAULT);
         ws.setUseWideViewPort(true);

@@ -3,14 +3,14 @@ package com.bajaj.rideconnect.re;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
-import android.telecom.TelecomManager;
-import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.KeyEvent;
 
 /**
  * Enterprise Telephony & Caller ID Handler for Pulsar NS400Z.
@@ -24,7 +24,6 @@ public class TelephonyCallHandler {
     private final Context context;
     private final PulsarBleManager bleManager;
     private final TelephonyManager telephonyManager;
-    private final TelecomManager telecomManager;
 
     private int currentCallState = 0; // 0=Idle, 1=Ringing, 2=Offhook
     private String activeCaller = "";
@@ -33,7 +32,6 @@ public class TelephonyCallHandler {
         this.context = context.getApplicationContext();
         this.bleManager = bleManager;
         this.telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-        this.telecomManager = (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
 
         registerCallListener();
     }
@@ -61,13 +59,6 @@ public class TelephonyCallHandler {
                         context.getMainExecutor(),
                         new CallStateCallback(this)
                 );
-            } else {
-                telephonyManager.listen(new PhoneStateListener() {
-                    @Override
-                    public void onCallStateChanged(int state, String phoneNumber) {
-                        handleStateChanged(state, phoneNumber);
-                    }
-                }, PhoneStateListener.LISTEN_CALL_STATE);
             }
         } catch (SecurityException e) {
             Log.w(TAG, "READ_PHONE_STATE permission needed for Call handler: " + e.getMessage());
@@ -97,18 +88,22 @@ public class TelephonyCallHandler {
 
     @SuppressLint("MissingPermission")
     public void handleHandlebarCallAction(PulsarProtocol.HandlebarEvent ev) {
-        if (ev == null || telecomManager == null) return;
+        if (ev == null) return;
 
         try {
             if (ev.callAccept && currentCallState == TelephonyManager.CALL_STATE_RINGING) {
                 Log.i(TAG, "Handlebar: Answering Incoming Phone Call");
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    telecomManager.acceptRingingCall();
+                AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                if (am != null) {
+                    am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_HEADSETHOOK));
+                    am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_HEADSETHOOK));
                 }
             } else if (ev.callReject && (currentCallState == TelephonyManager.CALL_STATE_RINGING || currentCallState == TelephonyManager.CALL_STATE_OFFHOOK)) {
                 Log.i(TAG, "Handlebar: Ending / Rejecting Phone Call");
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    telecomManager.endCall();
+                AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+                if (am != null) {
+                    am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENDCALL));
+                    am.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENDCALL));
                 }
             }
         } catch (SecurityException e) {
