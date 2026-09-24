@@ -61,6 +61,11 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.graphics.Typeface;
+import android.view.HapticFeedbackConstants;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -348,6 +353,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     previewRoute(selected);
                 }
             } else if ("start_nav".equalsIgnoreCase(cmd)) {
+                if (pendingPreviewRoute == null) {
+                    java.util.List<MapplsApiClient.RouteStep> steps = new java.util.ArrayList<>();
+                    steps.add(new MapplsApiClient.RouteStep("In 200m, turn left toward Service Road", "Station Road", 250, 45, 1, 28.128, 75.399));
+                    steps.add(new MapplsApiClient.RouteStep("Continue straight on National Highway", "NH 52", 4800, 360, 0, 28.135, 75.405));
+                    pendingPreviewRoute = new MapplsApiClient.RouteResult(5050, 405, "", steps);
+                    pendingDestName = "Bajaj Service Station";
+                }
                 startActiveNavigation();
             } else if ("end_nav".equalsIgnoreCase(cmd)) {
                 endActiveNavigation();
@@ -667,14 +679,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         if (btnCurrentLocation != null) {
             btnCurrentLocation.setOnClickListener(v -> {
                 centerMapOnCurrentLocation();
-                if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() == View.VISIBLE) {
-                    layoutRecenterPill.animate().alpha(0f).setDuration(200).withEndAction(() -> {
-                        layoutRecenterPill.setVisibility(View.GONE);
-                    }).start();
-                }
-                if (btnCurrentLocation != null) {
-                    btnCurrentLocation.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
-                }
+                hideRecenterButton();
             });
         }
 
@@ -683,12 +688,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 if (mapplsMapView != null) {
                     mapplsMapView.centerOnCurrentLocation();
                 }
-                layoutRecenterPill.animate().alpha(0f).setDuration(200).withEndAction(() -> {
-                    layoutRecenterPill.setVisibility(View.GONE);
-                }).start();
-                if (btnCurrentLocation != null) {
-                    btnCurrentLocation.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
-                }
+                hideRecenterButton();
             });
         }
 
@@ -707,26 +707,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             mapplsMapView.setOnMapInteractionListener(new MapplsMapView.OnMapInteractionListener() {
                 @Override
                 public void onMapDragged() {
-                    if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() != View.VISIBLE) {
-                        layoutRecenterPill.setAlpha(0f);
-                        layoutRecenterPill.setVisibility(View.VISIBLE);
-                        layoutRecenterPill.animate().alpha(1f).setDuration(200).start();
-                    }
-                    if (btnCurrentLocation != null) {
-                        btnCurrentLocation.setColorFilter(Color.parseColor("#F59E0B"));
-                    }
+                    showRecenterButton();
                 }
 
                 @Override
                 public void onMapRecentered() {
-                    if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() == View.VISIBLE) {
-                        layoutRecenterPill.animate().alpha(0f).setDuration(200).withEndAction(() -> {
-                            layoutRecenterPill.setVisibility(View.GONE);
-                        }).start();
-                    }
-                    if (btnCurrentLocation != null) {
-                        btnCurrentLocation.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
-                    }
+                    hideRecenterButton();
                 }
 
                 @Override
@@ -754,7 +740,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
 
         btnMapSearch.setOnClickListener(v -> showDestinationSearch());
-        cardTurnInstruction.setOnClickListener(v -> showDestinationSearch());
         setupSearchOverlay();
 
         btnVoiceNav.setOnClickListener(v -> {
@@ -859,7 +844,50 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             }
         });
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        AlertDialog dialog = builder.create();
+        styleCockpitDialog(dialog);
+        dialog.show();
+    }
+
+    private void styleCockpitDialog(AlertDialog dialog) {
+        if (dialog == null) return;
+        dialog.setOnShowListener(d -> {
+            int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
+            int border = (currentThemePalette != null) ? currentThemePalette.accentBorder : Color.parseColor("#3338BDF8");
+            int density = (int) getResources().getDisplayMetrics().density;
+
+            if (dialog.getWindow() != null) {
+                GradientDrawable winBg = new GradientDrawable();
+                winBg.setShape(GradientDrawable.RECTANGLE);
+                winBg.setCornerRadius(22 * density);
+                winBg.setColor(0xF80A0B0E);
+                winBg.setStroke((int) (1.2f * density), border);
+                dialog.getWindow().setBackgroundDrawable(winBg);
+            }
+
+            Button pos = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (pos != null) {
+                pos.setTextColor(accent);
+                pos.setAllCaps(false);
+                pos.setTypeface(null, Typeface.BOLD);
+            }
+            Button neg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            if (neg != null) {
+                neg.setTextColor(0xFF94A3B8);
+                neg.setAllCaps(false);
+            }
+            Button neu = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            if (neu != null) {
+                neu.setTextColor(0xFF94A3B8);
+                neu.setAllCaps(false);
+            }
+
+            TextView msg = dialog.findViewById(android.R.id.message);
+            if (msg != null) {
+                msg.setTextColor(0xFFE2E8F0);
+                msg.setLineSpacing(0, 1.25f);
+            }
+        });
     }
 
     private void showRideStatsDialog() {
@@ -879,7 +907,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             Toast.makeText(this, "Trip A reset to 0.0 km", Toast.LENGTH_SHORT).show();
         });
         builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        AlertDialog dialog = builder.create();
+        styleCockpitDialog(dialog);
+        dialog.show();
     }
 
     private void showServiceDialog() {
@@ -903,7 +933,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             } catch (Exception ignored) {}
         });
         builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        AlertDialog dialog = builder.create();
+        styleCockpitDialog(dialog);
+        dialog.show();
     }
 
     private void showBikeInfoDialog() {
@@ -920,7 +952,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             "• Estimated Range: ~312 km (Eco Mode)"
         );
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        AlertDialog dialog = builder.create();
+        styleCockpitDialog(dialog);
+        dialog.show();
     }
 
     private void showOfflineMapsDialog() {
@@ -937,7 +971,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             Toast.makeText(this, "All offline regions are up to date", Toast.LENGTH_SHORT).show();
         });
         builder.setNegativeButton("Close", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        AlertDialog dialog = builder.create();
+        styleCockpitDialog(dialog);
+        dialog.show();
     }
 
     private void showAboutDialog() {
@@ -955,7 +991,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             "• Chetak Electric EV Series"
         );
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
-        builder.show();
+        AlertDialog dialog = builder.create();
+        styleCockpitDialog(dialog);
+        dialog.show();
     }
 
     private void toggleBleConnection() {
@@ -1060,7 +1098,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     public void setMapFullscreen(boolean fullscreen) {
         isMapFullscreen = fullscreen;
         if (fullscreen) {
-            layoutLeftPanel.animate().alpha(0f).translationX(-100f).setDuration(220)
+            layoutLeftPanel.animate()
+                    .alpha(0f)
+                    .translationX(-140f)
+                    .setDuration(240)
+                    .setInterpolator(new AccelerateInterpolator(1.8f))
                     .withEndAction(() -> {
                         layoutLeftPanel.setVisibility(View.GONE);
                         viewSplitDivider.setVisibility(View.GONE);
@@ -1068,37 +1110,99 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
             layoutFullscreenMusicPill.setVisibility(View.VISIBLE);
             layoutFullscreenMusicPill.setAlpha(0f);
-            layoutFullscreenMusicPill.setTranslationY(60f);
-            layoutFullscreenMusicPill.animate().alpha(1f).translationY(0f).setDuration(280).start();
+            layoutFullscreenMusicPill.setTranslationY(80f);
+            layoutFullscreenMusicPill.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(320)
+                    .setInterpolator(new OvershootInterpolator(1.4f))
+                    .start();
         } else {
             layoutLeftPanel.setVisibility(View.VISIBLE);
             viewSplitDivider.setVisibility(View.VISIBLE);
-            layoutLeftPanel.setTranslationX(-100f);
-            layoutLeftPanel.animate().alpha(1f).translationX(0f).setDuration(250).start();
+            layoutLeftPanel.setTranslationX(-140f);
+            layoutLeftPanel.setAlpha(0f);
+            layoutLeftPanel.animate()
+                    .alpha(1f)
+                    .translationX(0f)
+                    .setDuration(280)
+                    .setInterpolator(new DecelerateInterpolator(2.0f))
+                    .start();
 
-            layoutFullscreenMusicPill.animate().alpha(0f).translationY(60f).setDuration(180)
-                    .withEndAction(() -> layoutFullscreenMusicPill.setVisibility(View.GONE)).start();
+            layoutFullscreenMusicPill.animate()
+                    .alpha(0f)
+                    .translationY(80f)
+                    .setDuration(190)
+                    .setInterpolator(new AccelerateInterpolator(1.8f))
+                    .withEndAction(() -> layoutFullscreenMusicPill.setVisibility(View.GONE))
+                    .start();
         }
     }
 
     private void openDrawer() {
         drawerBackdrop.setVisibility(View.VISIBLE);
         drawerBackdrop.setAlpha(0f);
-        drawerBackdrop.animate().alpha(1f).setDuration(240).start();
+        drawerBackdrop.animate()
+                .alpha(1f)
+                .setDuration(260)
+                .setInterpolator(new DecelerateInterpolator(2.0f))
+                .start();
 
         drawerPanel.setVisibility(View.VISIBLE);
         int width = drawerPanel.getWidth() > 0 ? drawerPanel.getWidth() : 800;
         drawerPanel.setTranslationX(width);
-        drawerPanel.animate().translationX(0f).setDuration(260).start();
+        drawerPanel.animate()
+                .translationX(0f)
+                .setDuration(300)
+                .setInterpolator(new DecelerateInterpolator(2.2f))
+                .start();
+
+        // Staggered cascade entrance for drawer items
+        View[] drawerItems = new View[]{
+                ivDrawerBikeImage,
+                tvDrawerBikeName,
+                itemRideStats,
+                itemService,
+                itemBikeInfo,
+                itemSavedPlaces,
+                itemOfflineMaps,
+                itemSettings,
+                itemHelp,
+                itemAbout,
+                btnDrawerDisconnect
+        };
+
+        for (int i = 0; i < drawerItems.length; i++) {
+            View item = drawerItems[i];
+            if (item != null) {
+                item.setAlpha(0f);
+                item.setTranslationX(50f);
+                item.animate()
+                        .alpha(1f)
+                        .translationX(0f)
+                        .setDuration(250)
+                        .setStartDelay(50 + (i * 25))
+                        .setInterpolator(new OvershootInterpolator(1.2f))
+                        .start();
+            }
+        }
     }
 
     private void closeDrawer() {
-        drawerBackdrop.animate().alpha(0f).setDuration(200)
-                .withEndAction(() -> drawerBackdrop.setVisibility(View.GONE)).start();
+        drawerBackdrop.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .setInterpolator(new AccelerateInterpolator(1.8f))
+                .withEndAction(() -> drawerBackdrop.setVisibility(View.GONE))
+                .start();
 
         int width = drawerPanel.getWidth() > 0 ? drawerPanel.getWidth() : 800;
-        drawerPanel.animate().translationX(width).setDuration(220)
-                .withEndAction(() -> drawerPanel.setVisibility(View.GONE)).start();
+        drawerPanel.animate()
+                .translationX(width)
+                .setDuration(240)
+                .setInterpolator(new AccelerateInterpolator(2.0f))
+                .withEndAction(() -> drawerPanel.setVisibility(View.GONE))
+                .start();
     }
 
     private void initLiveSystemSensors() {
@@ -1176,9 +1280,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         View.OnTouchListener tactileTouch = (v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(80).start();
+                v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(90).setInterpolator(new DecelerateInterpolator()).start();
+                try {
+                    v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                } catch (Exception ignored) {}
             } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
-                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(80).start();
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(220).setInterpolator(new OvershootInterpolator(2.2f)).start();
             }
             return false;
         };
@@ -1186,7 +1293,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         View[] tactileViews = new View[]{
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
-                btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview
+                btnZoomIn, btnZoomOut, btnDrawerDisconnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
+                layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle,
+                itemRideStats, itemService, itemBikeInfo, itemProfile, itemSavedPlaces, itemOfflineMaps,
+                itemSettings, itemHelp, itemAbout
         };
         for (View view : tactileViews) {
             if (view != null) view.setOnTouchListener(tactileTouch);
@@ -1429,11 +1539,23 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (currentSpeedKmh > 299) currentSpeedKmh = 299;
 
             if (tvCurrentSpeed != null) {
+                int prevSpeed = 0;
+                try {
+                    prevSpeed = Integer.parseInt(tvCurrentSpeed.getText().toString());
+                } catch (Exception ignored) {}
                 tvCurrentSpeed.setText(String.valueOf(currentSpeedKmh));
                 if (currentSpeedKmh > 80) {
                     tvCurrentSpeed.setTextColor(Color.parseColor("#EF4444"));
+                    tvCurrentSpeed.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).withEndAction(() -> {
+                        tvCurrentSpeed.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start();
+                    }).start();
                 } else {
                     tvCurrentSpeed.setTextColor(Color.parseColor("#FFFFFF"));
+                    if (Math.abs(currentSpeedKmh - prevSpeed) >= 4) {
+                        tvCurrentSpeed.animate().scaleX(1.05f).scaleY(1.05f).setDuration(100).withEndAction(() -> {
+                            tvCurrentSpeed.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start();
+                        }).start();
+                    }
                 }
             }
 
@@ -1517,6 +1639,39 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
             mapplsMapView.centerOnCurrentLocation();
             Toast.makeText(this, String.format(Locale.getDefault(), "Location: %.4f, %.4f", currentRiderLat, currentRiderLng), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showRecenterButton() {
+        if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() != View.VISIBLE) {
+            layoutRecenterPill.setVisibility(View.VISIBLE);
+            layoutRecenterPill.setAlpha(0f);
+            layoutRecenterPill.setTranslationY(-35f);
+            layoutRecenterPill.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(280)
+                    .setInterpolator(new OvershootInterpolator(1.8f))
+                    .start();
+        }
+        if (btnCurrentLocation != null) {
+            btnCurrentLocation.setColorFilter(Color.parseColor("#F59E0B"));
+        }
+    }
+
+    private void hideRecenterButton() {
+        if (layoutRecenterPill != null && layoutRecenterPill.getVisibility() == View.VISIBLE) {
+            layoutRecenterPill.animate()
+                    .alpha(0f)
+                    .translationY(-35f)
+                    .setDuration(200)
+                    .setInterpolator(new AccelerateInterpolator(1.8f))
+                    .withEndAction(() -> layoutRecenterPill.setVisibility(View.GONE))
+                    .start();
+        }
+        if (btnCurrentLocation != null) {
+            int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
+            btnCurrentLocation.setColorFilter(accent);
         }
     }
 
@@ -1722,6 +1877,22 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private void showDestinationSearch() {
         if (layoutSearchOverlay == null) return;
         layoutSearchOverlay.setVisibility(View.VISIBLE);
+        layoutSearchOverlay.setAlpha(0f);
+        layoutSearchOverlay.animate()
+                .alpha(1f)
+                .setDuration(220)
+                .setInterpolator(new DecelerateInterpolator(1.8f))
+                .start();
+
+        if (cardSearchBox != null) {
+            cardSearchBox.setTranslationY(-30f);
+            cardSearchBox.animate()
+                    .translationY(0f)
+                    .setDuration(260)
+                    .setInterpolator(new DecelerateInterpolator(2.0f))
+                    .start();
+        }
+
         if (cockpitKeyboard != null) {
             cockpitKeyboard.show();
         }
@@ -1737,7 +1908,23 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     private void hideDestinationSearch() {
         if (layoutSearchOverlay == null) return;
-        layoutSearchOverlay.setVisibility(View.GONE);
+        if (cardSearchBox != null) {
+            cardSearchBox.animate()
+                    .translationY(-30f)
+                    .setDuration(180)
+                    .setInterpolator(new AccelerateInterpolator(1.8f))
+                    .start();
+        }
+        layoutSearchOverlay.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .setInterpolator(new AccelerateInterpolator(1.8f))
+                .withEndAction(() -> {
+                    layoutSearchOverlay.setVisibility(View.GONE);
+                    if (cardSearchBox != null) cardSearchBox.setTranslationY(0f);
+                })
+                .start();
+
         if (cockpitKeyboard != null) {
             cockpitKeyboard.hide();
         }
@@ -1819,7 +2006,17 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     tvPreviewSub.setText(String.format(Locale.getDefault(), "Fastest route • ETA %s", sdf.format(cal.getTime())));
                 }
 
-                if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.VISIBLE);
+                if (cardRoutePreview != null) {
+                    cardRoutePreview.setVisibility(View.VISIBLE);
+                    cardRoutePreview.setAlpha(0f);
+                    cardRoutePreview.setTranslationY(40f);
+                    cardRoutePreview.animate()
+                            .alpha(1f)
+                            .translationY(0f)
+                            .setDuration(280)
+                            .setInterpolator(new OvershootInterpolator(1.3f))
+                            .start();
+                }
                 if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.GONE);
                 if (cardBottomNav != null) cardBottomNav.setVisibility(View.GONE);
                 if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
@@ -1837,10 +2034,47 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         currentActiveRoute = pendingPreviewRoute;
         currentRouteStepIndex = 0;
 
-        if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
-        if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.VISIBLE);
-        if (cardBottomNav != null) cardBottomNav.setVisibility(View.VISIBLE);
-        if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.VISIBLE);
+        if (cardRoutePreview != null) {
+            cardRoutePreview.animate()
+                    .alpha(0f)
+                    .translationY(30f)
+                    .setDuration(180)
+                    .withEndAction(() -> cardRoutePreview.setVisibility(View.GONE))
+                    .start();
+        }
+        if (cardTurnInstruction != null) {
+            cardTurnInstruction.setVisibility(View.VISIBLE);
+            cardTurnInstruction.setAlpha(0f);
+            cardTurnInstruction.setTranslationY(-30f);
+            cardTurnInstruction.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(280)
+                    .setInterpolator(new DecelerateInterpolator(2.0f))
+                    .start();
+        }
+        if (cardBottomNav != null) {
+            cardBottomNav.setVisibility(View.VISIBLE);
+            cardBottomNav.setAlpha(0f);
+            cardBottomNav.setTranslationY(30f);
+            cardBottomNav.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(280)
+                    .setInterpolator(new DecelerateInterpolator(2.0f))
+                    .start();
+        }
+        if (cardSpeedHud != null) {
+            cardSpeedHud.setVisibility(View.VISIBLE);
+            cardSpeedHud.setAlpha(0f);
+            cardSpeedHud.setTranslationX(-35f);
+            cardSpeedHud.animate()
+                    .alpha(1f)
+                    .translationX(0f)
+                    .setDuration(300)
+                    .setInterpolator(new OvershootInterpolator(1.4f))
+                    .start();
+        }
 
         currentSpeedKmh = 0;
         if (tvCurrentSpeed != null) {
@@ -1876,7 +2110,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     private void cancelRoutePreview() {
         pendingPreviewRoute = null;
-        if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
+        if (cardRoutePreview != null) {
+            cardRoutePreview.animate()
+                    .alpha(0f)
+                    .translationY(30f)
+                    .setDuration(190)
+                    .withEndAction(() -> cardRoutePreview.setVisibility(View.GONE))
+                    .start();
+        }
         if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
         if (mapplsMapView != null) {
             mapplsMapView.clearRoute();
@@ -1890,12 +2131,21 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         runOnUiThread(() -> {
             if (cardTurnInstruction != null && cardTurnInstruction.getVisibility() != View.VISIBLE) {
                 cardTurnInstruction.setVisibility(View.VISIBLE);
+                cardTurnInstruction.setAlpha(0f);
+                cardTurnInstruction.setTranslationY(-30f);
+                cardTurnInstruction.animate().alpha(1f).translationY(0f).setDuration(260).setInterpolator(new DecelerateInterpolator(2.0f)).start();
             }
             if (cardBottomNav != null && cardBottomNav.getVisibility() != View.VISIBLE) {
                 cardBottomNav.setVisibility(View.VISIBLE);
+                cardBottomNav.setAlpha(0f);
+                cardBottomNav.setTranslationY(30f);
+                cardBottomNav.animate().alpha(1f).translationY(0f).setDuration(260).setInterpolator(new DecelerateInterpolator(2.0f)).start();
             }
             if (cardSpeedHud != null && cardSpeedHud.getVisibility() != View.VISIBLE) {
                 cardSpeedHud.setVisibility(View.VISIBLE);
+                cardSpeedHud.setAlpha(0f);
+                cardSpeedHud.setTranslationX(-35f);
+                cardSpeedHud.animate().alpha(1f).translationX(0f).setDuration(280).setInterpolator(new OvershootInterpolator(1.4f)).start();
             }
 
             String desc = (step.instruction != null && !step.instruction.isEmpty())
@@ -1930,6 +2180,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
                 ivTurnArrow.setImageResource(iconRes);
                 ivTurnArrow.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
+                ivTurnArrow.setRotationY(90f);
+                ivTurnArrow.animate().rotationY(0f).setDuration(280).setInterpolator(new OvershootInterpolator(1.4f)).start();
             }
 
             String nextTurnDesc = "";
@@ -1982,10 +2234,31 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         pendingPreviewRoute = null;
         currentRouteStepIndex = 0;
         currentSpeedKmh = 0;
-        if (cardTurnInstruction != null) cardTurnInstruction.setVisibility(View.GONE);
-        if (cardBottomNav != null) cardBottomNav.setVisibility(View.GONE);
+        if (cardTurnInstruction != null) {
+            cardTurnInstruction.animate()
+                    .alpha(0f)
+                    .translationY(-30f)
+                    .setDuration(200)
+                    .withEndAction(() -> cardTurnInstruction.setVisibility(View.GONE))
+                    .start();
+        }
+        if (cardBottomNav != null) {
+            cardBottomNav.animate()
+                    .alpha(0f)
+                    .translationY(30f)
+                    .setDuration(200)
+                    .withEndAction(() -> cardBottomNav.setVisibility(View.GONE))
+                    .start();
+        }
         if (cardRoutePreview != null) cardRoutePreview.setVisibility(View.GONE);
-        if (cardSpeedHud != null) cardSpeedHud.setVisibility(View.GONE);
+        if (cardSpeedHud != null) {
+            cardSpeedHud.animate()
+                    .alpha(0f)
+                    .translationX(-35f)
+                    .setDuration(200)
+                    .withEndAction(() -> cardSpeedHud.setVisibility(View.GONE))
+                    .start();
+        }
         if (tvCurrentSpeed != null) {
             tvCurrentSpeed.setText("0");
             tvCurrentSpeed.setTextColor(Color.parseColor("#FFFFFF"));
@@ -2104,23 +2377,33 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private void applyThemePalette(MaterialYouTheme.Palette palette) {
         if (palette == null) return;
         this.currentThemePalette = palette;
+        int density = (int) getResources().getDisplayMetrics().density;
 
         // 1. Interactive Wavy Media Scrubber
         if (pbMediaTrack instanceof WavySeekBar) {
             ((WavySeekBar) pbMediaTrack).setAccentColor(palette.accentPrimary);
         }
 
-        // 2. Play/Pause Button Dynamic Material You styling
+        // 2. Play/Pause and Media Buttons Dynamic Material You styling
         if (btnMediaPlayPause != null) {
             GradientDrawable playBg = new GradientDrawable();
             playBg.setShape(GradientDrawable.OVAL);
             playBg.setColor(0xFF0F1117);
-            playBg.setStroke((int) (1.8f * getResources().getDisplayMetrics().density), palette.accentPrimary);
+            playBg.setStroke((int) (1.8f * density), palette.accentPrimary);
             btnMediaPlayPause.setBackground(playBg);
             btnMediaPlayPause.setColorFilter(palette.accentPrimary);
         }
         if (btnPillPlayPause != null) {
             btnPillPlayPause.setColorFilter(palette.accentPrimary);
+        }
+        if (btnMediaNext != null) {
+            btnMediaNext.setColorFilter(palette.accentPrimary);
+        }
+        if (btnMediaPrev != null) {
+            btnMediaPrev.setColorFilter(0xFFCBD5E1);
+        }
+        if (btnPillNext != null) {
+            btnPillNext.setColorFilter(palette.accentPrimary);
         }
 
         // 3. Mappls Map route polyline, vehicle puck arrow and radar glow
@@ -2128,7 +2411,15 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             mapplsMapView.setThemeAccent(palette.accentPrimary);
         }
 
-        // 4. Navigation Maneuver HUD
+        // 4. Navigation Maneuver HUD Card
+        if (cardTurnInstruction != null) {
+            GradientDrawable turnBg = new GradientDrawable();
+            turnBg.setShape(GradientDrawable.RECTANGLE);
+            turnBg.setCornerRadius(18 * density);
+            turnBg.setColor(0xF207080B);
+            turnBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            cardTurnInstruction.setBackground(turnBg);
+        }
         if (ivTurnArrow != null) {
             ivTurnArrow.setColorFilter(palette.accentPrimary);
         }
@@ -2136,38 +2427,141 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             tvNextStepDesc.setTextColor(palette.accentPrimary);
         }
 
-        // 5. Speed HUD Unit & Navigation ETA
+        // 5. Speed HUD Card & Unit
+        if (cardSpeedHud != null) {
+            GradientDrawable speedBg = new GradientDrawable();
+            speedBg.setShape(GradientDrawable.RECTANGLE);
+            speedBg.setCornerRadius(18 * density);
+            speedBg.setColor(0xF207080B);
+            speedBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            cardSpeedHud.setBackground(speedBg);
+        }
         if (tvSpeedUnit != null) {
             tvSpeedUnit.setTextColor(palette.accentPrimary);
+        }
+
+        // 6. Navigation ETA & Bottom Card
+        if (cardBottomNav != null) {
+            GradientDrawable botBg = new GradientDrawable();
+            botBg.setShape(GradientDrawable.RECTANGLE);
+            botBg.setCornerRadius(18 * density);
+            botBg.setColor(0xF207080B);
+            botBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            cardBottomNav.setBackground(botBg);
         }
         if (tvNavEta != null) {
             tvNavEta.setTextColor(palette.accentPrimary);
         }
 
-        // 6. Tactical Action Stack Buttons
+        // 7. Route Preview Card & Start Button
+        if (cardRoutePreview != null) {
+            GradientDrawable prevBg = new GradientDrawable();
+            prevBg.setShape(GradientDrawable.RECTANGLE);
+            prevBg.setCornerRadius(20 * density);
+            prevBg.setColor(0xF507080B);
+            prevBg.setStroke((int) (1.4f * density), palette.accentBorder);
+            cardRoutePreview.setBackground(prevBg);
+        }
+        if (btnStartNavNow != null) {
+            GradientDrawable startBg = new GradientDrawable();
+            startBg.setShape(GradientDrawable.RECTANGLE);
+            startBg.setCornerRadius(16 * density);
+            startBg.setColor(palette.accentPrimary);
+            btnStartNavNow.setBackground(startBg);
+            btnStartNavNow.setTextColor(0xFF000000);
+        }
+        if (tvPreviewDuration != null) {
+            tvPreviewDuration.setTextColor(palette.accentPrimary);
+        }
+        ImageView ivPrevSearch = findViewById(R.id.ivPreviewSearchIcon);
+        if (ivPrevSearch != null) {
+            ivPrevSearch.setColorFilter(palette.accentPrimary);
+        }
+
+        // 8. Floating Music Pill
+        if (layoutFullscreenMusicPill != null) {
+            GradientDrawable pillBg = new GradientDrawable();
+            pillBg.setShape(GradientDrawable.RECTANGLE);
+            pillBg.setCornerRadius(22 * density);
+            pillBg.setColor(0xF50A0B0E);
+            pillBg.setStroke((int) (1.4f * density), palette.accentBorder);
+            layoutFullscreenMusicPill.setBackground(pillBg);
+        }
+        if (tvPillArtist != null) {
+            tvPillArtist.setTextColor(palette.accentPrimary);
+        }
+
+        // 9. Tactical Floating Action Stack Buttons
         if (btnCurrentLocation != null) {
             btnCurrentLocation.setColorFilter(palette.accentPrimary);
         }
         if (btnMapSearch != null) {
             btnMapSearch.setColorFilter(palette.accentPrimary);
         }
+        if (btnVoiceNav != null) {
+            btnVoiceNav.setColorFilter(palette.accentPrimary);
+        }
+        if (btnOpenDrawer != null) {
+            btnOpenDrawer.setColorFilter(palette.accentPrimary);
+        }
         if (btnSearchCancel != null) {
             btnSearchCancel.setTextColor(palette.accentPrimary);
         }
 
-        // 7. Dynamic Re-center Pill styling
+        // 10. Dynamic Re-center Pill styling
         if (layoutRecenterPill != null) {
             GradientDrawable pillBg = new GradientDrawable();
             pillBg.setShape(GradientDrawable.RECTANGLE);
-            pillBg.setCornerRadius(19 * getResources().getDisplayMetrics().density);
+            pillBg.setCornerRadius(19 * density);
             pillBg.setColor(0xF208090C);
-            pillBg.setStroke((int) (1.5f * getResources().getDisplayMetrics().density), palette.accentPrimary);
+            pillBg.setStroke((int) (1.5f * density), palette.accentPrimary);
             layoutRecenterPill.setBackground(pillBg);
         }
+        TextView tvRecenter = findViewById(R.id.tvRecenterMap);
+        if (tvRecenter != null) {
+            tvRecenter.setTextColor(palette.accentPrimary);
+        }
+        ImageView ivRecenter = findViewById(R.id.ivRecenterIcon);
+        if (ivRecenter != null) {
+            ivRecenter.setColorFilter(palette.accentPrimary);
+        }
 
-        // 8. Drawer Telemetry
+        // 11. Right Navigation Drawer Panel
+        if (drawerPanel != null) {
+            GradientDrawable drawerBg = new GradientDrawable();
+            drawerBg.setShape(GradientDrawable.RECTANGLE);
+            drawerBg.setColor(0xF8050608);
+            drawerBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            drawerPanel.setBackground(drawerBg);
+        }
+        if (btnDrawerClose != null) {
+            btnDrawerClose.setColorFilter(palette.accentPrimary);
+        }
         if (tvDrawerSignal != null && currentSignalBars >= 0) {
             tvDrawerSignal.setTextColor(palette.accentPrimary);
+        }
+
+        // 12. Search Overlay Box & Input Field
+        if (cardSearchBox != null) {
+            GradientDrawable searchCardBg = new GradientDrawable();
+            searchCardBg.setShape(GradientDrawable.RECTANGLE);
+            searchCardBg.setCornerRadius(20 * density);
+            searchCardBg.setColor(0xF8050608);
+            searchCardBg.setStroke((int) (1.4f * density), palette.accentBorder);
+            cardSearchBox.setBackground(searchCardBg);
+        }
+        View searchBar = findViewById(R.id.layoutSearchInputBar);
+        if (searchBar != null) {
+            GradientDrawable inputBg = new GradientDrawable();
+            inputBg.setShape(GradientDrawable.RECTANGLE);
+            inputBg.setCornerRadius(12 * density);
+            inputBg.setColor(0xFF0F1117);
+            inputBg.setStroke((int) (1.2f * density), palette.accentPrimary);
+            searchBar.setBackground(inputBg);
+        }
+        ImageView ivSearchInput = findViewById(R.id.ivSearchInputIcon);
+        if (ivSearchInput != null) {
+            ivSearchInput.setColorFilter(palette.accentPrimary);
         }
     }
 

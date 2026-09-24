@@ -262,7 +262,7 @@
                                 android:layout_height="24dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_straight_nav"
-                                android:tint="#06B6D4" />
+                                android:tint="@color/pulsar_cyan" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -491,7 +491,7 @@
                         android:layout_width="38dp"
                         android:layout_height="38dp"
                         android:src="@drawable/ic_my_location"
-                        android:tint="#06B6D4"
+                        android:tint="@color/pulsar_cyan"
                         android:background="@drawable/bg_circle_action"
                         android:padding="8dp"
                         android:clickable="true"
@@ -504,7 +504,7 @@
                         android:layout_width="38dp"
                         android:layout_height="38dp"
                         android:src="@drawable/ic_search"
-                        android:tint="#06B6D4"
+                        android:tint="@color/pulsar_cyan"
                         android:background="@drawable/bg_circle_action"
                         android:padding="9dp"
                         android:clickable="true"
@@ -580,13 +580,15 @@
                     android:elevation="14dp">
 
                     <ImageView
+                        android:id="@+id/ivRecenterIcon"
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:src="@drawable/ic_my_location"
-                        android:tint="#06B6D4"
+                        android:tint="@color/pulsar_cyan"
                         android:layout_marginEnd="8dp" />
 
                     <TextView
+                        android:id="@+id/tvRecenterMap"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Re-center"
@@ -675,10 +677,11 @@
                         android:gravity="center_vertical">
 
                         <ImageView
+                            android:id="@+id/ivPreviewSearchIcon"
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:src="@drawable/ic_search"
-                            android:tint="#06B6D4"
+                            android:tint="@color/pulsar_cyan"
                             android:layout_marginEnd="10dp" />
 
                         <LinearLayout
@@ -813,6 +816,7 @@
 
                         <!-- Search Bar Row -->
                         <LinearLayout
+                            android:id="@+id/layoutSearchInputBar"
                             android:layout_width="match_parent"
                             android:layout_height="38dp"
                             android:orientation="horizontal"
@@ -822,10 +826,11 @@
                             android:paddingEnd="10dp">
 
                             <ImageView
+                                android:id="@+id/ivSearchInputIcon"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:src="@drawable/ic_search"
-                                android:tint="#06B6D4"
+                                android:tint="@color/pulsar_cyan"
                                 android:layout_marginEnd="8dp" />
 
                             <EditText
