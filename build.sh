@@ -31,8 +31,9 @@ echo "=== Building My Pulsar APK ==="
 # 1. Compile & Link Resources
 echo "[1/4] Processing resources..."
 "$BUILD_TOOLS/aapt2" compile --dir "$SRC/res" -o "$BUILD/res"
+sed 's/<manifest /<manifest package="com.bajaj.rideconnect.re" /' "$SRC/AndroidManifest.xml" > "$BUILD/AndroidManifest.xml"
 "$BUILD_TOOLS/aapt2" link -I "$PLATFORM_JAR" \
-  --manifest "$SRC/AndroidManifest.xml" \
+  --manifest "$BUILD/AndroidManifest.xml" \
   --java "$BUILD/gen" \
   --min-sdk-version 26 \
   --target-sdk-version 35 \
@@ -43,7 +44,6 @@ echo "[1/4] Processing resources..."
 echo "[2/4] Compiling Java & DEX..."
 find "$SRC/java" "$BUILD/gen" -name "*.java" > "$BUILD/sources.txt"
 javac -source 17 -target 17 -Xlint:-options -classpath "$PLATFORM_JAR" -d "$BUILD/obj" @"$BUILD/sources.txt"
-"$BUILD_TOOLS/d8" --min-api 24 --output "$BUILD/dex" --lib "$PLATFORM_JAR" $(find "$BUILD/obj" -name "*.class")
 "$BUILD_TOOLS/d8" --min-api 26 --output "$BUILD/dex" --lib "$PLATFORM_JAR" $(find "$BUILD/obj" -name "*.class")
 
 # 3. Package & Align
