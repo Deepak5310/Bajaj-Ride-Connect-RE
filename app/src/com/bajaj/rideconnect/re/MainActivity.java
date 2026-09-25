@@ -763,13 +763,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Map HUD Controls
         if (btnCurrentLocation != null) {
             btnCurrentLocation.setOnClickListener(v -> {
-                if (!isDeviceLocationEnabled()) {
-                    Toast.makeText(this, "Location / GPS is disabled. Please turn it ON in Settings.", Toast.LENGTH_LONG).show();
-                    try {
-                        startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                    } catch (Exception ignored) {}
-                    return;
-                }
+                Log.i("PulsarGPS", "btnCurrentLocation clicked!");
                 centerMapOnCurrentLocation();
                 hideRecenterButton();
             });
@@ -777,16 +771,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         if (layoutRecenterPill != null) {
             layoutRecenterPill.setOnClickListener(v -> {
-                if (!isDeviceLocationEnabled()) {
-                    Toast.makeText(this, "Location / GPS is disabled. Please turn it ON in Settings.", Toast.LENGTH_LONG).show();
-                    try {
-                        startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                    } catch (Exception ignored) {}
-                    return;
-                }
-                if (mapplsMapView != null) {
-                    mapplsMapView.centerOnCurrentLocation();
-                }
+                Log.i("PulsarGPS", "layoutRecenterPill clicked!");
+                centerMapOnCurrentLocation();
                 hideRecenterButton();
             });
         }
@@ -1637,24 +1623,49 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void requestAppPermissions() {
+        List<String> perms = new ArrayList<>();
+        perms.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        perms.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        perms.add(Manifest.permission.READ_PHONE_STATE);
+        perms.add(Manifest.permission.READ_CONTACTS);
+        perms.add(Manifest.permission.READ_CALL_LOG);
+        perms.add(Manifest.permission.ANSWER_PHONE_CALLS);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            String[] perms = new String[]{
-                    Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.BLUETOOTH_CONNECT,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.READ_PHONE_STATE,
-                    Manifest.permission.READ_CONTACTS,
-                    Manifest.permission.POST_NOTIFICATIONS
-            };
-            boolean need = false;
-            for (String p : perms) {
-                if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
-                    need = true;
-                    break;
-                }
+            perms.add(Manifest.permission.BLUETOOTH_SCAN);
+            perms.add(Manifest.permission.BLUETOOTH_CONNECT);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            perms.add(Manifest.permission.POST_NOTIFICATIONS);
+        }
+
+        List<String> needed = new ArrayList<>();
+        for (String p : perms) {
+            if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) {
+                needed.add(p);
             }
-            if (need) {
-                requestPermissions(perms, PERMISSION_REQ_CODE);
+        }
+        if (!needed.isEmpty()) {
+            Log.i("PulsarGPS", "Requesting missing permissions: " + needed);
+            requestPermissions(needed.toArray(new String[0]), PERMISSION_REQ_CODE);
+        } else {
+            Log.i("PulsarGPS", "All permissions already granted");
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQ_CODE) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                Log.i("PulsarGPS", "onRequestPermissionsResult: Location permission granted! Initializing GPS...");
+                initGpsTracking();
+                if (mapplsMapView != null) {
+                    mapplsMapView.centerOnCurrentLocation();
+                }
+            } else {
+                Log.w("PulsarGPS", "onRequestPermissionsResult: Location permission was DENIED");
+                Toast.makeText(this, "Location permission is required for live GPS", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -1742,8 +1753,18 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     private void initGpsTracking() {
         try {
-            if (!isDeviceLocationEnabled()) return;
-            if (locationManager != null && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Log.w("PulsarGPS", "initGpsTracking: Location permission not granted");
+                return;
+            }
+            if (!isDeviceLocationEnabled()) {
+                Log.w("PulsarGPS", "initGpsTracking: Device location is disabled");
+                return;
+            }
+            if (locationManager == null) {
+                locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            }
+            if (locationManager != null) {
                 Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (last == null) {
                     last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
@@ -1754,6 +1775,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 if (last != null) {
                     currentRiderLat = last.getLatitude();
                     currentRiderLng = last.getLongitude();
+                    Log.i("PulsarGPS", "initGpsTracking: Found last location=" + currentRiderLat + "," + currentRiderLng);
                     try {
                         getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
                                 .edit()
@@ -1765,18 +1787,46 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                         mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
                     }
                 }
+
                 try {
-                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 2.0f, gpsLocationListener);
-                } catch (Exception ignored) {}
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1.0f, gpsLocationListener, Looper.getMainLooper());
+                } catch (Exception e) {
+                    Log.w("PulsarGPS", "GPS_PROVIDER request error: " + e.getMessage());
+                }
                 try {
-                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2000L, 5.0f, gpsLocationListener);
-                } catch (Exception ignored) {}
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000L, 1.0f, gpsLocationListener, Looper.getMainLooper());
+                } catch (Exception e) {
+                    Log.w("PulsarGPS", "NETWORK_PROVIDER request error: " + e.getMessage());
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    try {
+                        locationManager.getCurrentLocation(LocationManager.GPS_PROVIDER, null, getMainExecutor(), loc -> {
+                            if (loc != null) gpsLocationListener.onLocationChanged(loc);
+                        });
+                        locationManager.getCurrentLocation(LocationManager.NETWORK_PROVIDER, null, getMainExecutor(), loc -> {
+                            if (loc != null) gpsLocationListener.onLocationChanged(loc);
+                        });
+                    } catch (Exception ignored) {}
+                }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Log.e("PulsarGPS", "initGpsTracking error: " + e.getMessage());
+        }
     }
 
     private void centerMapOnCurrentLocation() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.w("PulsarGPS", "centerMapOnCurrentLocation: Permission not granted, requesting...");
+            Toast.makeText(this, "Location permission is required for live GPS", Toast.LENGTH_SHORT).show();
+            requestPermissions(new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, PERMISSION_REQ_CODE);
+            return;
+        }
+
         if (!isDeviceLocationEnabled()) {
+            Log.w("PulsarGPS", "centerMapOnCurrentLocation: Device location is disabled");
             Toast.makeText(this, "Location / GPS is disabled. Please turn it ON in Settings.", Toast.LENGTH_LONG).show();
             try {
                 startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
@@ -1784,8 +1834,10 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             return;
         }
 
+        initGpsTracking();
+
         try {
-            if (locationManager != null && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            if (locationManager != null) {
                 Location loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (loc == null) {
                     loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
@@ -1799,6 +1851,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     if (loc.hasBearing()) {
                         currentRiderBearing = loc.getBearing();
                     }
+                    Log.i("PulsarGPS", "centerMapOnCurrentLocation: got location=" + currentRiderLat + "," + currentRiderLng);
                     try {
                         getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE)
                                 .edit()
@@ -1808,7 +1861,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     } catch (Exception ignored) {}
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            Log.e("PulsarGPS", "centerMapOnCurrentLocation error: " + e.getMessage());
+        }
 
         if (currentRiderLat == 0.0) {
             try {
@@ -1818,6 +1873,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 if (savedLat != 0f && savedLng != 0f) {
                     currentRiderLat = savedLat;
                     currentRiderLng = savedLng;
+                    Log.i("PulsarGPS", "centerMapOnCurrentLocation: restored from prefs=" + currentRiderLat + "," + currentRiderLng);
                 }
             } catch (Exception ignored) {}
         }
@@ -1826,7 +1882,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             if (currentRiderLat != 0.0 && currentRiderLng != 0.0) {
                 mapplsMapView.updateRiderLocation(currentRiderLat, currentRiderLng, currentRiderBearing);
                 mapplsMapView.centerOnCurrentLocation();
+                Log.i("PulsarGPS", "centerMapOnCurrentLocation: centered successfully on " + currentRiderLat + "," + currentRiderLng);
             } else {
+                Log.w("PulsarGPS", "centerMapOnCurrentLocation: rider location still 0.0, acquiring fix...");
                 Toast.makeText(this, "Acquiring live GPS fix...", Toast.LENGTH_SHORT).show();
             }
         }
