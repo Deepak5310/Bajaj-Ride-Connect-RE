@@ -11,6 +11,7 @@
         <item name="android:windowLightNavigationBar">false</item>
         <item name="android:colorControlHighlight">#26F59E0B</item>
         <item name="android:windowFullscreen">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="android:windowContentOverlay">@null</item>
     </style>
 </resources>

@@ -90,6 +90,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQ_CODE = 101;
+    private static final int COLOR_PULSAR_CYAN = 0xFF38BDF8;
+    private static final int COLOR_PULSAR_BORDER = 0xFF1E293B;
 
     // Top Drawer Button
     private ImageView btnOpenDrawer;
@@ -134,15 +136,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private TextView tvCurrentSpeed;
     private TextView tvSpeedLimit;
     private TextView tvSpeedUnit;
-    private MaterialYouTheme.Palette currentThemePalette;
     private Location lastSpeedLocation = null;
     private long lastSpeedTimeMs = 0;
     private int currentSpeedKmh = 0;
     private ImageView btnCompass;
     private ImageView btnVoiceNav;
     private ImageView btnLayers;
-    private ImageView btnZoomIn;
-    private ImageView btnZoomOut;
     private View cardBottomNav;
     private TextView tvNavEta;
     private TextView tvNavSub;
@@ -342,7 +341,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         } catch (Exception ignored) {}
 
         initViews();
-        initMaterialYouTheme();
+        initCockpitTheme();
         setupListeners();
         setupMicroAnimations();
         initLiveSystemSensors();
@@ -483,6 +482,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            WindowManager.LayoutParams lp = window.getAttributes();
+            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            window.setAttributes(lp);
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true);
             setTurnScreenOn(true);
@@ -495,13 +500,31 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         try {
             Window window = getWindow();
             if (window == null) return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                WindowManager.LayoutParams lp = window.getAttributes();
+                lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                window.setAttributes(lp);
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.setDecorFitsSystemWindows(false);
+            }
             View decor = window.getDecorView();
-            if (decor != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                WindowInsetsController controller = decor.getWindowInsetsController();
-                if (controller != null) {
-                    controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                    controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            if (decor != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    WindowInsetsController controller = decor.getWindowInsetsController();
+                    if (controller != null) {
+                        controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                        controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                    }
                 }
+                decor.setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                );
             }
         } catch (Exception ignored) {}
     }
@@ -522,16 +545,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         layoutLeftPanel = findViewById(R.id.layoutLeftPanel);
         viewSplitDivider = findViewById(R.id.viewSplitDivider);
         layoutMapContainer = findViewById(R.id.layoutMapContainer);
-        if (layoutMapContainer != null) {
-            float density = getResources().getDisplayMetrics().density;
-            layoutMapContainer.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 22 * density);
-                }
-            });
-            layoutMapContainer.setClipToOutline(true);
-        }
 
         // Media View
         viewTabMedia = findViewById(R.id.viewTabMedia);
@@ -571,8 +584,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         btnCompass = findViewById(R.id.btnCompass);
         btnVoiceNav = findViewById(R.id.btnVoiceNav);
         btnLayers = findViewById(R.id.btnLayers);
-        btnZoomIn = findViewById(R.id.btnZoomIn);
-        btnZoomOut = findViewById(R.id.btnZoomOut);
         cardBottomNav = findViewById(R.id.cardBottomNav);
         tvNavEta = findViewById(R.id.tvNavEta);
         tvNavSub = findViewById(R.id.tvNavSub);
@@ -807,13 +818,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             }
         });
 
-        btnZoomIn.setOnClickListener(v -> {
-            if (mapplsMapView != null) mapplsMapView.zoomIn();
-        });
-        btnZoomOut.setOnClickListener(v -> {
-            if (mapplsMapView != null) mapplsMapView.zoomOut();
-        });
-
         if (btnNavEnd != null) {
             btnNavEnd.setOnClickListener(v -> endActiveNavigation());
         }
@@ -867,8 +871,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private void styleCockpitDialog(AlertDialog dialog) {
         if (dialog == null) return;
         dialog.setOnShowListener(d -> {
-            int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
-            int border = (currentThemePalette != null) ? currentThemePalette.accentBorder : Color.parseColor("#3338BDF8");
+            int accent = COLOR_PULSAR_CYAN;
+            int border = COLOR_PULSAR_BORDER;
             int density = (int) getResources().getDisplayMetrics().density;
 
             if (dialog.getWindow() != null) {
@@ -1072,7 +1076,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         } else {
             if (layoutMapContainer != null && layoutMapContainer.getLayoutParams() instanceof LinearLayout.LayoutParams) {
                 LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) layoutMapContainer.getLayoutParams();
-                lp.setMarginStart((int) (8 * density));
+                lp.setMarginStart(0);
                 layoutMapContainer.setLayoutParams(lp);
             }
 
@@ -1245,7 +1249,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         View[] tactileViews = new View[]{
                 btnMediaPlayPause, btnMediaPrev, btnMediaNext, btnPillPlayPause, btnPillNext,
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
-                btnZoomIn, btnZoomOut, btnDrawerExit, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
+                btnDrawerExit, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
                 layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle, viewSplitDivider,
                 itemSavedPlaces, itemAbout, btnAboutBack, btnAboutGithub
         };
@@ -1264,9 +1268,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 tvPillArtist.setText("Standby");
                 btnMediaPlayPause.setImageResource(R.drawable.ic_media_play);
                 btnPillPlayPause.setImageResource(R.drawable.ic_media_play);
-                int standbyAccent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
-                btnMediaPlayPause.setColorFilter(standbyAccent);
-                btnPillPlayPause.setColorFilter(standbyAccent);
+                btnMediaPlayPause.setColorFilter(COLOR_PULSAR_CYAN);
+                btnPillPlayPause.setColorFilter(COLOR_PULSAR_CYAN);
                 View dotStandby = findViewById(R.id.viewMediaPulseDot);
                 if (dotStandby != null) {
                     dotStandby.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0xFF64748B));
@@ -1296,7 +1299,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
 
                 boolean isPlaying = (state == 2);
-                int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
+                int accent = COLOR_PULSAR_CYAN;
                 View dotActive = findViewById(R.id.viewMediaPulseDot);
                 if (dotActive != null) {
                     dotActive.setBackgroundTintList(android.content.res.ColorStateList.valueOf(isPlaying ? accent : 0xFF64748B));
@@ -1422,7 +1425,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     private void updateBleUiState(BleUiState state, String bikeName) {
         if (tvDrawerBtStatus == null) return;
-        int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : 0xFF00E5FF;
+        int accent = COLOR_PULSAR_CYAN;
         float density = getResources().getDisplayMetrics().density;
 
         switch (state) {
@@ -1816,8 +1819,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     .start();
         }
         if (btnCurrentLocation != null) {
-            int accent = (currentThemePalette != null) ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8");
-            btnCurrentLocation.setColorFilter(accent);
+            btnCurrentLocation.setColorFilter(COLOR_PULSAR_CYAN);
         }
     }
 
@@ -2334,7 +2336,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     iconRes = R.drawable.ic_straight_nav;
                 }
                 ivTurnArrow.setImageResource(iconRes);
-                ivTurnArrow.setColorFilter(currentThemePalette != null ? currentThemePalette.accentPrimary : Color.parseColor("#38BDF8"));
+                ivTurnArrow.setColorFilter(COLOR_PULSAR_CYAN);
                 ivTurnArrow.setRotationY(90f);
                 ivTurnArrow.animate().rotationY(0f).setDuration(280).setInterpolator(new OvershootInterpolator(1.4f)).start();
             }
@@ -2526,108 +2528,81 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
     }
 
-    private void initMaterialYouTheme() {
-        currentThemePalette = MaterialYouTheme.getPalette(this);
-        applyThemePalette(currentThemePalette);
-        MaterialYouTheme.registerWallpaperListener(this, palette -> {
-            runOnUiThread(() -> applyThemePalette(palette));
-        });
-    }
-
-    private void applyThemePalette(MaterialYouTheme.Palette palette) {
-        if (palette == null) return;
-        this.currentThemePalette = palette;
-        int density = (int) getResources().getDisplayMetrics().density;
+    private void initCockpitTheme() {
+        final int accentPrimary = 0xFF38BDF8; // Pulsar Electric Cyan
+        final int accentBorder = 0xFF1E293B;  // Cockpit Stealth Slate
+        final int density = (int) getResources().getDisplayMetrics().density;
 
         // 1. Interactive Wavy Media Scrubber
         if (pbMediaTrack instanceof WavySeekBar) {
-            ((WavySeekBar) pbMediaTrack).setAccentColor(palette.accentPrimary);
+            ((WavySeekBar) pbMediaTrack).setAccentColor(accentPrimary);
         }
 
-        // 2. Play/Pause and Media Buttons Dynamic Material You styling
+        // 2. Play/Pause and Media Buttons
         if (btnMediaPlayPause != null) {
             GradientDrawable playBg = new GradientDrawable();
             playBg.setShape(GradientDrawable.OVAL);
             playBg.setColor(0xFF0F1522);
-            playBg.setStroke((int) (2.0f * density), palette.accentPrimary);
+            playBg.setStroke((int) (2.0f * density), accentPrimary);
             btnMediaPlayPause.setBackground(playBg);
-            btnMediaPlayPause.setColorFilter(palette.accentPrimary);
+            btnMediaPlayPause.setColorFilter(accentPrimary);
         }
         if (btnPillPlayPause != null) {
-            btnPillPlayPause.setColorFilter(palette.accentPrimary);
+            btnPillPlayPause.setColorFilter(accentPrimary);
         }
         if (btnMediaNext != null) {
-            btnMediaNext.setColorFilter(palette.accentPrimary);
+            btnMediaNext.setColorFilter(accentPrimary);
         }
         if (btnMediaPrev != null) {
-            btnMediaPrev.setColorFilter(palette.accentPrimary);
+            btnMediaPrev.setColorFilter(accentPrimary);
         }
         if (btnPillNext != null) {
-            btnPillNext.setColorFilter(palette.accentPrimary);
+            btnPillNext.setColorFilter(accentPrimary);
         }
         if (tvMediaSource != null) {
-            tvMediaSource.setTextColor(palette.accentPrimary);
+            tvMediaSource.setTextColor(accentPrimary);
         }
 
         // Left Media Panel Container & Art Stage
         if (layoutLeftPanel != null) {
-            GradientDrawable mediaBg = new GradientDrawable();
-            mediaBg.setShape(GradientDrawable.RECTANGLE);
-            mediaBg.setCornerRadius(22 * density);
-            mediaBg.setColor(0xF807090F);
-            mediaBg.setStroke((int) (1.2f * density), palette.accentBorder);
-            layoutLeftPanel.setBackground(mediaBg);
+            layoutLeftPanel.setBackgroundResource(R.drawable.bg_media_panel);
         }
         View cardMediaArtStage = findViewById(R.id.cardMediaArtStage);
         if (cardMediaArtStage != null) {
             GradientDrawable stageBg = new GradientDrawable();
             stageBg.setShape(GradientDrawable.RECTANGLE);
-            stageBg.setCornerRadius(16 * density);
+            stageBg.setCornerRadius(14 * density);
             stageBg.setColor(0xF5080B12);
-            stageBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            stageBg.setStroke((int) (1.2f * density), accentBorder);
             cardMediaArtStage.setBackground(stageBg);
         }
         View layoutSplitHandle = findViewById(R.id.layoutSplitHandle);
         if (layoutSplitHandle != null) {
             GradientDrawable handleBg = new GradientDrawable();
             handleBg.setShape(GradientDrawable.RECTANGLE);
-            handleBg.setCornerRadius(10 * density);
+            handleBg.setCornerRadius(12 * density);
             handleBg.setColor(0xF50B0F18);
-            handleBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            handleBg.setStroke((int) (1.2f * density), accentBorder);
             layoutSplitHandle.setBackground(handleBg);
         }
         ImageView ivSplitHandleChevron = findViewById(R.id.ivSplitHandleChevron);
         if (ivSplitHandleChevron != null) {
-            ivSplitHandleChevron.setColorFilter(palette.accentPrimary);
+            ivSplitHandleChevron.setColorFilter(accentPrimary);
         }
         View viewMediaPulseDot = findViewById(R.id.viewMediaPulseDot);
         if (viewMediaPulseDot != null) {
-            viewMediaPulseDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(palette.accentPrimary));
+            viewMediaPulseDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(accentPrimary));
         }
 
-        // Right Map Container & MapView (Matching Rounded Cockpit Card with Neon Accent Border)
+        // Right Map Container & MapView (Full Bleed Edge-to-Edge)
         if (layoutMapContainer != null) {
-            GradientDrawable mapBg = new GradientDrawable();
-            mapBg.setShape(GradientDrawable.RECTANGLE);
-            mapBg.setCornerRadius(22 * density);
-            mapBg.setColor(0xF807090F);
-            mapBg.setStroke((int) (1.2f * density), palette.accentBorder);
-            layoutMapContainer.setBackground(mapBg);
-            layoutMapContainer.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 22 * density);
-                }
-            });
-            layoutMapContainer.setClipToOutline(true);
+            layoutMapContainer.setBackgroundColor(0xFF07080B);
+            layoutMapContainer.setOutlineProvider(null);
+            layoutMapContainer.setClipToOutline(false);
         }
         if (mapplsMapView != null) {
-            mapplsMapView.setCornerRadius(22f);
-        }
-
-        // 3. Mappls Map route polyline, vehicle puck arrow and radar glow
-        if (mapplsMapView != null) {
-            mapplsMapView.setThemeAccent(palette.accentPrimary);
+            mapplsMapView.setCornerRadius(0f);
+            mapplsMapView.setThemeAccent(accentPrimary);
         }
 
         // 4. Navigation Maneuver HUD Card
@@ -2636,14 +2611,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             turnBg.setShape(GradientDrawable.RECTANGLE);
             turnBg.setCornerRadius(18 * density);
             turnBg.setColor(0xF207080B);
-            turnBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            turnBg.setStroke((int) (1.2f * density), accentBorder);
             cardTurnInstruction.setBackground(turnBg);
         }
         if (ivTurnArrow != null) {
-            ivTurnArrow.setColorFilter(palette.accentPrimary);
+            ivTurnArrow.setColorFilter(accentPrimary);
         }
         if (tvNextStepDesc != null) {
-            tvNextStepDesc.setTextColor(palette.accentPrimary);
+            tvNextStepDesc.setTextColor(accentPrimary);
         }
 
         // 5. Speed HUD Card & Unit
@@ -2652,11 +2627,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             speedBg.setShape(GradientDrawable.RECTANGLE);
             speedBg.setCornerRadius(18 * density);
             speedBg.setColor(0xF207080B);
-            speedBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            speedBg.setStroke((int) (1.2f * density), accentBorder);
             cardSpeedHud.setBackground(speedBg);
         }
         if (tvSpeedUnit != null) {
-            tvSpeedUnit.setTextColor(palette.accentPrimary);
+            tvSpeedUnit.setTextColor(accentPrimary);
         }
 
         // 6. Navigation ETA & Bottom Card
@@ -2665,11 +2640,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             botBg.setShape(GradientDrawable.RECTANGLE);
             botBg.setCornerRadius(18 * density);
             botBg.setColor(0xF207080B);
-            botBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            botBg.setStroke((int) (1.2f * density), accentBorder);
             cardBottomNav.setBackground(botBg);
         }
         if (tvNavEta != null) {
-            tvNavEta.setTextColor(palette.accentPrimary);
+            tvNavEta.setTextColor(accentPrimary);
         }
 
         // 7. Route Preview Card & Start Button
@@ -2678,23 +2653,23 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             prevBg.setShape(GradientDrawable.RECTANGLE);
             prevBg.setCornerRadius(20 * density);
             prevBg.setColor(0xF507080B);
-            prevBg.setStroke((int) (1.4f * density), palette.accentBorder);
+            prevBg.setStroke((int) (1.4f * density), accentBorder);
             cardRoutePreview.setBackground(prevBg);
         }
         if (btnStartNavNow != null) {
             GradientDrawable startBg = new GradientDrawable();
             startBg.setShape(GradientDrawable.RECTANGLE);
             startBg.setCornerRadius(16 * density);
-            startBg.setColor(palette.accentPrimary);
+            startBg.setColor(accentPrimary);
             btnStartNavNow.setBackground(startBg);
             btnStartNavNow.setTextColor(0xFF000000);
         }
         if (tvPreviewDuration != null) {
-            tvPreviewDuration.setTextColor(palette.accentPrimary);
+            tvPreviewDuration.setTextColor(accentPrimary);
         }
         ImageView ivPrevSearch = findViewById(R.id.ivPreviewSearchIcon);
         if (ivPrevSearch != null) {
-            ivPrevSearch.setColorFilter(palette.accentPrimary);
+            ivPrevSearch.setColorFilter(accentPrimary);
         }
 
         // 8. Floating Music Pill
@@ -2703,28 +2678,28 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             pillBg.setShape(GradientDrawable.RECTANGLE);
             pillBg.setCornerRadius(22 * density);
             pillBg.setColor(0xF50A0B0E);
-            pillBg.setStroke((int) (1.4f * density), palette.accentBorder);
+            pillBg.setStroke((int) (1.4f * density), accentBorder);
             layoutFullscreenMusicPill.setBackground(pillBg);
         }
         if (tvPillArtist != null) {
-            tvPillArtist.setTextColor(palette.accentPrimary);
+            tvPillArtist.setTextColor(accentPrimary);
         }
 
         // 9. Tactical Floating Action Stack Buttons
         if (btnCurrentLocation != null) {
-            btnCurrentLocation.setColorFilter(palette.accentPrimary);
+            btnCurrentLocation.setColorFilter(accentPrimary);
         }
         if (btnMapSearch != null) {
-            btnMapSearch.setColorFilter(palette.accentPrimary);
+            btnMapSearch.setColorFilter(accentPrimary);
         }
         if (btnVoiceNav != null) {
-            btnVoiceNav.setColorFilter(palette.accentPrimary);
+            btnVoiceNav.setColorFilter(accentPrimary);
         }
         if (btnOpenDrawer != null) {
-            btnOpenDrawer.setColorFilter(palette.accentPrimary);
+            btnOpenDrawer.setColorFilter(accentPrimary);
         }
         if (btnSearchCancel != null) {
-            btnSearchCancel.setTextColor(palette.accentPrimary);
+            btnSearchCancel.setTextColor(accentPrimary);
         }
 
         // 10. Dynamic Re-center Pill styling
@@ -2733,16 +2708,16 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             pillBg.setShape(GradientDrawable.RECTANGLE);
             pillBg.setCornerRadius(19 * density);
             pillBg.setColor(0xF208090C);
-            pillBg.setStroke((int) (1.5f * density), palette.accentPrimary);
+            pillBg.setStroke((int) (1.5f * density), accentPrimary);
             layoutRecenterPill.setBackground(pillBg);
         }
         TextView tvRecenter = findViewById(R.id.tvRecenterMap);
         if (tvRecenter != null) {
-            tvRecenter.setTextColor(palette.accentPrimary);
+            tvRecenter.setTextColor(accentPrimary);
         }
         ImageView ivRecenter = findViewById(R.id.ivRecenterIcon);
         if (ivRecenter != null) {
-            ivRecenter.setColorFilter(palette.accentPrimary);
+            ivRecenter.setColorFilter(accentPrimary);
         }
 
         // 11. Right Navigation Drawer Panel
@@ -2751,11 +2726,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             drawerBg.setShape(GradientDrawable.RECTANGLE);
             drawerBg.setCornerRadii(new float[]{24 * density, 24 * density, 0, 0, 0, 0, 24 * density, 24 * density});
             drawerBg.setColor(0xF8050608);
-            drawerBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            drawerBg.setStroke((int) (1.2f * density), accentBorder);
             drawerPanel.setBackground(drawerBg);
         }
         if (btnDrawerClose != null) {
-            btnDrawerClose.setColorFilter(palette.accentPrimary);
+            btnDrawerClose.setColorFilter(accentPrimary);
         }
         if (cardBikeStage != null) {
             GradientDrawable stageBg = new GradientDrawable(
@@ -2763,7 +2738,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                     new int[]{0xFF0F172A, 0xFF0B1120, 0xFF060A13}
             );
             stageBg.setCornerRadius(18 * density);
-            stageBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            stageBg.setStroke((int) (1.2f * density), accentBorder);
             cardBikeStage.setBackground(stageBg);
         }
         if (cardBikeConnection != null) {
@@ -2771,14 +2746,14 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             cardBg.setShape(GradientDrawable.RECTANGLE);
             cardBg.setCornerRadius(14 * density);
             cardBg.setColor(0xEE0B0E14);
-            cardBg.setStroke((int) (1.2f * density), palette.accentBorder);
+            cardBg.setStroke((int) (1.2f * density), accentBorder);
             cardBikeConnection.setBackground(cardBg);
         }
         if (btnDrawerBleConnect != null && !isBleConnecting && (bleManager == null || !bleManager.isConnected())) {
             GradientDrawable btnBg = new GradientDrawable();
             btnBg.setShape(GradientDrawable.RECTANGLE);
             btnBg.setCornerRadius(10 * density);
-            btnBg.setColor(palette.accentPrimary);
+            btnBg.setColor(accentPrimary);
             btnDrawerBleConnect.setBackground(btnBg);
         }
 
@@ -2788,7 +2763,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             searchCardBg.setShape(GradientDrawable.RECTANGLE);
             searchCardBg.setCornerRadius(20 * density);
             searchCardBg.setColor(0xF8050608);
-            searchCardBg.setStroke((int) (1.4f * density), palette.accentBorder);
+            searchCardBg.setStroke((int) (1.4f * density), accentBorder);
             cardSearchBox.setBackground(searchCardBg);
         }
         View searchBar = findViewById(R.id.layoutSearchInputBar);
@@ -2797,12 +2772,12 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             inputBg.setShape(GradientDrawable.RECTANGLE);
             inputBg.setCornerRadius(12 * density);
             inputBg.setColor(0xFF0F1117);
-            inputBg.setStroke((int) (1.2f * density), palette.accentPrimary);
+            inputBg.setStroke((int) (1.2f * density), accentPrimary);
             searchBar.setBackground(inputBg);
         }
         ImageView ivSearchInput = findViewById(R.id.ivSearchInputIcon);
         if (ivSearchInput != null) {
-            ivSearchInput.setColorFilter(palette.accentPrimary);
+            ivSearchInput.setColorFilter(accentPrimary);
         }
     }
 
@@ -2812,7 +2787,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         bleTimeoutHandler.removeCallbacksAndMessages(null);
         searchDebounceHandler.removeCallbacksAndMessages(null);
         clockHandler.removeCallbacksAndMessages(null);
-        MaterialYouTheme.unregisterWallpaperListener(this);
         if (pulseAnimator != null) {
             pulseAnimator.cancel();
         }

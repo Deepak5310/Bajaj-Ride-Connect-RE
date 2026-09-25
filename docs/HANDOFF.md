@@ -46,8 +46,9 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 | **Phone Telemetry Heartbeat** | `app/src/com/bajaj/rideconnect/re/PhoneStateMonitor.java` | ✅ **Verified on Bike** |
 | **Caller ID & Handlebar Calls** | `app/src/com/bajaj/rideconnect/re/TelephonyCallHandler.java` | ⚠️ **Implemented (Untested)** |
 | **Turn-by-Turn Navigation** | `app/src/com/bajaj/rideconnect/re/GoogleMapsNotificationListener.java` | ℹ️ **Implemented (Optional)** |
-| **Automotive Cockpit UI & Dock** | `app/src/com/bajaj/rideconnect/re/MainActivity.java` | ✅ **Complete & Active** (Seamless 8dp card margin, floating dock handle, 22dp rounded map corners, in-drawer animated About sub-view, Developer: Deepak5310, Supported bikes: NS400Z v1/v2/v3, Dominar 400) |
-| **Codebase & Asset Optimization** | `./app/` | ✅ **Audited & Optimized** (23 unused drawables & dead strings removed, WebView lifecycle hooks `onResume`/`onPause`/`onDestroy` added, socket `HttpURLConnection` cleanup, handler memory leaks resolved) |
+| **Automotive Cockpit UI & Dock** | `app/src/com/bajaj/rideconnect/re/MainActivity.java` | ✅ **Complete & Active** (Zero margin edge-to-edge flush layout, display cutout `shortEdges` enabled to eliminate notch letterboxing, 3-cluster ergonomic layout tailored for 360dp landscape height on Mi A3, 46dp–52dp glove hitboxes, zoom `+/-` buttons stripped for clean gesture-driven map canvas, one-tap collapsible split view with compact floating music pill, Developer: Deepak5310, Supported bikes: NS400Z v1/v2/v3, Dominar 400) |
+| **Official Bajaj Adaptive Launcher Icon** | `app/res/drawable/ic_launcher*.xml` | ✅ **Complete & Verified** (108dp Android adaptive icon using official Bajaj vector logo from `bajaj-seeklogo.svg`; Royal Blue gradient background with centered safe-zone white Bajaj flying-B emblem and wordmark) |
+| **Material You & Dead Code Audit** | `./app/` | ✅ **Audited & Deep Cleaned** (Material You / Monet engine dropped for high-contrast Android 11 AMOLED cockpit palette `#000000`/`#07080B`/`#38BDF8`, zoom pill & zoom icon drawables deleted, 0 unused assets/strings, WebView lifecycle hooks `onResume`/`onPause`/`onDestroy` added, socket `HttpURLConnection` cleanup, handler memory leaks resolved) |
 
 ---
 

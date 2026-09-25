@@ -1,30 +1,293 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="48dp"
     android:height="48dp"
-    android:viewportWidth="48"
-    android:viewportHeight="48">
-    <!-- Pulsar Twin Dynamic Speed Wing / Wolf-Eyed Emblem -->
-    <!-- Left Wing -->
-    <path
-        android:fillColor="#F59E0B"
-        android:pathData="M8,14 L18,8 L22,12 L12,28 L6,28 Z" />
-    <path
-        android:fillColor="#FBBF24"
-        android:pathData="M14,14 L20,10 L24,14 L18,26 L12,26 Z" />
-    <!-- Right Wing -->
-    <path
-        android:fillColor="#F59E0B"
-        android:pathData="M40,14 L30,8 L26,12 L36,28 L42,28 Z" />
-    <path
-        android:fillColor="#FBBF24"
-        android:pathData="M34,14 L28,10 L24,14 L30,26 L36,26 Z" />
-    <!-- Central Speed Spark / Dagger Core -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M24,4 L26,18 L24,40 L22,18 Z" />
-    <path
-        android:fillColor="#EF4444"
-        android:pathData="M24,20 L28,32 L24,44 L20,32 Z" />
-</vector>
+    android:viewportWidth="108"
+    android:viewportHeight="108">
 
+    <!-- Ambient Occlusion / Drop Shadow Layer -->
+    <group
+        android:translateY="2.2"
+        android:translateX="0">
+        <path
+            android:pathData="M29.4,42.34 L45.8,30.04 L49.08,34.96 L40.06,62.84 L31.04,62.84 Z M22.84,49.72 L31.04,42.34 L33.5,45.62 L27.76,60.38 L22.02,60.38 Z M78.6,42.34 L62.2,30.04 L58.92,34.96 L67.94,62.84 L76.96,62.84 Z M85.16,49.72 L76.96,42.34 L74.5,45.62 L80.24,60.38 L85.98,60.38 Z M54.0,24.3 L54.0,51.36 L48.67,45.21 L50.72,33.32 Z M54.0,24.3 L54.0,51.36 L59.33,45.21 L57.28,33.32 Z M54.0,49.72 L54.0,75.96 L47.44,61.2 Z M54.0,49.72 L54.0,75.96 L60.56,61.2 Z"
+            android:fillColor="#000000"
+            android:fillAlpha="0.45" />
+    </group>
+
+    <!-- ============================================== -->
+    <!-- 1. LEFT PULSAR WING                            -->
+    <!-- ============================================== -->
+    <!-- Left DRL Eyebrow Accent (Wolf-Eye LED) -->
+    <path
+        android:pathData="M28.58,39.06 L44.98,26.76 L46.62,29.06 L30.22,41.52 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="28.58"
+                android:startY="39.06"
+                android:endX="46.62"
+                android:endY="29.06"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#0284C7" />
+                <item android:offset="0.5" android:color="#38BDF8" />
+                <item android:offset="1.0" android:color="#E0F2FE" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Left Wing Upper Primary Blade (Bright Facet) -->
+    <path
+        android:pathData="M29.4,42.34 L45.8,30.04 L49.08,34.96 L40.06,62.84 L31.04,62.84 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="29.40"
+                android:startY="62.84"
+                android:endX="45.80"
+                android:endY="30.04"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#F59E0B" />
+                <item android:offset="0.45" android:color="#FBBF24" />
+                <item android:offset="1.0" android:color="#FEF08A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Left Wing Inner Core Facet (Dynamic Amber) -->
+    <path
+        android:pathData="M35.14,43.16 L46.62,33.32 L49.08,36.6 L40.88,62.84 L35.14,62.84 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="35.14"
+                android:startY="62.84"
+                android:endX="49.08"
+                android:endY="33.32"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#D97706" />
+                <item android:offset="0.6" android:color="#F59E0B" />
+                <item android:offset="1.0" android:color="#FBBF24" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Left Wing Lower Bevel / Underbody Shade -->
+    <path
+        android:pathData="M31.04,62.84 L40.06,62.84 L38.42,65.71 L29.4,65.71 Z"
+        android:fillColor="#92400E" />
+
+    <!-- Left Secondary Blade (Stepped Outer Airfoil) -->
+    <path
+        android:pathData="M22.84,49.72 L31.04,42.34 L33.5,45.62 L27.76,60.38 L22.02,60.38 Z"
+        android:fillColor="#F59E0B" />
+    <path
+        android:pathData="M24.48,51.36 L31.04,43.98 L32.68,46.44 L28.58,58.74 L23.66,58.74 Z"
+        android:fillColor="#FBBF24"
+        android:fillAlpha="0.8" />
+    <path
+        android:pathData="M22.02,60.38 L27.76,60.38 L26.12,62.43 L20.38,62.43 Z"
+        android:fillColor="#78350F" />
+
+    <!-- Left Telemetry Canard Accent -->
+    <path
+        android:pathData="M21.2,48.9 L24.48,46.44 L24.48,51.36 Z"
+        android:fillColor="#38BDF8" />
+
+    <!-- ============================================== -->
+    <!-- 2. RIGHT PULSAR WING                           -->
+    <!-- ============================================== -->
+    <!-- Right DRL Eyebrow Accent -->
+    <path
+        android:pathData="M79.42,39.06 L63.02,26.76 L61.38,29.06 L77.78,41.52 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="79.42"
+                android:startY="39.06"
+                android:endX="61.38"
+                android:endY="29.06"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#0284C7" />
+                <item android:offset="0.5" android:color="#38BDF8" />
+                <item android:offset="1.0" android:color="#E0F2FE" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Right Wing Upper Primary Blade -->
+    <path
+        android:pathData="M78.6,42.34 L62.2,30.04 L58.92,34.96 L67.94,62.84 L76.96,62.84 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="78.60"
+                android:startY="62.84"
+                android:endX="62.20"
+                android:endY="30.04"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#F59E0B" />
+                <item android:offset="0.45" android:color="#FBBF24" />
+                <item android:offset="1.0" android:color="#FEF08A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Right Wing Inner Core Facet -->
+    <path
+        android:pathData="M72.86,43.16 L61.38,33.32 L58.92,36.6 L67.12,62.84 L72.86,62.84 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="72.86"
+                android:startY="62.84"
+                android:endX="58.92"
+                android:endY="33.32"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#D97706" />
+                <item android:offset="0.6" android:color="#F59E0B" />
+                <item android:offset="1.0" android:color="#FBBF24" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Right Wing Lower Bevel -->
+    <path
+        android:pathData="M76.96,62.84 L67.94,62.84 L69.58,65.71 L78.6,65.71 Z"
+        android:fillColor="#92400E" />
+
+    <!-- Right Secondary Blade -->
+    <path
+        android:pathData="M85.16,49.72 L76.96,42.34 L74.5,45.62 L80.24,60.38 L85.98,60.38 Z"
+        android:fillColor="#F59E0B" />
+    <path
+        android:pathData="M83.52,51.36 L76.96,43.98 L75.32,46.44 L79.42,58.74 L84.34,58.74 Z"
+        android:fillColor="#FBBF24"
+        android:fillAlpha="0.8" />
+    <path
+        android:pathData="M85.98,60.38 L80.24,60.38 L81.88,62.43 L87.62,62.43 Z"
+        android:fillColor="#78350F" />
+
+    <!-- Right Telemetry Canard Accent -->
+    <path
+        android:pathData="M86.8,48.9 L83.52,46.44 L83.52,51.36 Z"
+        android:fillColor="#38BDF8" />
+
+    <!-- ============================================== -->
+    <!-- 3. CENTRAL SUPERSONIC SPEED DAGGER & NEEDLE    -->
+    <!-- ============================================== -->
+    <!-- Upper Needle Spire - Left Chiseled Blade (Chrome) -->
+    <path
+        android:pathData="M54.0,24.3 L54.0,51.36 L48.67,45.21 L50.72,33.32 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="48.67"
+                android:startY="24.30"
+                android:endX="54.00"
+                android:endY="51.36"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFFFFF" />
+                <item android:offset="0.65" android:color="#F0F9FF" />
+                <item android:offset="1.0" android:color="#BAE6FD" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Upper Needle Spire - Right Chiseled Blade (Electric Sky Cyan) -->
+    <path
+        android:pathData="M54.0,24.3 L54.0,51.36 L59.33,45.21 L57.28,33.32 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54.00"
+                android:startY="24.30"
+                android:endX="59.33"
+                android:endY="51.36"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#7DD3FC" />
+                <item android:offset="0.5" android:color="#38BDF8" />
+                <item android:offset="1.0" android:color="#0284C7" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Razor Center Spine Highlight Line -->
+    <path
+        android:pathData="M54,24.3 L54,51.36"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.8"
+        android:strokeLineCap="round" />
+
+    <!-- Dagger Lateral Flange Barbs -->
+    <path
+        android:pathData="M48.67,45.21 L54.0,51.36 L51.54,55.05 L46.21,48.9 Z"
+        android:fillColor="#38BDF8" />
+    <path
+        android:pathData="M59.33,45.21 L54.0,51.36 L56.46,55.05 L61.79,48.9 Z"
+        android:fillColor="#0284C7" />
+
+    <!-- ============================================== -->
+    <!-- 4. PULSAR HEART / RPM REDLINE SPEED JEWEL      -->
+    <!-- ============================================== -->
+    <!-- Left Jewel Facet -->
+    <path
+        android:pathData="M54.0,49.72 L54.0,75.96 L47.44,61.2 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="47.44"
+                android:startY="49.72"
+                android:endX="54.00"
+                android:endY="75.96"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#F87171" />
+                <item android:offset="0.5" android:color="#EF4444" />
+                <item android:offset="1.0" android:color="#DC2626" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Right Jewel Facet -->
+    <path
+        android:pathData="M54.0,49.72 L54.0,75.96 L60.56,61.2 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54.00"
+                android:startY="49.72"
+                android:endX="60.56"
+                android:endY="75.96"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#DC2626" />
+                <item android:offset="0.6" android:color="#B91C1C" />
+                <item android:offset="1.0" android:color="#7F1D1D" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Top Crest Facet Left -->
+    <path
+        android:pathData="M54.0,49.72 L47.44,61.2 L50.72,57.1 L54.0,53.41 Z"
+        android:fillColor="#FCA5A5"
+        android:fillAlpha="0.9" />
+
+    <!-- Top Crest Facet Right -->
+    <path
+        android:pathData="M54.0,49.72 L60.56,61.2 L57.28,57.1 L54.0,53.41 Z"
+        android:fillColor="#DC2626" />
+
+    <!-- Inner Core Prismatic Glow Shard -->
+    <path
+        android:pathData="M54.0,53.41 L54.0,71.86 L49.9,61.61 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="51.5"
+                android:startY="53.4"
+                android:endX="51.5"
+                android:endY="71.9"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFFFFF" />
+                <item android:offset="0.4" android:color="#FECACA" />
+                <item android:offset="1.0" android:color="#00EF4444" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Spark Tip Highlight -->
+    <path
+        android:pathData="M54.0,73.5 L55.23,75.96 L54.0,77.6 L52.77,75.96 Z"
+        android:fillColor="#FFFFFF" />
+
+</vector>

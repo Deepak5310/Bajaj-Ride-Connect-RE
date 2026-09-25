@@ -14,31 +14,31 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Main Workspace (Split: Left 26% | Right 74%) -->
+        <!-- Main Workspace (Split: Left 30% | Right 70% Edge-to-Edge) -->
         <LinearLayout
             android:id="@+id/layoutWorkspace"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="horizontal"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp">
 
             <!-- ========================================================= -->
-            <!-- LEFT PANEL: MEDIA PLAYER ONLY (26%)                       -->
+            <!-- LEFT PANEL: MEDIA PLAYER ONLY (30%)                       -->
             <!-- ========================================================= -->
             <LinearLayout
                 android:id="@+id/layoutLeftPanel"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="26"
+                android:layout_weight="30"
                 android:orientation="vertical"
                 android:background="@drawable/bg_media_panel"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="12dp">
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
 
                 <!-- MEDIA PLAYER VIEW -->
                 <LinearLayout
@@ -59,10 +59,10 @@
 
                         <View
                             android:id="@+id/viewMediaPulseDot"
-                            android:layout_width="6dp"
-                            android:layout_height="6dp"
+                            android:layout_width="7dp"
+                            android:layout_height="7dp"
                             android:background="@drawable/bg_pulse_dot"
-                            android:backgroundTint="#00E5FF" />
+                            android:backgroundTint="#38BDF8" />
 
                         <TextView
                             android:layout_width="0dp"
@@ -71,8 +71,8 @@
                             android:layout_marginStart="8dp"
                             android:text="COCKPIT AUDIO"
                             android:textColor="#38BDF8"
-                            android:textSize="10sp"
-                            android:letterSpacing="0.14"
+                            android:textSize="11sp"
+                            android:letterSpacing="0.12"
                             android:textStyle="bold" />
 
                         <LinearLayout
@@ -90,21 +90,21 @@
                                 android:layout_height="wrap_content"
                                 android:text="Standby"
                                 android:textColor="#38BDF8"
-                                android:textSize="9sp"
+                                android:textSize="10sp"
                                 android:textStyle="bold"
                                 android:letterSpacing="0.04" />
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Album Artwork Showcase Stage -->
+                    <!-- Album Artwork Showcase Stage (Centered 116dp square) -->
                     <FrameLayout
                         android:id="@+id/cardMediaArtStage"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
+                        android:layout_width="116dp"
+                        android:layout_height="116dp"
+                        android:layout_gravity="center_horizontal"
                         android:background="@drawable/bg_media_stage"
                         android:padding="3dp"
-                        android:gravity="center">
+                        android:layout_marginBottom="6dp">
 
                         <com.bajaj.rideconnect.re.RoundedImageView
                             android:id="@+id/ivAlbumArt"
@@ -114,44 +114,45 @@
                             android:src="@drawable/ic_album_art_placeholder" />
                     </FrameLayout>
 
-                    <!-- Song Name -->
+                    <!-- Song Name (Glanceable 15sp Bold) -->
                     <TextView
                         android:id="@+id/tvMediaTrack"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="No Media Playing"
                         android:textColor="#F8FAFC"
-                        android:textSize="14sp"
+                        android:textSize="15sp"
                         android:textStyle="bold"
                         android:singleLine="true"
                         android:ellipsize="marquee"
                         android:marqueeRepeatLimit="marquee_forever"
-                        android:layout_marginTop="6dp" />
+                        android:layout_marginTop="2dp" />
 
-                    <!-- Artist Name -->
+                    <!-- Artist Name (Glanceable 12sp Cyan) -->
                     <TextView
                         android:id="@+id/tvMediaArtist"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Start playback on phone"
-                        android:textColor="#94A3B8"
-                        android:textSize="11sp"
+                        android:textColor="#38BDF8"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
                         android:singleLine="true"
                         android:ellipsize="end"
                         android:layout_marginTop="1dp" />
 
-                    <!-- Interactive Android 14/15 Wavy Media Track Scrubber -->
+                    <!-- Interactive Wavy Media Track Scrubber -->
                     <com.bajaj.rideconnect.re.WavySeekBar
                         android:id="@+id/pbMediaTrack"
                         android:layout_width="match_parent"
-                        android:layout_height="30dp"
-                        android:paddingStart="4dp"
-                        android:paddingEnd="4dp"
+                        android:layout_height="24dp"
+                        android:paddingStart="2dp"
+                        android:paddingEnd="2dp"
                         android:paddingTop="2dp"
                         android:paddingBottom="2dp"
                         android:progress="0"
                         android:max="1000"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="2dp" />
 
                     <!-- Time Row -->
                     <LinearLayout
@@ -166,19 +167,21 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="0:00"
-                            android:textColor="#64748B"
-                            android:textSize="10sp" />
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/tvMediaDuration"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0:00"
-                            android:textColor="#64748B"
-                            android:textSize="10sp" />
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- Media Controls Deck (Previous | Play/Pause | Next) -->
+                    <!-- Media Controls Deck (Glove-Friendly Touch Targets: 48dp Prev/Next, 62dp Play/Pause) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -187,57 +190,56 @@
                         android:layout_marginTop="2dp"
                         android:layout_marginBottom="2dp">
 
-                        <!-- Previous Track Button -->
+                        <!-- Previous Track Button (48dp x 48dp) -->
                         <ImageView
                             android:id="@+id/btnMediaPrev"
-                            android:layout_width="38dp"
-                            android:layout_height="38dp"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
                             android:src="@drawable/ic_media_prev"
                             android:background="@drawable/bg_circle_action"
-                            android:padding="9dp"
+                            android:padding="12dp"
                             android:tint="#CBD5E1"
                             android:clickable="true"
                             android:focusable="true"
-                            android:layout_marginEnd="14dp" />
+                            android:layout_marginEnd="16dp" />
 
-                        <!-- Prominent Circular Play/Pause Button -->
+                        <!-- Prominent Circular Play/Pause Button (62dp x 62dp) -->
                         <ImageView
                             android:id="@+id/btnMediaPlayPause"
-                            android:layout_width="52dp"
-                            android:layout_height="52dp"
+                            android:layout_width="62dp"
+                            android:layout_height="62dp"
                             android:src="@drawable/ic_media_pause"
                             android:background="@drawable/bg_circle_action"
-                            android:padding="13dp"
+                            android:padding="15dp"
                             android:clickable="true"
                             android:focusable="true" />
 
-                        <!-- Next Track Button -->
+                        <!-- Next Track Button (48dp x 48dp) -->
                         <ImageView
                             android:id="@+id/btnMediaNext"
-                            android:layout_width="38dp"
-                            android:layout_height="38dp"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
                             android:src="@drawable/ic_media_next"
                             android:background="@drawable/bg_circle_action"
-                            android:padding="9dp"
+                            android:padding="12dp"
                             android:tint="#CBD5E1"
                             android:clickable="true"
                             android:focusable="true"
-                            android:layout_marginStart="14dp" />
+                            android:layout_marginStart="16dp" />
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
 
             <!-- ========================================================= -->
-            <!-- RIGHT MAP AREA (74%)                                      -->
+            <!-- RIGHT MAP AREA (70% Full Bleed Edge-to-Edge)              -->
             <!-- ========================================================= -->
             <FrameLayout
                 android:id="@+id/layoutMapContainer"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="74"
-                android:layout_marginStart="8dp"
-                android:clipToOutline="true"
-                android:background="@drawable/bg_cockpit_frosted">
+                android:layout_weight="70"
+                android:layout_marginStart="0dp"
+                android:background="#07080B">
 
                 <!-- Interactive Mappls Vector Map Engine (Clipped to Rounded Cockpit Card) -->
                 <com.bajaj.rideconnect.re.MapplsMapView
@@ -251,7 +253,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="start|center_vertical"
-                    android:layout_marginStart="4dp"
+                    android:layout_marginStart="2dp"
                     android:gravity="center"
                     android:clickable="true"
                     android:focusable="true"
@@ -259,16 +261,16 @@
 
                     <LinearLayout
                         android:id="@+id/layoutSplitHandle"
-                        android:layout_width="18dp"
-                        android:layout_height="48dp"
+                        android:layout_width="26dp"
+                        android:layout_height="64dp"
                         android:orientation="vertical"
                         android:gravity="center"
                         android:background="@drawable/bg_split_handle">
 
                         <ImageView
                             android:id="@+id/ivSplitHandleChevron"
-                            android:layout_width="12dp"
-                            android:layout_height="12dp"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
                             android:src="@drawable/ic_chevron_left"
                             android:tint="#38BDF8" />
                     </LinearLayout>
@@ -500,7 +502,44 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Right Side Floating Action Buttons Stack -->
+                <!-- Top-Right Floating Controls Row (Search Destination + Drawer Menu) -->
+                <LinearLayout
+                    android:id="@+id/layoutTopRightControls"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|top"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:elevation="14dp">
+
+                    <!-- Search Destination (Mappls AutoSuggest - 48dp x 48dp) -->
+                    <ImageView
+                        android:id="@+id/btnMapSearch"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="10dp"
+                        android:src="@drawable/ic_search"
+                        android:tint="@color/pulsar_cyan"
+                        android:background="@drawable/bg_circle_action"
+                        android:padding="11dp"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <!-- Drawer Menu Button (48dp x 48dp) -->
+                    <ImageView
+                        android:id="@+id/btnOpenDrawer"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_drawer_menu"
+                        android:background="@drawable/bg_circle_action"
+                        android:padding="11dp"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Right Side Tactical Navigation Stack (Compass, Recenter, Audio Mute) -->
                 <LinearLayout
                     android:id="@+id/layoutActionStack"
                     android:layout_width="wrap_content"
@@ -508,108 +547,60 @@
                     android:layout_gravity="end|center_vertical"
                     android:layout_marginEnd="12dp"
                     android:orientation="vertical"
-                    android:gravity="center">
+                    android:gravity="center"
+                    android:elevation="12dp">
 
-                    <!-- Drawer Menu Button (Cockpit Menu) -->
-                    <ImageView
-                        android:id="@+id/btnOpenDrawer"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:src="@drawable/ic_drawer_menu"
-                        android:background="@drawable/bg_circle_action"
-                        android:padding="9dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginBottom="8dp" />
-
-                    <!-- Compass -->
+                    <!-- Compass Heading (46dp x 46dp) -->
                     <ImageView
                         android:id="@+id/btnCompass"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
                         android:src="@drawable/ic_compass"
                         android:background="@drawable/bg_circle_action"
-                        android:padding="8dp"
+                        android:padding="10dp"
                         android:clickable="true"
                         android:focusable="true"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="10dp" />
 
-                    <!-- Current Location (Center on GPS) -->
+                    <!-- Current Location Hero Recenter (52dp x 52dp) -->
                     <ImageView
                         android:id="@+id/btnCurrentLocation"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
                         android:src="@drawable/ic_my_location"
                         android:tint="@color/pulsar_cyan"
                         android:background="@drawable/bg_circle_action"
-                        android:padding="8dp"
+                        android:padding="11dp"
                         android:clickable="true"
                         android:focusable="true"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="10dp" />
 
-                    <!-- Search Destination (Mappls AutoSuggest) -->
-                    <ImageView
-                        android:id="@+id/btnMapSearch"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:src="@drawable/ic_search"
-                        android:tint="@color/pulsar_cyan"
-                        android:background="@drawable/bg_circle_action"
-                        android:padding="9dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginBottom="8dp" />
-
-                    <!-- Voice Audio -->
+                    <!-- Voice Audio / Mute (46dp x 46dp) -->
                     <ImageView
                         android:id="@+id/btnVoiceNav"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
                         android:src="@drawable/ic_volume_up"
                         android:background="@drawable/bg_circle_action"
-                        android:padding="9dp"
+                        android:padding="10dp"
                         android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginBottom="8dp" />
-
-                    <!-- Layers -->
-                    <ImageView
-                        android:id="@+id/btnLayers"
-                        android:layout_width="38dp"
-                        android:layout_height="38dp"
-                        android:src="@drawable/ic_layers"
-                        android:background="@drawable/bg_circle_action"
-                        android:padding="9dp"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginBottom="8dp" />
-
-                    <!-- Zoom Controls Pill -->
-                    <LinearLayout
-                        android:layout_width="38dp"
-                        android:layout_height="76dp"
-                        android:orientation="vertical"
-                        android:background="@drawable/bg_zoom_pill">
-
-                        <ImageView
-                            android:id="@+id/btnZoomIn"
-                            android:layout_width="38dp"
-                            android:layout_height="38dp"
-                            android:src="@drawable/ic_zoom_in"
-                            android:padding="9dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <ImageView
-                            android:id="@+id/btnZoomOut"
-                            android:layout_width="38dp"
-                            android:layout_height="38dp"
-                            android:src="@drawable/ic_zoom_out"
-                            android:padding="9dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-                    </LinearLayout>
+                        android:focusable="true" />
                 </LinearLayout>
+
+                <!-- Bottom-Right Floating Map Layers Button (48dp x 48dp Glove-Friendly) -->
+                <ImageView
+                    android:id="@+id/btnLayers"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="end|bottom"
+                    android:layout_marginBottom="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:src="@drawable/ic_layers"
+                    android:background="@drawable/bg_circle_action"
+                    android:padding="11dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:elevation="12dp" />
 
                 <!-- Floating Re-center Pill (Appears when user drags/pans the map away from rider) -->
                 <LinearLayout

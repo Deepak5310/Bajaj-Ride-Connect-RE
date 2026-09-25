@@ -44,7 +44,7 @@ public class MapplsMapView extends FrameLayout {
     private boolean isDarkMode = true;
     private final Path clipPath = new Path();
     private final RectF rectF = new RectF();
-    private float cornerRadiusDp = 22f;
+    private float cornerRadiusDp = 0f;
 
     public interface OnMapReadyCallback {
         void onMapReady();
@@ -99,15 +99,19 @@ public class MapplsMapView extends FrameLayout {
     private void init(Context context) {
         setBackgroundColor(Color.TRANSPARENT);
         float density = context.getResources().getDisplayMetrics().density;
-        setOutlineProvider(new ViewOutlineProvider() {
-            @Override
-            public void getOutline(View view, Outline outline) {
-                if (view.getWidth() > 0 && view.getHeight() > 0) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadiusDp * density);
+        if (cornerRadiusDp > 0f) {
+            setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    if (view.getWidth() > 0 && view.getHeight() > 0) {
+                        outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadiusDp * density);
+                    }
                 }
-            }
-        });
-        setClipToOutline(true);
+            });
+            setClipToOutline(true);
+        } else {
+            setClipToOutline(false);
+        }
 
         try {
             android.content.SharedPreferences prefs = context.getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE);

@@ -10,7 +10,7 @@
     <color name="lcd_glow_border">#38BDF8</color>
     <color name="lcd_frame_border">#12141C</color>
 
-    <!-- Material You / Cockpit Accents -->
+    <!-- Pulsar AMOLED High-Contrast Cockpit Palette -->
     <color name="pulsar_cyan">#38BDF8</color>
     <color name="pulsar_cyan_dim">#0C2B3E</color>
     <color name="pulsar_cyan_glow">#1E3A8A</color>
