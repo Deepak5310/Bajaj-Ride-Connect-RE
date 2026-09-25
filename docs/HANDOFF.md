@@ -40,14 +40,13 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 
 | Subsystem / Feature | File Location | Status |
 |---|---|---|
-| **BLE GATT Core Engine** | `app/src/com/bajaj/rideconnect/re/PulsarBleManager.java` | ✅ **Complete & Active** |
-| **Binary Protocol Frames** | `app/src/com/bajaj/rideconnect/re/PulsarProtocol.java` | ✅ **Complete & Active** |
-| **Media Controller & Ticker** | `app/src/com/bajaj/rideconnect/re/MediaStateListener.java` | ✅ **Verified on Bike** |
-| **Phone Telemetry Heartbeat** | `app/src/com/bajaj/rideconnect/re/PhoneStateMonitor.java` | ✅ **Verified on Bike** |
-| **Caller ID & Handlebar Calls** | `app/src/com/bajaj/rideconnect/re/TelephonyCallHandler.java` | ⚠️ **Implemented (Untested)** |
-| **Turn-by-Turn Navigation** | `app/src/com/bajaj/rideconnect/re/GoogleMapsNotificationListener.java` | ℹ️ **Implemented (Optional)** |
-| **Automotive Cockpit UI & Dock** | `app/src/com/bajaj/rideconnect/re/MainActivity.java` | ✅ **Complete & Active** (Seamless 8dp card margin, floating dock handle, 22dp rounded map corners, in-drawer animated About sub-view, Developer: Deepak5310, Supported bikes: NS400Z v1/v2/v3, Dominar 400) |
-| **Codebase & Asset Optimization** | `./app/` | ✅ **Audited & Optimized** (23 unused drawables & dead strings removed, WebView lifecycle hooks `onResume`/`onPause`/`onDestroy` added, socket `HttpURLConnection` cleanup, handler memory leaks resolved) |
+| **BLE GATT Core Engine** | `app/src/main/java/com/bajaj/rideconnect/re/PulsarBleManager.java` | ✅ **Complete & Active** |
+| **Binary Protocol Frames** | `app/src/main/java/com/bajaj/rideconnect/re/PulsarProtocol.java` | ✅ **Complete & Active** |
+| **Media Controller & Ticker** | `app/src/main/java/com/bajaj/rideconnect/re/MediaStateListener.java` | ✅ **Verified on Bike** |
+| **Phone Telemetry Heartbeat** | `app/src/main/java/com/bajaj/rideconnect/re/PhoneStateMonitor.java` | ✅ **Verified on Bike** |
+| **Caller ID & Handlebar Calls** | `app/src/main/java/com/bajaj/rideconnect/re/TelephonyCallHandler.java` | ⚠️ **Implemented (Untested)** |
+| **Automotive Cockpit UI & Dock** | `app/src/main/java/com/bajaj/rideconnect/re/MainActivity.java` | ✅ **Complete & Active** (Seamless 8dp card margin, floating dock handle, 22dp rounded map corners, in-drawer animated About sub-view, Developer: Deepak5310, Supported bikes: NS400Z v1/v2/v3, Dominar 400) |
+| **Build System & Tooling** | `build.gradle.kts` / `./build.sh` | ✅ **Dual-Engine Standard** (Standard Android Studio Gradle AGP 9.4+ alongside 0.8s fast `./build.sh` CLI) |
 
 ---
 
