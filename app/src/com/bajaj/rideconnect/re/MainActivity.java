@@ -234,12 +234,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         FAILED
     }
     private View itemSavedPlaces;
-    private View itemAbout;
     private View btnDrawerExit;
     private TextView tvDrawerTitle;
-    private ScrollView layoutDrawerAbout;
-    private View btnAboutBack;
-    private View btnAboutGithub;
+    private View btnFooterGithub;
 
     // Hardware & State
     private PulsarBleManager bleManager;
@@ -419,16 +416,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
             } else if ("open_saved_places".equalsIgnoreCase(cmd)) {
                 showSavedPlacesDialog();
-            } else if ("open_about".equalsIgnoreCase(cmd)) {
-                openDrawer();
-                showDrawerAboutView();
             } else if ("open_drawer".equalsIgnoreCase(cmd)) {
                 openDrawer();
             } else if ("scroll_drawer".equalsIgnoreCase(cmd)) {
                 int y = intent.getIntExtra("y", 400);
-                if (layoutDrawerAbout != null && layoutDrawerAbout.getVisibility() == View.VISIBLE) {
-                    layoutDrawerAbout.post(() -> layoutDrawerAbout.smoothScrollTo(0, y));
-                } else if (scrollDrawer != null) {
+                if (scrollDrawer != null) {
                     scrollDrawer.post(() -> scrollDrawer.smoothScrollTo(0, y));
                 }
             } else if ("close_drawer".equalsIgnoreCase(cmd)) {
@@ -632,12 +624,9 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         ivDrawerBleActionIcon = findViewById(R.id.ivDrawerBleActionIcon);
         tvDrawerBleActionText = findViewById(R.id.tvDrawerBleActionText);
         itemSavedPlaces = findViewById(R.id.itemSavedPlaces);
-        itemAbout = findViewById(R.id.itemAbout);
         btnDrawerExit = findViewById(R.id.btnDrawerExit);
         tvDrawerTitle = findViewById(R.id.tvDrawerTitle);
-        layoutDrawerAbout = findViewById(R.id.layoutDrawerAbout);
-        btnAboutBack = findViewById(R.id.btnAboutBack);
-        btnAboutGithub = findViewById(R.id.btnAboutGithub);
+        btnFooterGithub = findViewById(R.id.btnFooterGithub);
     }
 
     private void setupListeners() {
@@ -707,12 +696,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             closeDrawer();
             showSavedPlacesDialog();
         });
-        itemAbout.setOnClickListener(v -> showDrawerAboutView());
-        if (btnAboutBack != null) {
-            btnAboutBack.setOnClickListener(v -> hideDrawerAboutView());
-        }
-        if (btnAboutGithub != null) {
-            btnAboutGithub.setOnClickListener(v -> openGithubProfile());
+        if (btnFooterGithub != null) {
+            btnFooterGithub.setOnClickListener(v -> openGithubProfile());
         }
 
         // Exit App Button
@@ -911,37 +896,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
 
 
-    private void showDrawerAboutView() {
-        if (scrollDrawer == null || layoutDrawerAbout == null) return;
-        scrollDrawer.setVisibility(View.GONE);
-        layoutDrawerAbout.setVisibility(View.VISIBLE);
-        layoutDrawerAbout.scrollTo(0, 0);
-        if (tvDrawerTitle != null) tvDrawerTitle.setText("ABOUT COCKPIT");
-        layoutDrawerAbout.setAlpha(0f);
-        layoutDrawerAbout.setTranslationX(40f);
-        layoutDrawerAbout.animate()
-                .alpha(1f)
-                .translationX(0f)
-                .setDuration(220)
-                .setInterpolator(new DecelerateInterpolator())
-                .start();
-    }
-
-    private void hideDrawerAboutView() {
-        if (scrollDrawer == null || layoutDrawerAbout == null) return;
-        layoutDrawerAbout.setVisibility(View.GONE);
-        scrollDrawer.setVisibility(View.VISIBLE);
-        if (tvDrawerTitle != null) tvDrawerTitle.setText("COCKPIT RE");
-        scrollDrawer.setAlpha(0f);
-        scrollDrawer.setTranslationX(-30f);
-        scrollDrawer.animate()
-                .alpha(1f)
-                .translationX(0f)
-                .setDuration(200)
-                .setInterpolator(new DecelerateInterpolator())
-                .start();
-    }
-
     private void openGithubProfile() {
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Deepak5310"));
@@ -1128,8 +1082,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 cardBikeStage,
                 cardBikeConnection,
                 itemSavedPlaces,
-                itemAbout,
-                btnDrawerExit
+                btnDrawerExit,
+                btnFooterGithub
         };
 
         for (int i = 0; i < drawerItems.length; i++) {
@@ -1149,15 +1103,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void closeDrawer() {
-        if (layoutDrawerAbout != null && layoutDrawerAbout.getVisibility() == View.VISIBLE) {
-            layoutDrawerAbout.setVisibility(View.GONE);
-            if (scrollDrawer != null) {
-                scrollDrawer.setVisibility(View.VISIBLE);
-                scrollDrawer.setTranslationX(0f);
-                scrollDrawer.setAlpha(1f);
-            }
-            if (tvDrawerTitle != null) tvDrawerTitle.setText("COCKPIT RE");
-        }
 
         drawerBackdrop.animate()
                 .alpha(0f)
@@ -1251,7 +1196,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 btnOpenDrawer, btnDrawerClose, btnNavEnd, btnCompass, btnCurrentLocation, btnVoiceNav, btnLayers,
                 btnDrawerExit, btnDrawerBleConnect, btnMapSearch, btnStartNavNow, btnCancelRoutePreview,
                 layoutRecenterPill, btnSearchCancel, btnSearchClear, btnSearchImeToggle, viewSplitDivider,
-                itemSavedPlaces, itemAbout, btnAboutBack, btnAboutGithub
+                itemSavedPlaces, btnFooterGithub
         };
         for (View view : tactileViews) {
             if (view != null) view.setOnTouchListener(tactileTouch);
@@ -2095,10 +2040,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
         if (currentActiveRoute != null) {
             endActiveNavigation();
-            return;
-        }
-        if (layoutDrawerAbout != null && layoutDrawerAbout.getVisibility() == View.VISIBLE) {
-            hideDrawerAboutView();
             return;
         }
         if (drawerBackdrop != null && drawerBackdrop.getVisibility() == View.VISIBLE) {
