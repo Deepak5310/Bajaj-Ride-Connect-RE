@@ -19,6 +19,7 @@ import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
 import android.view.ViewOutlineProvider;
 import android.media.AudioManager;
@@ -56,6 +57,7 @@ import android.window.OnBackInvokedDispatcher;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -73,6 +75,7 @@ import android.view.animation.OvershootInterpolator;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -98,8 +101,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
     // Main Split Layout
     private LinearLayout layoutLeftPanel;
-    private LinearLayout viewSplitDivider;
+    private View viewSplitDivider;
+    private View layoutSplitHandle;
+    private ImageView ivSplitHandleChevron;
     private View layoutMapContainer;
+    private FrameLayout layoutMapStartHudContainer;
     private boolean isMapFullscreen = false;
 
     // Media Controls & Info (Left Panel)
@@ -165,6 +171,7 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     private ImageView btnMapSearch;
     private ImageView btnCurrentLocation;
     private LocationManager locationManager;
+    private BroadcastReceiver gpsSwitchReceiver;
     private double currentRiderLat = 0.0;
     private double currentRiderLng = 0.0;
     private float currentRiderBearing = 0f;
@@ -342,6 +349,23 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         setupListeners();
         setupMicroAnimations();
         initLiveSystemSensors();
+
+        gpsSwitchReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (LocationManager.PROVIDERS_CHANGED_ACTION.equals(intent.getAction())) {
+                    if (isDeviceLocationEnabled()) {
+                        initGpsTracking();
+                        if (currentRiderLat != 0.0 && currentRiderLng != 0.0 && mapplsMapView != null) {
+                            mapplsMapView.centerOnCurrentLocation();
+                        }
+                    }
+                }
+            }
+        };
+        try {
+            registerReceiver(gpsSwitchReceiver, new IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION));
+        } catch (Exception ignored) {}
 
         bleManager = PulsarBleManager.getInstance(this);
         bleManager.addListener(this);
@@ -536,7 +560,19 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Layout Containers
         layoutLeftPanel = findViewById(R.id.layoutLeftPanel);
         viewSplitDivider = findViewById(R.id.viewSplitDivider);
+        layoutSplitHandle = findViewById(R.id.layoutSplitHandle);
+        ivSplitHandleChevron = findViewById(R.id.ivSplitHandleChevron);
         layoutMapContainer = findViewById(R.id.layoutMapContainer);
+        layoutMapStartHudContainer = findViewById(R.id.layoutMapStartHudContainer);
+
+        float density = getResources().getDisplayMetrics().density;
+        float panelWidth = 250f * density;
+        if (viewSplitDivider != null) {
+            viewSplitDivider.setTranslationX(panelWidth);
+        }
+        if (layoutMapStartHudContainer != null) {
+            layoutMapStartHudContainer.setTranslationX(panelWidth);
+        }
 
         // Media View
         viewTabMedia = findViewById(R.id.viewTabMedia);
@@ -679,10 +715,25 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Fullscreen Floating Music Pill Controls
         btnPillPlayPause.setOnClickListener(v -> toggleMediaPlayback());
         btnPillNext.setOnClickListener(v -> skipMediaNext());
-        layoutFullscreenMusicPill.setOnClickListener(v -> setMapFullscreen(false));
+        View.OnClickListener expandMediaListener = v -> setMapFullscreen(false);
+        layoutFullscreenMusicPill.setOnClickListener(expandMediaListener);
+        if (ivPillAlbumArt != null) ivPillAlbumArt.setOnClickListener(expandMediaListener);
+        if (tvPillTrack != null) tvPillTrack.setOnClickListener(expandMediaListener);
+        if (tvPillArtist != null) tvPillArtist.setOnClickListener(expandMediaListener);
 
         // Divider Resize / Collapse Interaction
-        viewSplitDivider.setOnClickListener(v -> setMapFullscreen(!isMapFullscreen));
+        View.OnClickListener toggleSplitListener = v -> setMapFullscreen(!isMapFullscreen);
+        if (viewSplitDivider != null) {
+            viewSplitDivider.setOnClickListener(toggleSplitListener);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                viewSplitDivider.post(() -> {
+                    List<Rect> rects = Collections.singletonList(
+                            new Rect(0, 0, viewSplitDivider.getWidth(), viewSplitDivider.getHeight())
+                    );
+                    viewSplitDivider.setSystemGestureExclusionRects(rects);
+                });
+            }
+        }
 
         // Right Navigation Drawer
         btnOpenDrawer.setOnClickListener(v -> openDrawer());
@@ -712,8 +763,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         // Map HUD Controls
         if (btnCurrentLocation != null) {
             btnCurrentLocation.setOnClickListener(v -> {
-                if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                    Toast.makeText(this, "Please turn ON device Location / GPS", Toast.LENGTH_LONG).show();
+                if (!isDeviceLocationEnabled()) {
+                    Toast.makeText(this, "Location / GPS is disabled. Please turn it ON in Settings.", Toast.LENGTH_LONG).show();
                     try {
                         startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                     } catch (Exception ignored) {}
@@ -726,6 +777,13 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
 
         if (layoutRecenterPill != null) {
             layoutRecenterPill.setOnClickListener(v -> {
+                if (!isDeviceLocationEnabled()) {
+                    Toast.makeText(this, "Location / GPS is disabled. Please turn it ON in Settings.", Toast.LENGTH_LONG).show();
+                    try {
+                        startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    } catch (Exception ignored) {}
+                    return;
+                }
                 if (mapplsMapView != null) {
                     mapplsMapView.centerOnCurrentLocation();
                 }
@@ -997,62 +1055,76 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     public void setMapFullscreen(boolean fullscreen) {
         isMapFullscreen = fullscreen;
         float density = getResources().getDisplayMetrics().density;
+        float panelWidth = 250f * density;
         if (fullscreen) {
             layoutLeftPanel.animate()
-                    .alpha(0f)
-                    .translationX(-140f)
-                    .setDuration(240)
-                    .setInterpolator(new AccelerateInterpolator(1.8f))
+                    .translationX(-panelWidth)
+                    .setDuration(280)
+                    .setInterpolator(new DecelerateInterpolator(2.0f))
                     .withEndAction(() -> {
-                        layoutLeftPanel.setVisibility(View.GONE);
-                        if (viewSplitDivider != null) viewSplitDivider.setVisibility(View.GONE);
-                    }).start();
+                        if (isMapFullscreen) {
+                            layoutLeftPanel.setVisibility(View.GONE);
+                        }
+                    })
+                    .start();
 
             if (viewSplitDivider != null) {
-                viewSplitDivider.animate().alpha(0f).setDuration(160).start();
+                viewSplitDivider.animate()
+                        .translationX(0f)
+                        .setDuration(280)
+                        .setInterpolator(new DecelerateInterpolator(2.0f))
+                        .start();
             }
-
-            if (layoutMapContainer != null && layoutMapContainer.getLayoutParams() instanceof LinearLayout.LayoutParams) {
-                LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) layoutMapContainer.getLayoutParams();
-                lp.setMarginStart(0);
-                layoutMapContainer.setLayoutParams(lp);
+            if (ivSplitHandleChevron != null) {
+                ivSplitHandleChevron.animate().rotation(180f).setDuration(280).start();
+            }
+            if (layoutMapStartHudContainer != null) {
+                layoutMapStartHudContainer.animate()
+                        .translationX(0f)
+                        .setDuration(280)
+                        .setInterpolator(new DecelerateInterpolator(2.0f))
+                        .start();
             }
 
             layoutFullscreenMusicPill.setVisibility(View.VISIBLE);
             layoutFullscreenMusicPill.setAlpha(0f);
-            layoutFullscreenMusicPill.setTranslationY(80f);
+            layoutFullscreenMusicPill.setTranslationY(40f);
             layoutFullscreenMusicPill.animate()
                     .alpha(1f)
                     .translationY(0f)
-                    .setDuration(320)
-                    .setInterpolator(new OvershootInterpolator(1.4f))
+                    .setDuration(280)
+                    .setInterpolator(new DecelerateInterpolator(1.8f))
                     .start();
         } else {
-            if (layoutMapContainer != null && layoutMapContainer.getLayoutParams() instanceof LinearLayout.LayoutParams) {
-                LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) layoutMapContainer.getLayoutParams();
-                lp.setMarginStart(0);
-                layoutMapContainer.setLayoutParams(lp);
-            }
-
             layoutLeftPanel.setVisibility(View.VISIBLE);
-            if (viewSplitDivider != null) {
-                viewSplitDivider.setVisibility(View.VISIBLE);
-                viewSplitDivider.setAlpha(0f);
-                viewSplitDivider.animate().alpha(1f).setDuration(260).start();
-            }
-            layoutLeftPanel.setTranslationX(-140f);
-            layoutLeftPanel.setAlpha(0f);
             layoutLeftPanel.animate()
-                    .alpha(1f)
                     .translationX(0f)
                     .setDuration(280)
                     .setInterpolator(new DecelerateInterpolator(2.0f))
                     .start();
 
+            if (viewSplitDivider != null) {
+                viewSplitDivider.animate()
+                        .translationX(panelWidth)
+                        .setDuration(280)
+                        .setInterpolator(new DecelerateInterpolator(2.0f))
+                        .start();
+            }
+            if (ivSplitHandleChevron != null) {
+                ivSplitHandleChevron.animate().rotation(0f).setDuration(280).start();
+            }
+            if (layoutMapStartHudContainer != null) {
+                layoutMapStartHudContainer.animate()
+                        .translationX(panelWidth)
+                        .setDuration(280)
+                        .setInterpolator(new DecelerateInterpolator(2.0f))
+                        .start();
+            }
+
             layoutFullscreenMusicPill.animate()
                     .alpha(0f)
-                    .translationY(80f)
-                    .setDuration(190)
+                    .translationY(40f)
+                    .setDuration(200)
                     .setInterpolator(new AccelerateInterpolator(1.8f))
                     .withEndAction(() -> layoutFullscreenMusicPill.setVisibility(View.GONE))
                     .start();
@@ -1655,9 +1727,22 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
         }
     };
 
+    private boolean isDeviceLocationEnabled() {
+        if (locationManager == null) {
+            locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        }
+        if (locationManager == null) return false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return locationManager.isLocationEnabled();
+        } else {
+            return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                    || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        }
+    }
+
     private void initGpsTracking() {
         try {
-            locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            if (!isDeviceLocationEnabled()) return;
             if (locationManager != null && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (last == null) {
@@ -1691,8 +1776,8 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     }
 
     private void centerMapOnCurrentLocation() {
-        if (locationManager != null && !locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            Toast.makeText(this, "Please turn ON device Location / GPS", Toast.LENGTH_LONG).show();
+        if (!isDeviceLocationEnabled()) {
+            Toast.makeText(this, "Location / GPS is disabled. Please turn it ON in Settings.", Toast.LENGTH_LONG).show();
             try {
                 startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
             } catch (Exception ignored) {}
@@ -1724,6 +1809,18 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
                 }
             }
         } catch (Exception ignored) {}
+
+        if (currentRiderLat == 0.0) {
+            try {
+                SharedPreferences prefs = getSharedPreferences("bajaj_ride_prefs", Context.MODE_PRIVATE);
+                float savedLat = prefs.getFloat("saved_rider_lat", 0f);
+                float savedLng = prefs.getFloat("saved_rider_lng", 0f);
+                if (savedLat != 0f && savedLng != 0f) {
+                    currentRiderLat = savedLat;
+                    currentRiderLng = savedLng;
+                }
+            } catch (Exception ignored) {}
+        }
 
         if (mapplsMapView != null) {
             if (currentRiderLat != 0.0 && currentRiderLng != 0.0) {
@@ -2743,6 +2840,11 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
             try {
                 tts.stop();
                 tts.shutdown();
+            } catch (Exception ignored) {}
+        }
+        if (gpsSwitchReceiver != null) {
+            try {
+                unregisterReceiver(gpsSwitchReceiver);
             } catch (Exception ignored) {}
         }
         if (mapplsMapView != null) {

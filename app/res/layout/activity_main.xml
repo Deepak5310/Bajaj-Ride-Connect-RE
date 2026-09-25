@@ -14,231 +14,19 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Main Workspace (Split: Left 30% | Right 70% Edge-to-Edge) -->
-        <LinearLayout
+        <!-- Main Workspace (FrameLayout: Full Bleed Map with Sliding Overlay Dock) -->
+        <FrameLayout
             android:id="@+id/layoutWorkspace"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="horizontal"
-            android:paddingStart="0dp"
-            android:paddingEnd="0dp"
-            android:paddingTop="0dp"
-            android:paddingBottom="0dp">
+            android:layout_height="match_parent">
 
             <!-- ========================================================= -->
-            <!-- LEFT PANEL: MEDIA PLAYER ONLY (30%)                       -->
-            <!-- ========================================================= -->
-            <LinearLayout
-                android:id="@+id/layoutLeftPanel"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="30"
-                android:orientation="vertical"
-                android:background="@drawable/bg_media_panel"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp">
-
-                <!-- MEDIA PLAYER VIEW -->
-                <LinearLayout
-                    android:id="@+id/viewTabMedia"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center_horizontal"
-                    android:visibility="visible">
-
-                    <!-- Header Strip: Pulse Equalizer Dot + COCKPIT AUDIO + Source Badge Pill -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="24dp"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginBottom="6dp">
-
-                        <View
-                            android:id="@+id/viewMediaPulseDot"
-                            android:layout_width="7dp"
-                            android:layout_height="7dp"
-                            android:background="@drawable/bg_pulse_dot"
-                            android:backgroundTint="#38BDF8" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            android:text="COCKPIT AUDIO"
-                            android:textColor="#38BDF8"
-                            android:textSize="11sp"
-                            android:letterSpacing="0.12"
-                            android:textStyle="bold" />
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="20dp"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:background="@drawable/bg_stage_telemetry"
-                            android:paddingStart="8dp"
-                            android:paddingEnd="8dp">
-
-                            <TextView
-                                android:id="@+id/tvMediaSource"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Standby"
-                                android:textColor="#38BDF8"
-                                android:textSize="10sp"
-                                android:textStyle="bold"
-                                android:letterSpacing="0.04" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- Album Artwork Showcase Stage (Centered 116dp square) -->
-                    <FrameLayout
-                        android:id="@+id/cardMediaArtStage"
-                        android:layout_width="116dp"
-                        android:layout_height="116dp"
-                        android:layout_gravity="center_horizontal"
-                        android:background="@drawable/bg_media_stage"
-                        android:padding="3dp"
-                        android:layout_marginBottom="6dp">
-
-                        <com.bajaj.rideconnect.re.RoundedImageView
-                            android:id="@+id/ivAlbumArt"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:scaleType="centerInside"
-                            android:src="@drawable/ic_album_art_placeholder" />
-                    </FrameLayout>
-
-                    <!-- Song Name (Glanceable 15sp Bold) -->
-                    <TextView
-                        android:id="@+id/tvMediaTrack"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="No Media Playing"
-                        android:textColor="#F8FAFC"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        android:singleLine="true"
-                        android:ellipsize="marquee"
-                        android:marqueeRepeatLimit="marquee_forever"
-                        android:layout_marginTop="2dp" />
-
-                    <!-- Artist Name (Glanceable 12sp Cyan) -->
-                    <TextView
-                        android:id="@+id/tvMediaArtist"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Start playback on phone"
-                        android:textColor="#38BDF8"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:singleLine="true"
-                        android:ellipsize="end"
-                        android:layout_marginTop="1dp" />
-
-                    <!-- Interactive Wavy Media Track Scrubber -->
-                    <com.bajaj.rideconnect.re.WavySeekBar
-                        android:id="@+id/pbMediaTrack"
-                        android:layout_width="match_parent"
-                        android:layout_height="24dp"
-                        android:paddingStart="2dp"
-                        android:paddingEnd="2dp"
-                        android:paddingTop="2dp"
-                        android:paddingBottom="2dp"
-                        android:progress="0"
-                        android:max="1000"
-                        android:layout_marginTop="2dp" />
-
-                    <!-- Time Row -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="4dp">
-
-                        <TextView
-                            android:id="@+id/tvMediaElapsed"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="0:00"
-                            android:textColor="#94A3B8"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tvMediaDuration"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0:00"
-                            android:textColor="#94A3B8"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <!-- Media Controls Deck (Glove-Friendly Touch Targets: 48dp Prev/Next, 62dp Play/Pause) -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="2dp">
-
-                        <!-- Previous Track Button (48dp x 48dp) -->
-                        <ImageView
-                            android:id="@+id/btnMediaPrev"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@drawable/ic_media_prev"
-                            android:background="@drawable/bg_circle_action"
-                            android:padding="12dp"
-                            android:tint="#CBD5E1"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:layout_marginEnd="16dp" />
-
-                        <!-- Prominent Circular Play/Pause Button (62dp x 62dp) -->
-                        <ImageView
-                            android:id="@+id/btnMediaPlayPause"
-                            android:layout_width="62dp"
-                            android:layout_height="62dp"
-                            android:src="@drawable/ic_media_pause"
-                            android:background="@drawable/bg_circle_action"
-                            android:padding="15dp"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <!-- Next Track Button (48dp x 48dp) -->
-                        <ImageView
-                            android:id="@+id/btnMediaNext"
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@drawable/ic_media_next"
-                            android:background="@drawable/bg_circle_action"
-                            android:padding="12dp"
-                            android:tint="#CBD5E1"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:layout_marginStart="16dp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- ========================================================= -->
-            <!-- RIGHT MAP AREA (70% Full Bleed Edge-to-Edge)              -->
+            <!-- MAP AREA: Always 100% Full Bleed Edge-to-Edge             -->
             <!-- ========================================================= -->
             <FrameLayout
                 android:id="@+id/layoutMapContainer"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight="70"
-                android:layout_marginStart="0dp"
                 android:background="#07080B">
 
                 <!-- Interactive Mappls Vector Map Engine (Clipped to Rounded Cockpit Card) -->
@@ -247,34 +35,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
 
-                <!-- Split Collapse / Dock Handle (Floating on the left border of the map) -->
-                <LinearLayout
-                    android:id="@+id/viewSplitDivider"
+                <!-- Left-aligned Map HUD controls container that slides with the media drawer -->
+                <FrameLayout
+                    android:id="@+id/layoutMapStartHudContainer"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="start|center_vertical"
-                    android:layout_marginStart="2dp"
-                    android:gravity="center"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:elevation="12dp">
-
-                    <LinearLayout
-                        android:id="@+id/layoutSplitHandle"
-                        android:layout_width="26dp"
-                        android:layout_height="64dp"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:background="@drawable/bg_split_handle">
-
-                        <ImageView
-                            android:id="@+id/ivSplitHandleChevron"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:src="@drawable/ic_chevron_left"
-                            android:tint="#38BDF8" />
-                    </LinearLayout>
-                </LinearLayout>
+                    android:layout_height="match_parent"
+                    android:layout_gravity="start">
 
                 <!-- Top Left Turn Instruction Card (Cockpit Frosted Pill matching Speed HUD) -->
                 <LinearLayout
@@ -501,6 +267,7 @@
                             android:background="@drawable/bg_speed_limit" />
                     </LinearLayout>
                 </LinearLayout>
+                </FrameLayout>
 
                 <!-- Top-Right Floating Controls Row (Search Destination + Drawer Menu) -->
                 <LinearLayout
@@ -949,7 +716,253 @@
                 </FrameLayout>
 
             </FrameLayout>
-        </LinearLayout>
+
+            <!-- ========================================================= -->
+            <!-- LEFT PANEL: MEDIA PLAYER (250dp Docked Overlay Drawer)    -->
+            <!-- ========================================================= -->
+            <LinearLayout
+                android:id="@+id/layoutLeftPanel"
+                android:layout_width="250dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="start"
+                android:elevation="10dp"
+                android:orientation="vertical"
+                android:background="@drawable/bg_media_panel"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp">
+
+                <!-- MEDIA PLAYER VIEW -->
+                <LinearLayout
+                    android:id="@+id/viewTabMedia"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center_horizontal"
+                    android:visibility="visible">
+
+                    <!-- Header Strip: Pulse Equalizer Dot + COCKPIT AUDIO + Source Badge Pill -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="22dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="4dp">
+
+                        <View
+                            android:id="@+id/viewMediaPulseDot"
+                            android:layout_width="7dp"
+                            android:layout_height="7dp"
+                            android:background="@drawable/bg_pulse_dot"
+                            android:backgroundTint="#38BDF8" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:text="COCKPIT AUDIO"
+                            android:textColor="#38BDF8"
+                            android:textSize="11sp"
+                            android:letterSpacing="0.12"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="20dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/bg_stage_telemetry"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp">
+
+                            <TextView
+                                android:id="@+id/tvMediaSource"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Standby"
+                                android:textColor="#38BDF8"
+                                android:textSize="10sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.04" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Album Artwork Showcase Stage (Centered 140dp square, ~46% larger) -->
+                    <FrameLayout
+                        android:id="@+id/cardMediaArtStage"
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:layout_gravity="center_horizontal"
+                        android:background="@drawable/bg_media_stage"
+                        android:padding="3dp"
+                        android:layout_marginBottom="6dp">
+
+                        <com.bajaj.rideconnect.re.RoundedImageView
+                            android:id="@+id/ivAlbumArt"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/ic_album_art_placeholder" />
+                    </FrameLayout>
+
+                    <!-- Song Name (Glanceable 15sp Bold, Centered) -->
+                    <TextView
+                        android:id="@+id/tvMediaTrack"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="No Media Playing"
+                        android:textColor="#F8FAFC"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:singleLine="true"
+                        android:ellipsize="marquee"
+                        android:marqueeRepeatLimit="marquee_forever"
+                        android:layout_marginTop="1dp" />
+
+                    <!-- Artist Name (Glanceable 12sp Cyan, Centered) -->
+                    <TextView
+                        android:id="@+id/tvMediaArtist"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="Start playback on phone"
+                        android:textColor="#38BDF8"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:singleLine="true"
+                        android:ellipsize="end"
+                        android:layout_marginTop="1dp" />
+
+                    <!-- Interactive Wavy Media Track Scrubber -->
+                    <com.bajaj.rideconnect.re.WavySeekBar
+                        android:id="@+id/pbMediaTrack"
+                        android:layout_width="match_parent"
+                        android:layout_height="20dp"
+                        android:paddingStart="2dp"
+                        android:paddingEnd="2dp"
+                        android:progress="0"
+                        android:max="1000"
+                        android:layout_marginTop="4dp" />
+
+                    <!-- Time Row -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="2dp">
+
+                        <TextView
+                            android:id="@+id/tvMediaElapsed"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="0:00"
+                            android:textColor="#94A3B8"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvMediaDuration"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0:00"
+                            android:textColor="#94A3B8"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Flexible Spacer: Absorbs extra vertical room & anchors controls cleanly to bottom -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <!-- Media Controls Deck (Glove-Friendly Touch Targets: 48dp Prev/Next, 60dp Play/Pause) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="2dp">
+
+                        <!-- Previous Track Button (48dp x 48dp) -->
+                        <ImageView
+                            android:id="@+id/btnMediaPrev"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@drawable/ic_media_prev"
+                            android:background="@drawable/bg_circle_action"
+                            android:padding="12dp"
+                            android:tint="#CBD5E1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="16dp" />
+
+                        <!-- Prominent Circular Play/Pause Button (60dp x 60dp) -->
+                        <ImageView
+                            android:id="@+id/btnMediaPlayPause"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:src="@drawable/ic_media_pause"
+                            android:background="@drawable/bg_circle_action"
+                            android:padding="15dp"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                        <!-- Next Track Button (48dp x 48dp) -->
+                        <ImageView
+                            android:id="@+id/btnMediaNext"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@drawable/ic_media_next"
+                            android:background="@drawable/bg_circle_action"
+                            android:padding="12dp"
+                            android:tint="#CBD5E1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginStart="16dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Split Collapse / Dock Handle (Floating on the right border of Left Panel) -->
+            <FrameLayout
+                android:id="@+id/viewSplitDivider"
+                android:layout_width="56dp"
+                android:layout_height="96dp"
+                android:layout_gravity="start|center_vertical"
+                android:translationX="250dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:elevation="14dp">
+
+                <LinearLayout
+                    android:id="@+id/layoutSplitHandle"
+                    android:layout_width="28dp"
+                    android:layout_height="68dp"
+                    android:layout_gravity="center_vertical|start"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:background="@drawable/bg_split_handle">
+
+                    <ImageView
+                        android:id="@+id/ivSplitHandleChevron"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_chevron_left"
+                        android:tint="#38BDF8"
+                        android:clickable="false"
+                        android:focusable="false" />
+                </LinearLayout>
+            </FrameLayout>
+
+        </FrameLayout>
     </LinearLayout>
 
     <!-- ============================================================= -->
