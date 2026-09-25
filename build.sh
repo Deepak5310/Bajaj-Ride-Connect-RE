@@ -35,11 +35,28 @@ echo "[1/4] Processing resources..."
   -o "$BUILD/unaligned.apk" \
   --auto-add-overlay "$BUILD"/res/*.flat
 
-# 2. Compile Java & DEX
-echo "[2/4] Compiling Java & DEX..."
-find "$SRC/src" "$BUILD/gen" -name "*.java" > "$BUILD/sources.txt"
-javac -source 17 -target 17 -Xlint:-options -classpath "$PLATFORM_JAR" -d "$BUILD/obj" @"$BUILD/sources.txt"
-"$BUILD_TOOLS/d8" --min-api 24 --output "$BUILD/dex" --lib "$PLATFORM_JAR" $(find "$BUILD/obj" -name "*.class")
+KOTLIN_HOME="${KOTLIN_HOME:-/opt/android-studio/plugins/Kotlin/kotlinc}"
+KOTLINC="$KOTLIN_HOME/bin/kotlinc"
+KOTLIN_LIB="$KOTLIN_HOME/lib"
+
+# 2. Compile Java, Kotlin & DEX
+echo "[2/4] Compiling Java, Kotlin & DEX..."
+find "$BUILD/gen" -name "*.java" > "$BUILD/gen_sources.txt"
+if [[ -s "$BUILD/gen_sources.txt" ]]; then
+  javac -source 17 -target 17 -Xlint:-options -classpath "$PLATFORM_JAR" -d "$BUILD/obj" @"$BUILD/gen_sources.txt"
+fi
+
+find "$SRC/src" -name "*.java" > "$BUILD/java_sources.txt"
+if [[ -s "$BUILD/java_sources.txt" ]]; then
+  javac -source 17 -target 17 -Xlint:-options -classpath "$PLATFORM_JAR:$BUILD/obj" -d "$BUILD/obj" @"$BUILD/java_sources.txt"
+fi
+
+find "$SRC/src" -name "*.kt" > "$BUILD/kt_sources.txt"
+if [[ -s "$BUILD/kt_sources.txt" ]]; then
+  "$KOTLINC" -language-version 2.1 -api-version 2.1 -jvm-target 17 -classpath "$PLATFORM_JAR:$BUILD/obj" -d "$BUILD/obj" @"$BUILD/kt_sources.txt"
+fi
+
+"$BUILD_TOOLS/d8" --min-api 26 --output "$BUILD/dex" --lib "$PLATFORM_JAR" $(find "$BUILD/obj" -name "*.class") "$KOTLIN_LIB/kotlin-stdlib.jar"
 
 # 3. Package & Align
 echo "[3/4] Aligning APK..."

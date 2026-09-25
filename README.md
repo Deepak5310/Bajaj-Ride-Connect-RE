@@ -13,7 +13,7 @@ bajaj-ride-connect-re/
 ├── app/                           # "My Pulsar" standalone Android cockpit app
 │   ├── AndroidManifest.xml
 │   ├── res/                       # Vectors, HUD layouts & Dark Knight themes
-│   └── src/                       # Java sources (BLE, Media, Navigation, Telemetry)
+│   └── src/                       # 100% Idiomatic Kotlin sources (BLE, Media, Navigation, Telemetry)
 ├── docs/                          # Hardware specs, BLE protocol & owner manual
 │   ├── ble_protocol_spec.md       # Full Bluetooth Low Energy GATT specification & schemas
 │   ├── wifi_protocol_spec.md      # Wi-Fi Navigation V2, TCP/UDP ports & AES screen mirroring

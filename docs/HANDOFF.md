@@ -19,7 +19,7 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
    - Uses cluster volume tenths (0–10) with official Bajaj half-step rounding calculation (`d - (int)d >= 0.5`).
 2. **Volume Mute Protection**:
    - Fixed the issue where releasing `^` caused volume to mute after a few seconds.
-   - Cluster `0a10` Byte 0 idle pulse (`volume=0`) is filtered when current phone volume `> 1` (`MediaStateListener.java`).
+   - Cluster `0a10` Byte 0 idle pulse (`volume=0`) is filtered when current phone volume `> 1` (`MediaStateListener.kt`).
 3. **Track Skip (`^` / `v` long-press / hold)**:
    - Long-press `^` skips to **Next Track**.
    - Long-press `v` skips to **Previous Track**.
@@ -40,13 +40,13 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 
 | Subsystem / Feature | File Location | Status |
 |---|---|---|
-| **BLE GATT Core Engine** | `app/src/com/bajaj/rideconnect/re/PulsarBleManager.java` | ✅ **Complete & Active** |
-| **Binary Protocol Frames** | `app/src/com/bajaj/rideconnect/re/PulsarProtocol.java` | ✅ **Complete & Active** |
-| **Media Controller & Ticker** | `app/src/com/bajaj/rideconnect/re/MediaStateListener.java` | ✅ **Verified on Bike** |
-| **Phone Telemetry Heartbeat** | `app/src/com/bajaj/rideconnect/re/PhoneStateMonitor.java` | ✅ **Verified on Bike** |
-| **Caller ID & Handlebar Calls** | `app/src/com/bajaj/rideconnect/re/TelephonyCallHandler.java` | ⚠️ **Implemented (Untested)** |
+| **BLE GATT Core Engine** | `app/src/com/bajaj/rideconnect/re/PulsarBleManager.kt` | ✅ **Complete & Active** |
+| **Binary Protocol Frames** | `app/src/com/bajaj/rideconnect/re/PulsarProtocol.kt` | ✅ **Complete & Active** |
+| **Media Controller & Ticker** | `app/src/com/bajaj/rideconnect/re/MediaStateListener.kt` | ✅ **Verified on Bike** |
+| **Phone Telemetry Heartbeat** | `app/src/com/bajaj/rideconnect/re/PhoneStateMonitor.kt` | ✅ **Verified on Bike** |
+| **Caller ID & Handlebar Calls** | `app/src/com/bajaj/rideconnect/re/TelephonyCallHandler.kt` | ⚠️ **Implemented (Untested)** |
 | **Turn-by-Turn Navigation** | `app/src/com/bajaj/rideconnect/re/GoogleMapsNotificationListener.java` | ℹ️ **Implemented (Optional)** |
-| **Automotive Cockpit UI & Dock** | `app/src/com/bajaj/rideconnect/re/MainActivity.java` | ✅ **Complete & Active** (Zero margin edge-to-edge flush layout, display cutout `shortEdges` enabled to eliminate notch letterboxing, 3-cluster ergonomic layout tailored for 360dp landscape height on Mi A3, 46dp–56dp glove hitboxes, zoom `+/-` buttons stripped for clean gesture-driven map canvas, **zero-flicker GPU-translated media drawer** with 100% full-bleed base map eliminating MapLibre tile reloads/canvas destruction on minimize/expand, 56dp x 96dp docked split handle with Android 10+ gesture navigation exclusion rects (`setSystemGestureExclusionRects`), enlarged 140dp x 140dp album art stage with bottom-docked playback controls, floating music pill with tap-to-expand, navigation drawer streamlined with About removed and direct clickable `@Deepak5310` GitHub footer link below Exit button, and **rock-solid GPS engine** with multi-version runtime permission handling for Android 11/12+, `onRequestPermissionsResult` callback, API 30+ `getCurrentLocation` one-shot query, system Location settings launcher, and cached coordinates fallback) |
+| **Automotive Cockpit UI & Dock** | `app/src/com/bajaj/rideconnect/re/MainActivity.kt` | ✅ **Complete & Active** (Zero margin edge-to-edge flush layout, display cutout `shortEdges` enabled to eliminate notch letterboxing, 3-cluster ergonomic layout tailored for 360dp landscape height on Mi A3, 46dp–56dp glove hitboxes, zoom `+/-` buttons stripped for clean gesture-driven map canvas, **zero-flicker GPU-translated media drawer** with 100% full-bleed base map eliminating MapLibre tile reloads/canvas destruction on minimize/expand, 56dp x 96dp docked split handle with Android 10+ gesture navigation exclusion rects (`setSystemGestureExclusionRects`), enlarged 140dp x 140dp album art stage with bottom-docked playback controls, floating music pill with tap-to-expand, navigation drawer streamlined with About removed and direct clickable `@Deepak5310` GitHub footer link below Exit button, and **rock-solid GPS engine** with multi-version runtime permission handling for Android 11/12+, `onRequestPermissionsResult` callback, API 30+ `getCurrentLocation` one-shot query, system Location settings launcher, and cached coordinates fallback) |
 | **Official Bajaj Adaptive Launcher Icon** | `app/res/drawable/ic_launcher*.xml` | ✅ **Complete & Verified** (108dp Android adaptive icon using official Bajaj vector logo from `bajaj-seeklogo.svg`; Royal Blue gradient background with centered safe-zone white Bajaj flying-B emblem and wordmark) |
 | **Material You & Dead Code Audit** | `./app/` | ✅ **Audited & Deep Cleaned** (Material You / Monet engine dropped for high-contrast Android 11 AMOLED cockpit palette `#000000`/`#07080B`/`#38BDF8`, zoom pill & zoom icon drawables deleted, navigation drawer About sub-view/drawables `ic_menu_info` & `ic_tab_bike` removed, 0 unused assets/strings, WebView lifecycle hooks `onResume`/`onPause`/`onDestroy` added, socket `HttpURLConnection` cleanup, handler memory leaks resolved) |
 

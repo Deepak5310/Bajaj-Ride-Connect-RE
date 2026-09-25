@@ -42,17 +42,17 @@ The following features have been tested and verified on the physical motorcycle:
                                                       ▼
                                ┌─────────────────────────────────────────────────┐
                                │           Application Service Layer             │
-                               │  - MediaStateListener.java                      │
-                               │  - TelephonyCallHandler.java                    │
-                               │  - PhoneStateMonitor.java                       │
-                               │  - PulsarNotificationService.java               │
+                               │  - MediaStateListener.kt                      │
+                               │  - TelephonyCallHandler.kt                    │
+                               │  - PhoneStateMonitor.kt                       │
+                               │  - PulsarNotificationService.kt               │
                                └──────────────────────┬──────────────────────────┘
                                                       │
                                                       ▼
                                ┌─────────────────────────────────────────────────┐
                                │             BLE GATT Core Engine                │
-                               │  - PulsarBleManager.java (Queue & GATT client)  │
-                               │  - PulsarProtocol.java (Binary Frame Encoders)  │
+                               │  - PulsarBleManager.kt (Queue & GATT client)  │
+                               │  - PulsarProtocol.kt (Binary Frame Encoders)  │
                                └──────────────────────┬──────────────────────────┘
                                                       │
                                      BLE Wireless Link (MTU 247)
@@ -237,20 +237,20 @@ The official Bajaj Connect app computes Trip Distances, Ride Time, Average Speed
 
 ## 7. Android Subsystem Integration
 
-### 7.1 Media Integration (`MediaStateListener.java`)
+### 7.1 Media Integration (`MediaStateListener.kt`)
 * Hooks into active Android `MediaSession` via `MediaSessionManager.addOnActiveSessionsChangedListener()`.
 * Captures metadata changes (`MediaMetadata.METADATA_KEY_TITLE`, `ARTIST`, `ALBUM`, `DURATION`, `ALBUM_ART`).
 * Executes transport commands (`play`, `pause`, `skipToNext`, `skipToPrevious`, `seekTo`) with `dispatchMediaKeyEvent` fallback.
 * Registers `ContentObserver` on `Settings.System.CONTENT_URI` to synchronize phone volume adjustments with the cluster in real time.
 * Runs a 1-second `progressTicker` Runnable that calculates interpolated elapsed position and broadcasts `0610` BLE frames to the bike cluster.
 
-### 7.2 Telephony Integration (`TelephonyCallHandler.java`)
+### 7.2 Telephony Integration (`TelephonyCallHandler.kt`)
 * Uses `TelephonyCallback.CallStateListener` (Android 12+ API 31) and legacy `TelephonyManager` fallback.
 * Queries contact names using `ContactsContract.PhoneLookup`.
 * Dispatches caller ID string and call state (`1=RINGING`, `3=ACTIVE_CALL`, `0=IDLE`) to `0210`.
 * Answers ringing calls via `TelecomManager.acceptRingingCall()` and ends calls via `TelecomManager.endCall()`.
 
-### 7.3 Telemetry & Battery Monitor (`PhoneStateMonitor.java`)
+### 7.3 Telemetry & Battery Monitor (`PhoneStateMonitor.kt`)
 * Listens to `Intent.ACTION_BATTERY_CHANGED` (sticky broadcast).
 * Listens to cellular signal strength via `TelephonyCallback.SignalStrengthsListener`.
 * Checks for connected audio accessories (Bluetooth headsets, A2DP, wired earphones) via `AudioManager.getDevices()`.
@@ -285,11 +285,11 @@ adb logcat -v time -s PulsarBleManager:D MediaStateListener:D TelephonyCallHandl
 
 ```
 app/src/com/bajaj/rideconnect/re/
-├── MainActivity.java             # Modern Automotive Cockpit UI & Map View
-├── PulsarBleManager.java         # BLE GATT Connection, Queue & 500ms Poller
-├── PulsarProtocol.java           # Binary Encoders (0110, 0210, 0610) & Parser (0a10)
-├── MediaStateListener.java       # MediaSession hook, 1s ticker, Volume sync & filter
-├── TelephonyCallHandler.java     # Caller ID & Handlebar Call Accept/Reject
-├── PhoneStateMonitor.java        # Battery %, Signal bars & 4s Heartbeat Telemetry
-└── PulsarNotificationService.java# Android Notification Listener
+├── MainActivity.kt             # Modern Automotive Cockpit UI & Map View
+├── PulsarBleManager.kt         # BLE GATT Connection, Queue & 500ms Poller
+├── PulsarProtocol.kt           # Binary Encoders (0110, 0210, 0610) & Parser (0a10)
+├── MediaStateListener.kt       # MediaSession hook, 1s ticker, Volume sync & filter
+├── TelephonyCallHandler.kt     # Caller ID & Handlebar Call Accept/Reject
+├── PhoneStateMonitor.kt        # Battery %, Signal bars & 4s Heartbeat Telemetry
+└── PulsarNotificationService.kt# Android Notification Listener
 ```
