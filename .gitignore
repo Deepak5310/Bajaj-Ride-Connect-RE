@@ -27,7 +27,5 @@ env/
 .DS_Store
 .idea/
 .vscode/
-.gradle/
-local.properties
 .agents
 AGENTS.md

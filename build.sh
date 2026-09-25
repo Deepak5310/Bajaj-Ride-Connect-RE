@@ -12,8 +12,6 @@ ADB="$ANDROID_HOME/platform-tools/adb"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC="$ROOT/app"
 BUILD="$SRC/build"
-SRC="$ROOT/app/src/main"
-BUILD="$ROOT/app/build"
 DIST="$ROOT/dist"
 APK="$DIST/my-pulsar.apk"
 KS="$DIST/debug.keystore"
@@ -31,20 +29,17 @@ echo "=== Building My Pulsar APK ==="
 # 1. Compile & Link Resources
 echo "[1/4] Processing resources..."
 "$BUILD_TOOLS/aapt2" compile --dir "$SRC/res" -o "$BUILD/res"
-sed 's/<manifest /<manifest package="com.bajaj.rideconnect.re" /' "$SRC/AndroidManifest.xml" > "$BUILD/AndroidManifest.xml"
 "$BUILD_TOOLS/aapt2" link -I "$PLATFORM_JAR" \
-  --manifest "$BUILD/AndroidManifest.xml" \
+  --manifest "$SRC/AndroidManifest.xml" \
   --java "$BUILD/gen" \
-  --min-sdk-version 26 \
-  --target-sdk-version 35 \
   -o "$BUILD/unaligned.apk" \
   --auto-add-overlay "$BUILD"/res/*.flat
 
 # 2. Compile Java & DEX
 echo "[2/4] Compiling Java & DEX..."
-find "$SRC/java" "$BUILD/gen" -name "*.java" > "$BUILD/sources.txt"
+find "$SRC/src" "$BUILD/gen" -name "*.java" > "$BUILD/sources.txt"
 javac -source 17 -target 17 -Xlint:-options -classpath "$PLATFORM_JAR" -d "$BUILD/obj" @"$BUILD/sources.txt"
-"$BUILD_TOOLS/d8" --min-api 26 --output "$BUILD/dex" --lib "$PLATFORM_JAR" $(find "$BUILD/obj" -name "*.class")
+"$BUILD_TOOLS/d8" --min-api 24 --output "$BUILD/dex" --lib "$PLATFORM_JAR" $(find "$BUILD/obj" -name "*.class")
 
 # 3. Package & Align
 echo "[3/4] Aligning APK..."

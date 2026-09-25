@@ -312,7 +312,6 @@ public class MainActivity extends Activity implements PulsarBleManager.BleListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         setContentView(R.layout.activity_main);
         setupEdgeToEdge();
 
