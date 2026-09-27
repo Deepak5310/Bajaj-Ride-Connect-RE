@@ -1,16 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">My Pulsar</string>
-    <!-- Drawer Menu Items -->
-    <string name="menu_saved_places">Saved Places</string>
-    <string name="menu_exit">Exit</string>
-
-    <!-- Navigation HUD -->
-    <string name="nav_turn_dist">-- m</string>
-    <string name="nav_turn_desc">Continue straight</string>
-    <string name="nav_eta_duration">-- min</string>
-    <string name="nav_eta_sub">-- km • --:--</string>
-    <string name="nav_speed">0</string>
-    <string name="nav_speed_unit">km/h</string>
-    <string name="nav_speed_limit">80</string>
+    <string name="bike_default_name">Bajaj Pulsar NS400Z</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_connected">Connected &amp; Synced</string>
+    <string name="status_scanning">Scanning for Pulsar...</string>
+    <string name="handlebar_controls_active">Handlebar Controls: Active</string>
+    <string name="handlebar_action_received">Handlebar Action Received</string>
+    <string name="battery_sync_label">Battery: --%</string>
+    <string name="action_connect">Connect to Bike</string>
+    <string name="action_disconnect">Disconnect</string>
+    <string name="copilot_title">Rider Co-Pilot</string>
+    <string name="copilot_subtitle">HUD over Google Maps</string>
+    <string name="gps_speed_default">0</string>
+    <string name="gps_live_unit">KM/H • GPS LIVE</string>
+    <string name="action_launch_hud">Launch Floating HUD</string>
+    <string name="action_open_maps">Open Google Maps</string>
+    <string name="media_no_music">No Music Playing</string>
+    <string name="media_launch_hint">Launch Spotify / YT Music</string>
+    <string name="media_handlebar_ready">Handlebar Sync Ready</string>
+    <string name="media_time_default">0:00</string>
+    <string name="content_desc_bike_stage">Bike Stage</string>
+    <string name="content_desc_bluetooth">Bluetooth Action</string>
+    <string name="content_desc_album_art">Album Art</string>
+    <string name="content_desc_prev">Previous Track</string>
+    <string name="content_desc_play_pause">Play or Pause</string>
+    <string name="content_desc_next">Next Track</string>
 </resources>

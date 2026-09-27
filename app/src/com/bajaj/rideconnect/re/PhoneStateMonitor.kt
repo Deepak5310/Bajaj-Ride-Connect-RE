@@ -19,8 +19,7 @@ import android.annotation.TargetApi
 
 class PhoneStateMonitor(
     context: Context,
-    private val bleManager: PulsarBleManager,
-    private val callHandler: TelephonyCallHandler?
+    private val bleManager: PulsarBleManager
 ) {
 
     private val context: Context = context.applicationContext
@@ -78,15 +77,7 @@ class PhoneStateMonitor(
             if (isRunning) {
                 broadcastTelemetry()
                 if (bleManager.isConnected) {
-                    val rawState = callHandler?.currentCallState ?: 0
-                    val callState = when (rawState) {
-                        TelephonyManager.CALL_STATE_RINGING -> 1
-                        TelephonyManager.CALL_STATE_OFFHOOK -> 3
-                        else -> 0
-                    }
-                    val caller = callHandler?.activeCaller.orEmpty()
                     val unreadMessages = PulsarNotificationService.getUnreadMessageCount()
-
                     val media = MediaStateListener.instance
                     val vol = media?.getCurrentVolumeTenths() ?: 5
                     val isHeadset = isHeadsetConnected()
@@ -94,8 +85,8 @@ class PhoneStateMonitor(
                     bleManager.sendTelemetry(
                         if (batteryPercent >= 0) batteryPercent else 85,
                         if (signalBars >= 0) signalBars else 4,
-                        callState,
-                        caller,
+                        0,
+                        null,
                         0,
                         unreadMessages,
                         vol,

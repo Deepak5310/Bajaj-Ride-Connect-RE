@@ -17,7 +17,6 @@ class PulsarForegroundService : Service(), PulsarBleManager.BleListener {
     private var bleManager: PulsarBleManager? = null
     var mediaListener: MediaStateListener? = null
         private set
-    private var callHandler: TelephonyCallHandler? = null
     private var phoneMonitor: PhoneStateMonitor? = null
 
     private var isConnected = false
@@ -38,9 +37,7 @@ class PulsarForegroundService : Service(), PulsarBleManager.BleListener {
 
         val media = MediaStateListener(this, ble)
         this.mediaListener = media
-        val call = TelephonyCallHandler(this, ble)
-        this.callHandler = call
-        val monitor = PhoneStateMonitor(this, ble, call)
+        val monitor = PhoneStateMonitor(this, ble)
         this.phoneMonitor = monitor
         monitor.start()
 
@@ -148,7 +145,6 @@ class PulsarForegroundService : Service(), PulsarBleManager.BleListener {
     override fun onHandlebarEvent(event: PulsarProtocol.HandlebarEvent) {
         Log.i(TAG, "Handlebar switch event received from cluster!")
         mediaListener?.handleHandlebarMedia(event)
-        callHandler?.handleHandlebarCallAction(event)
     }
 
     fun refreshMediaSessions() {

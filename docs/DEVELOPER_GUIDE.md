@@ -23,8 +23,8 @@ The following features have been tested and verified on the physical motorcycle:
 | **Phone Battery Gauge** | Phone battery change | ✅ **Working** | Bit-packed `0–4` bar scale into `0210` telemetry (`batteryLevel << 3`), accurately matching bike LCD icons. |
 | **Phone Signal Gauge** | Cellular signal strength | ✅ **Working** | Streams `0–4` signal bars into `0210` telemetry. |
 | **Bidirectional Volume Sync**| Phone volume rocker buttons | ✅ **Working** | `ContentObserver` on `Settings.System.CONTENT_URI` triggers immediate `0210` telemetry update to bike. |
-| **Call Accept / Reject** | Handlebar call switches | ⚠️ **Implemented (Untested)** | Uses `TelecomManager.acceptRingingCall()` / `endCall()` + `KEYCODE_HEADSETHOOK` fallback. |
-| **Turn-by-Turn Nav** | Google Maps / Navigation | ℹ️ **Implemented (Optional)** | 48-byte `0110` frame encoding with reverse distance byte ordering. |
+| **Call Handling** | Telephony permissions | 🚫 **Dropped** | Removed telephony permissions & call handlers per zero-distraction riding design. |
+| **Turn-by-Turn Nav** | Google Maps / Navigation | ℹ️ **Background Bridge** | 48-byte `0110` frame encoding with reverse distance byte ordering sent to bike LCD. |
 
 ---
 
@@ -34,18 +34,18 @@ The following features have been tested and verified on the physical motorcycle:
                                ┌─────────────────────────────────────────────────┐
                                │             Android OS Subsystems               │
                                │  - MediaSessionManager & AudioManager           │
-                               │  - TelephonyManager & TelecomManager            │
-                               │  - BatteryManager & TelephonyCallback           │
+                               │  - BatteryManager & TelephonyCallback (Signal)  │
+                               │  - WindowManager (SYSTEM_ALERT_WINDOW HUD)      │
                                │  - Settings.System ContentObserver              │
                                └──────────────────────┬──────────────────────────┘
                                                       │
                                                       ▼
                                ┌─────────────────────────────────────────────────┐
                                │           Application Service Layer             │
-                               │  - MediaStateListener.kt                      │
-                               │  - TelephonyCallHandler.kt                    │
-                               │  - PhoneStateMonitor.kt                       │
-                               │  - PulsarNotificationService.kt               │
+                               │  - MediaStateListener.kt                        │
+                               │  - PhoneStateMonitor.kt (Battery & Signal)      │
+                               │  - PulsarForegroundService.kt (BLE & Telemetry) │
+                               │  - PulsarNotificationService.kt (TBT Parser)    │
                                └──────────────────────┬──────────────────────────┘
                                                       │
                                                       ▼

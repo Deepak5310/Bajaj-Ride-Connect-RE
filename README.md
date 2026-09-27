@@ -52,8 +52,11 @@ bajaj-ride-connect-re/
 A native, lightweight automotive cockpit dashboard and background service (`com.bajaj.rideconnect.re`) that connects directly to the Bajaj BLE cluster, intercepts active navigation notifications from **Google Maps**, and renders turn arrows, step distances, ETA, and street names on the bike's LCD dot-matrix display:
 
 ```bash
-# Build, sign, and install standalone bridge APK to connected Android phone
-./build.sh --install
+# Build optimized release APK (arm64-v8a, RSA 4096-bit production signed, V1/V2/V3/V4)
+./build.sh release
+
+# Build and auto-install to connected phone over ADB
+./build.sh release --install
 ```
 
 ### 2. BLE Packet Decoder CLI
