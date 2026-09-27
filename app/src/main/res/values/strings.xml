@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">My Pulsar</string>
+    <string name="bike_name">PULSAR NS400Z</string>
+    <string name="no_bike_connected">NO BIKE CONNECTED</string>
+    <string name="status_standby">STANDBY</string>
+    <string name="action_open_maps">OPEN MAPS</string>
+    <string name="media_no_track">No Track Playing</string>
+    <string name="media_open_player">Open media player</string>
+    <string name="maps_not_installed">Google Maps is not installed</string>
 </resources>
