@@ -6,5 +6,16 @@
     <string name="action_open_maps">OPEN MAPS</string>
     <string name="media_no_track">No Track Playing</string>
     <string name="media_open_player">Open media player</string>
+    <string name="media_access_required">MEDIA ACCESS REQUIRED</string>
+    <string name="media_grant_access_desc">Tap to enable music control</string>
+    <string name="media_enable_access">ENABLE ACCESS</string>
+    <string name="media_source_default">COCKPIT AUDIO</string>
+    <string name="media_status_playing">PLAYING</string>
+    <string name="media_status_paused">PAUSED</string>
+    <string name="media_status_standby">STANDBY</string>
+    <string name="media_action_prev">Previous track</string>
+    <string name="media_action_play_pause">Play or pause</string>
+    <string name="media_action_next">Next track</string>
     <string name="maps_not_installed">Google Maps is not installed</string>
+    <string name="notification_settings_not_found">Notification settings could not be opened</string>
 </resources>

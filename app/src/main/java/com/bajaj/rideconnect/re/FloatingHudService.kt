@@ -11,9 +11,12 @@ import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.IBinder
+import android.provider.Settings
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -45,6 +48,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     private var windowManager: WindowManager? = null
     private var composeView: ComposeView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
+    private lateinit var mediaStateListener: MediaStateListener
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -55,10 +59,18 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
 
         startInForeground()
+        mediaStateListener = MediaStateListener(this)
         initOverlay()
 
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (::mediaStateListener.isInitialized) {
+            mediaStateListener.refreshMediaSessions()
+        }
+        return START_STICKY
     }
 
     private fun startInForeground() {
@@ -122,8 +134,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
             initialWidth,
             initialHeight,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = initialGravity
@@ -140,9 +151,16 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
             setViewTreeSavedStateRegistryOwner(this@FloatingHudService)
             setContent {
                 MyPulsarTheme {
+                    val mediaInfo by mediaStateListener.mediaTrackInfo.collectAsState()
                     CockpitHud(
                         onLaunchMaps = { launchGoogleMaps() },
-                        onExpandedChanged = { expanded -> updateOverlayDimensions(expanded) })
+                        mediaInfo = mediaInfo,
+                        onExpandedChanged = { expanded -> updateOverlayDimensions(expanded) },
+                        onPlayPauseToggle = { mediaStateListener.togglePlayPause() },
+                        onSkipNext = { mediaStateListener.skipNext() },
+                        onSkipPrevious = { mediaStateListener.skipPrevious() },
+                        onSeek = { fraction -> mediaStateListener.seekToRatio(fraction) },
+                        onRequestNotificationPermission = { openNotificationListenerSettings() })
                 }
             }
         }
@@ -198,11 +216,28 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         }
     }
 
+    private fun openNotificationListenerSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(
+                this, getString(R.string.notification_settings_not_found), Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     override fun onDestroy() {
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         viewModelStore.clear()
+
+        if (::mediaStateListener.isInitialized) {
+            mediaStateListener.destroy()
+        }
 
         composeView?.let { view ->
             windowManager?.removeView(view)

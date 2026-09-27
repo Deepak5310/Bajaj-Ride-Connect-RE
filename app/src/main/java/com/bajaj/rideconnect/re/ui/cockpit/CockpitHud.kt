@@ -1,6 +1,7 @@
 package com.bajaj.rideconnect.re.ui.cockpit
 
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -11,7 +12,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,11 +51,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -62,6 +74,7 @@ import com.bajaj.rideconnect.re.ui.theme.CockpitBlackArgb
 import com.bajaj.rideconnect.re.ui.theme.CockpitBorder
 import com.bajaj.rideconnect.re.ui.theme.CockpitSurface
 import com.bajaj.rideconnect.re.ui.theme.MyPulsarTheme
+import com.bajaj.rideconnect.re.ui.theme.PulsarAmber
 import com.bajaj.rideconnect.re.ui.theme.PulsarCyan
 import com.bajaj.rideconnect.re.ui.theme.PulsarGreen
 import com.bajaj.rideconnect.re.ui.theme.TextPrimary
@@ -74,7 +87,10 @@ data class MediaTrackInfo(
     val isPlaying: Boolean = false,
     val progress: Float = 0f,
     val currentPosition: String = "0:00",
-    val totalDuration: String = "0:00"
+    val totalDuration: String = "0:00",
+    val source: String = "",
+    val albumArt: Bitmap? = null,
+    val hasPermission: Boolean = true
 )
 
 @Composable
@@ -86,7 +102,9 @@ fun CockpitHud(
     onExpandedChanged: (Boolean) -> Unit = {},
     onPlayPauseToggle: () -> Unit = {},
     onSkipNext: () -> Unit = {},
-    onSkipPrevious: () -> Unit = {}
+    onSkipPrevious: () -> Unit = {},
+    onSeek: (Float) -> Unit = {},
+    onRequestNotificationPermission: () -> Unit = {}
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -115,12 +133,15 @@ fun CockpitHud(
                     onPlayPauseToggle = onPlayPauseToggle,
                     onSkipNext = onSkipNext,
                     onSkipPrevious = onSkipPrevious,
+                    onSeek = onSeek,
+                    onRequestNotificationPermission = onRequestNotificationPermission,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
                 RiderEdgeTab(
                     isLandscape = isLandscape,
                     bikeName = bikeName,
+                    mediaInfo = mediaInfo,
                     onClick = { if (isLandscape) isManuallyCollapsed = false })
             }
         }
@@ -136,6 +157,8 @@ private fun RiderDock(
     onPlayPauseToggle: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
+    onSeek: (Float) -> Unit,
+    onRequestNotificationPermission: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -202,7 +225,9 @@ private fun RiderDock(
                     mediaInfo = mediaInfo,
                     onPlayPauseToggle = onPlayPauseToggle,
                     onSkipNext = onSkipNext,
-                    onSkipPrevious = onSkipPrevious
+                    onSkipPrevious = onSkipPrevious,
+                    onSeek = onSeek,
+                    onRequestNotificationPermission = onRequestNotificationPermission
                 )
 
                 RiderStatusDeck()
@@ -297,10 +322,69 @@ private fun MediaControlCard(
     onPlayPauseToggle: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
+    onSeek: (Float) -> Unit,
+    onRequestNotificationPermission: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (!mediaInfo.hasPermission) {
+        Card(
+            onClick = onRequestNotificationPermission,
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = CockpitBlack),
+            border = BorderStroke(1.dp, PulsarAmber.copy(alpha = 0.5f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "🔒", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.media_access_required),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = PulsarAmber,
+                        fontSize = 10.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.media_grant_access_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = CockpitSurface,
+                    border = BorderStroke(1.dp, PulsarCyan.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = stringResource(R.string.media_enable_access),
+                        color = PulsarCyan,
+                        fontSize = 9.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+        return
+    }
+
     val displayTitle = mediaInfo.title.ifEmpty { stringResource(R.string.media_no_track) }
     val displayArtist = mediaInfo.artist.ifEmpty { stringResource(R.string.media_open_player) }
+    val displaySource = mediaInfo.source.ifEmpty { stringResource(R.string.media_source_default) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -314,16 +398,77 @@ private fun MediaControlCard(
                 .padding(10.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(4.dp),
                     color = CockpitSurface,
-                    border = BorderStroke(1.dp, PulsarCyan.copy(alpha = 0.3f)),
-                    modifier = Modifier.size(42.dp)
+                    border = BorderStroke(1.dp, PulsarCyan.copy(alpha = 0.25f))
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(text = "🎵", fontSize = 18.sp)
+                    Text(
+                        text = displaySource,
+                        color = PulsarCyan,
+                        fontSize = 9.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (mediaInfo.isPlaying) PulsarGreen else TextSecondary.copy(
+                                    alpha = 0.4f
+                                )
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (mediaInfo.isPlaying) {
+                            stringResource(R.string.media_status_playing)
+                        } else {
+                            stringResource(R.string.media_status_paused)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = if (mediaInfo.isPlaying) PulsarGreen else TextSecondary,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (mediaInfo.albumArt != null) {
+                    Image(
+                        bitmap = mediaInfo.albumArt.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, CockpitBorder, RoundedCornerShape(8.dp))
+                    )
+                } else {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = CockpitSurface,
+                        border = BorderStroke(1.dp, PulsarCyan.copy(alpha = 0.3f)),
+                        modifier = Modifier.size(42.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(text = "🎵", fontSize = 18.sp)
+                        }
                     }
                 }
 
@@ -350,22 +495,77 @@ private fun MediaControlCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+
+            var isDragging by remember { mutableStateOf(false) }
+            var dragProgress by remember { mutableFloatStateOf(0f) }
+
+            val currentProgress = if (isDragging) dragProgress else mediaInfo.progress
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(CockpitBorder)
+                    .height(24.dp)
+                    .pointerInput(mediaInfo.totalDuration) {
+                        detectTapGestures { offset ->
+                            val width = size.width
+                            if (width > 0) {
+                                val ratio = (offset.x / width).coerceIn(0f, 1f)
+                                onSeek(ratio)
+                            }
+                        }
+                    }
+                    .pointerInput(mediaInfo.totalDuration) {
+                        detectHorizontalDragGestures(onDragStart = { offset ->
+                            isDragging = true
+                            val width = size.width
+                            if (width > 0) {
+                                dragProgress = (offset.x / width).coerceIn(0f, 1f)
+                            }
+                        }, onDragEnd = {
+                            isDragging = false
+                            onSeek(dragProgress)
+                        }, onDragCancel = {
+                            isDragging = false
+                        }, onHorizontalDrag = { change, _ ->
+                            change.consume()
+                            val width = size.width
+                            if (width > 0) {
+                                dragProgress = (change.position.x / width).coerceIn(0f, 1f)
+                            }
+                        })
+                    }, contentAlignment = Alignment.CenterStart
             ) {
-                if (mediaInfo.progress > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(CockpitBorder)
+                ) {
+                    if (currentProgress > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(currentProgress.coerceIn(0.001f, 1f))
+                                .fillMaxHeight()
+                                .background(PulsarCyan)
+                        )
+                    }
+                }
+
+                if (currentProgress > 0f) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth(mediaInfo.progress.coerceIn(0.001f, 1f))
-                            .fillMaxHeight()
-                            .background(PulsarCyan)
-                    )
+                        modifier = Modifier.fillMaxWidth(currentProgress.coerceIn(0.001f, 1f)),
+                        contentAlignment = Alignment.CenterEnd
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(if (isDragging) 14.dp else 10.dp)
+                                .clip(CircleShape)
+                                .background(PulsarCyan)
+                                .border(1.dp, CockpitBlack, CircleShape)
+                        )
+                    }
                 }
             }
 
@@ -390,7 +590,7 @@ private fun MediaControlCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -398,21 +598,28 @@ private fun MediaControlCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 HudCircleButton(
-                    icon = "⏮", onClick = onSkipPrevious
+                    icon = "⏮",
+                    onClick = onSkipPrevious,
+                    contentDescription = stringResource(R.string.media_action_prev),
+                    size = 34.dp
                 )
 
                 HudCircleButton(
                     icon = if (mediaInfo.isPlaying) "⏸" else "▶",
                     onClick = onPlayPauseToggle,
-                    size = 38.dp,
-                    containerColor = PulsarCyan,
-                    contentColor = CockpitBlack,
+                    contentDescription = stringResource(R.string.media_action_play_pause),
+                    size = 40.dp,
+                    containerColor = if (mediaInfo.isPlaying) PulsarCyan else CockpitSurface,
+                    contentColor = if (mediaInfo.isPlaying) CockpitBlack else PulsarCyan,
                     borderColor = PulsarCyan,
                     fontSize = 14.sp
                 )
 
                 HudCircleButton(
-                    icon = "⏭", onClick = onSkipNext
+                    icon = "⏭",
+                    onClick = onSkipNext,
+                    contentDescription = stringResource(R.string.media_action_next),
+                    size = 34.dp
                 )
             }
         }
@@ -424,6 +631,7 @@ private fun HudCircleButton(
     icon: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    contentDescription: String? = null,
     size: Dp = 32.dp,
     containerColor: Color = CockpitSurface,
     contentColor: Color = TextPrimary,
@@ -435,8 +643,13 @@ private fun HudCircleButton(
         shape = CircleShape,
         color = containerColor,
         border = BorderStroke(1.dp, borderColor),
-        modifier = modifier.size(size)
-    ) {
+        modifier = modifier
+            .size(size)
+            .semantics {
+                if (contentDescription != null) {
+                    this.contentDescription = contentDescription
+                }
+            }) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = icon, color = contentColor, fontSize = fontSize, fontWeight = FontWeight.Bold
@@ -447,7 +660,11 @@ private fun HudCircleButton(
 
 @Composable
 private fun RiderEdgeTab(
-    isLandscape: Boolean, bikeName: String, onClick: () -> Unit, modifier: Modifier = Modifier
+    isLandscape: Boolean,
+    bikeName: String,
+    mediaInfo: MediaTrackInfo,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         onClick = onClick,
@@ -460,10 +677,14 @@ private fun RiderEdgeTab(
             modifier = Modifier.padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PulsingDot(color = PulsarGreen)
+            PulsingDot(color = if (mediaInfo.isPlaying) PulsarCyan else PulsarGreen)
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = bikeName,
+                text = if (mediaInfo.isPlaying && mediaInfo.title.isNotEmpty()) {
+                    "🎵 ${mediaInfo.title.take(10)}"
+                } else {
+                    bikeName
+                },
                 style = MaterialTheme.typography.labelSmall,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
@@ -517,7 +738,8 @@ private fun CockpitHudLandscapePreview() {
                 isPlaying = true,
                 progress = 0.45f,
                 currentPosition = "1:38",
-                totalDuration = "3:20"
+                totalDuration = "3:20",
+                source = "SPOTIFY"
             )
         )
     }

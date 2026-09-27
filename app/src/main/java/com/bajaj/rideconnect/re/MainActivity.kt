@@ -34,13 +34,18 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = CockpitBlack
                 ) {
-                    CockpitHud(onLaunchMaps = {
-                        if (Settings.canDrawOverlays(this)) {
-                            launchCoPilotAndMaps()
-                        } else {
-                            requestOverlayPermission()
+                    CockpitHud(
+                        onLaunchMaps = {
+                            if (Settings.canDrawOverlays(this)) {
+                                launchCoPilotAndMaps()
+                            } else {
+                                requestOverlayPermission()
+                            }
+                        },
+                        onRequestNotificationPermission = {
+                            openNotificationListenerSettings()
                         }
-                    })
+                    )
                 }
             }
         }
@@ -81,6 +86,18 @@ class MainActivity : ComponentActivity() {
             startActivity(intent)
         } catch (_: ActivityNotFoundException) {
             Toast.makeText(this, getString(R.string.maps_not_installed), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openNotificationListenerSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        } catch (_: Exception) {
+            Toast.makeText(
+                this,
+                getString(R.string.notification_settings_not_found),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 }
