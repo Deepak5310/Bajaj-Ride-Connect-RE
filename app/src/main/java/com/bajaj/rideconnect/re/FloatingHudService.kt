@@ -4,12 +4,14 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
+import android.media.AudioManager
 import android.os.IBinder
 import android.provider.Settings
 import android.view.Gravity
@@ -17,11 +19,12 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -49,6 +52,50 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     private var composeView: ComposeView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private lateinit var mediaStateListener: MediaStateListener
+    private lateinit var bleManager: PulsarBleManager
+
+    private val currentVolumePct = mutableIntStateOf(70)
+
+    private val volumeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            updateVolumeState()
+        }
+    }
+
+    private val simReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                ACTION_SIMULATE_BLE -> {
+                    val connected = intent.getBooleanExtra("connected", true)
+                    val name = intent.getStringExtra("name") ?: getString(R.string.bike_name)
+                    bleManager.simulateConnection(connected, name)
+                }
+
+                ACTION_SIMULATE_KEY -> {
+                    val key = intent.getStringExtra("key") ?: return
+                    val ev = PulsarProtocol.HandlebarEvent()
+                    when (key.uppercase()) {
+                        "VOL_UP" -> adjustVolume(+1)
+                        "VOL_DOWN" -> adjustVolume(-1)
+                        "TRACK_NEXT", "NEXT" -> {
+                            ev.musicNext = true
+                            bleManager.simulateHandlebarEvent(ev)
+                        }
+
+                        "TRACK_PREV", "PREV" -> {
+                            ev.musicPrev = true
+                            bleManager.simulateHandlebarEvent(ev)
+                        }
+
+                        "PLAY_PAUSE", "PLAY", "PAUSE" -> {
+                            ev.musicPlay = true
+                            bleManager.simulateHandlebarEvent(ev)
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -60,15 +107,57 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
         startInForeground()
         mediaStateListener = MediaStateListener(this)
+        bleManager = PulsarBleManager(this)
+
+        bleManager.handlebarListener = { ev ->
+            mediaStateListener.handleHandlebarEvent(ev)
+        }
+
+        mediaStateListener.bleMediaSender =
+            BleMediaSender { title, artist, album, pos, dur, state ->
+                bleManager.sendMedia(title, artist, album, pos, dur, state)
+            }
+
+        bleManager.startScanOrConnect()
+
+        registerReceiver(volumeReceiver, IntentFilter("android.media.VOLUME_CHANGED_ACTION"))
+        val simFilter = IntentFilter().apply {
+            addAction(ACTION_SIMULATE_BLE)
+            addAction(ACTION_SIMULATE_KEY)
+        }
+        ContextCompat.registerReceiver(
+            this, simReceiver, simFilter, ContextCompat.RECEIVER_EXPORTED
+        )
+        updateVolumeState()
+
         initOverlay()
 
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
+    private fun updateVolumeState() {
+        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return
+        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        val curVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        currentVolumePct.intValue = ((curVol * 100f) / maxVol).toInt().coerceIn(0, 100)
+    }
+
+    private fun adjustVolume(delta: Int) {
+        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return
+        val direction = if (delta > 0) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER
+        audioManager.adjustStreamVolume(
+            AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI
+        )
+        updateVolumeState()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (::mediaStateListener.isInitialized) {
             mediaStateListener.refreshMediaSessions()
+        }
+        if (::bleManager.isInitialized && !bleManager.connectionState.value.isConnected) {
+            bleManager.startScanOrConnect()
         }
         return START_STICKY
     }
@@ -78,9 +167,11 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         val channel = NotificationChannel(
-            channelId, "Pulsar Cockpit HUD", NotificationManager.IMPORTANCE_LOW
+            channelId,
+            getString(R.string.notification_channel_name),
+            NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Pulsar HUD overlay active over Google Maps"
+            description = getString(R.string.notification_channel_desc)
             setShowBadge(false)
         }
         nm.createNotificationChannel(channel)
@@ -92,11 +183,11 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
             this, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification =
-            NotificationCompat.Builder(this, channelId).setContentTitle("Pulsar Cockpit")
-                .setContentText("HUD Active").setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(pendingIntent).setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW).build()
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle(getString(R.string.notification_cockpit_title))
+            .setContentText(getString(R.string.notification_cockpit_desc))
+            .setSmallIcon(R.mipmap.ic_launcher).setContentIntent(pendingIntent).setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW).build()
 
         ServiceCompat.startForeground(
             this,
@@ -115,7 +206,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         val screenWidth = maxOf(metrics.widthPixels, metrics.heightPixels)
 
         val initialWidth = if (isLandscape) {
-            (screenWidth * 0.30f).toInt().coerceAtLeast(300)
+            (screenWidth * 0.35f).toInt().coerceIn(480, 560)
         } else {
             WindowManager.LayoutParams.WRAP_CONTENT
         }
@@ -152,15 +243,53 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
             setContent {
                 MyPulsarTheme {
                     val mediaInfo by mediaStateListener.mediaTrackInfo.collectAsState()
+                    val bleState by bleManager.connectionState.collectAsState()
+
+                    val bikeNameText = when {
+                        bleState.isBound || bleState.isConnected -> {
+                            bleState.deviceName.ifEmpty { stringResource(R.string.bike_name) }
+                        }
+
+                        bleState.isConnecting -> stringResource(R.string.bike_name)
+                        else -> stringResource(R.string.no_bike_connected)
+                    }
+
+                    val bikeStatusText = when {
+                        bleState.isBound || bleState.isConnected -> stringResource(R.string.status_linked)
+                        bleState.isConnecting -> stringResource(R.string.status_connecting)
+                        else -> stringResource(R.string.status_standby)
+                    }
+
                     CockpitHud(
-                        onLaunchMaps = { launchGoogleMaps() },
+                        bikeName = bikeNameText,
+                        bikeStatus = bikeStatusText,
+                        isBleConnected = bleState.isConnected,
                         mediaInfo = mediaInfo,
+                        volumePct = currentVolumePct.intValue,
+                        onVolumeDown = { adjustVolume(-1) },
+                        onVolumeUp = { adjustVolume(+1) },
                         onExpandedChanged = { expanded -> updateOverlayDimensions(expanded) },
                         onPlayPauseToggle = { mediaStateListener.togglePlayPause() },
                         onSkipNext = { mediaStateListener.skipNext() },
                         onSkipPrevious = { mediaStateListener.skipPrevious() },
                         onSeek = { fraction -> mediaStateListener.seekToRatio(fraction) },
-                        onRequestNotificationPermission = { openNotificationListenerSettings() })
+                        onRequestNotificationPermission = { openNotificationListenerSettings() },
+                        onBikeClick = {
+                            if (bleState.isConnected) {
+                                Toast.makeText(
+                                    this@FloatingHudService,
+                                    getString(R.string.toast_connected, bikeNameText),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                Toast.makeText(
+                                    this@FloatingHudService,
+                                    getString(R.string.toast_connecting),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                bleManager.startScanOrConnect()
+                            }
+                        })
                 }
             }
         }
@@ -178,7 +307,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
         if (isLandscape && isExpanded) {
             val screenWidth = maxOf(metrics.widthPixels, metrics.heightPixels)
-            params.width = (screenWidth * 0.30f).toInt().coerceAtLeast(300)
+            params.width = (screenWidth * 0.35f).toInt().coerceIn(480, 560)
             params.height = WindowManager.LayoutParams.MATCH_PARENT
             params.gravity = Gravity.START or Gravity.TOP
             params.layoutInDisplayCutoutMode =
@@ -204,17 +333,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         updateOverlayDimensions(isLandscape)
     }
 
-    private fun launchGoogleMaps() {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW, "google.navigation:q=".toUri()).apply {
-                setPackage("com.google.android.apps.maps")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, getString(R.string.maps_not_installed), Toast.LENGTH_SHORT).show()
-        }
-    }
 
     private fun openNotificationListenerSettings() {
         try {
@@ -235,6 +353,19 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         viewModelStore.clear()
 
+        try {
+            unregisterReceiver(volumeReceiver)
+        } catch (_: Exception) {
+        }
+        try {
+            unregisterReceiver(simReceiver)
+        } catch (_: Exception) {
+        }
+
+        if (::bleManager.isInitialized) {
+            bleManager.destroy()
+        }
+
         if (::mediaStateListener.isInitialized) {
             mediaStateListener.destroy()
         }
@@ -250,6 +381,8 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
     companion object {
         private const val NOTIFICATION_ID = 4001
+        const val ACTION_SIMULATE_BLE = "com.bajaj.rideconnect.re.SIMULATE_BLE"
+        const val ACTION_SIMULATE_KEY = "com.bajaj.rideconnect.re.SIMULATE_KEY"
 
         fun start(context: Context) {
             val intent = Intent(context, FloatingHudService::class.java)

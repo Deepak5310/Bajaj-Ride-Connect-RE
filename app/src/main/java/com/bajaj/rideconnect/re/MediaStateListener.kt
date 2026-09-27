@@ -18,6 +18,13 @@ import com.bajaj.rideconnect.re.ui.cockpit.MediaTrackInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.math.roundToInt
+
+fun interface BleMediaSender {
+    fun sendMedia(
+        title: String, artist: String, album: String, posSec: Int, durSec: Int, state: Int
+    )
+}
 
 class MediaStateListener(context: Context) {
 
@@ -37,6 +44,7 @@ class MediaStateListener(context: Context) {
         )
     )
     val mediaTrackInfo: StateFlow<MediaTrackInfo> = _mediaTrackInfo.asStateFlow()
+    var bleMediaSender: BleMediaSender? = null
 
     private val sessionUpdateListener = PulsarNotificationService.SessionUpdateListener {
         refreshMediaSessions()
@@ -154,6 +162,7 @@ class MediaStateListener(context: Context) {
                     totalDurationSec = 0
                     handler.removeCallbacks(progressTicker)
                     _mediaTrackInfo.value = MediaTrackInfo(hasPermission = true)
+                    bleMediaSender?.sendMedia("", "", "", 0, 0, 0)
                 }
                 return
             }
@@ -250,7 +259,7 @@ class MediaStateListener(context: Context) {
             if (totalDurationSec > 0) (clampedPosSec.toFloat() / totalDurationSec.toFloat()).coerceIn(
                 0f, 1f
             ) else 0f
-        val sourceLabel = formatSourceLabel(controller.packageName)
+        val sourceLabel = formatSourceLabel(context, controller.packageName)
 
         _mediaTrackInfo.value = MediaTrackInfo(
             title = title,
@@ -258,11 +267,20 @@ class MediaStateListener(context: Context) {
             isPlaying = isPlaying,
             progress = progress,
             currentPosition = formatSeconds(clampedPosSec),
-            totalDuration = if (totalDurationSec > 0) formatSeconds(totalDurationSec) else "--:--",
+            totalDuration = if (totalDurationSec > 0) formatSeconds(totalDurationSec) else context.getString(
+                R.string.media_time_unknown
+            ),
             source = sourceLabel,
             albumArt = artwork,
             hasPermission = true
         )
+
+        val pbStateInt = when {
+            isPlaying -> 2
+            pbState?.state == PlaybackState.STATE_PAUSED -> 1
+            else -> 0
+        }
+        bleMediaSender?.sendMedia(title, artist, "", clampedPosSec, totalDurationSec, pbStateInt)
 
         handler.removeCallbacks(progressTicker)
         if (isPlaying) {
@@ -289,8 +307,12 @@ class MediaStateListener(context: Context) {
                 0f, 1f
             ) else 0f
 
-        _mediaTrackInfo.value = _mediaTrackInfo.value.copy(
+        val currentInfo = _mediaTrackInfo.value
+        _mediaTrackInfo.value = currentInfo.copy(
             progress = progress, currentPosition = formatSeconds(clampedPosSec)
+        )
+        bleMediaSender?.sendMedia(
+            currentInfo.title, currentInfo.artist, "", clampedPosSec, totalDurationSec, 2
         )
     }
 
@@ -434,6 +456,106 @@ class MediaStateListener(context: Context) {
         am.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0))
     }
 
+    fun handleHandlebarEvent(ev: PulsarProtocol.HandlebarEvent?) {
+        ev ?: return
+        Log.i(
+            TAG,
+            "handleHandlebarEvent: play=${ev.musicPlay} pause=${ev.musicPause} " + "next=${ev.musicNext} prev=${ev.musicPrev} stop=${ev.musicStop} " + "vol=${ev.volumeLevel} volChanged=${ev.volumeChanged}"
+        )
+
+        if (ev.volumeChanged) {
+            val curVol = getCurrentVolumeTenths()
+            if (ev.volumeLevel == 0 && curVol > 1) {
+                Log.i(TAG, "Ignoring cluster volume=0 idle pulse (phone vol=$curVol/10)")
+            } else {
+                setVolumeFromCluster(ev.volumeLevel)
+            }
+        }
+
+        if (activeController == null) {
+            updateActiveController()
+        }
+
+        when {
+            ev.musicNext -> skipNext()
+            ev.musicPrev -> skipPrevious()
+            ev.musicPlay -> {
+                val controller = activeController
+                if (controller != null) {
+                    try {
+                        controller.transportControls.play()
+                    } catch (_: Exception) {
+                        sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
+                    }
+                } else {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
+                }
+                handler.postDelayed({ syncMetadata() }, 300L)
+            }
+
+            ev.musicPause -> {
+                val controller = activeController
+                if (controller != null) {
+                    try {
+                        controller.transportControls.pause()
+                    } catch (_: Exception) {
+                        sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
+                    }
+                } else {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
+                }
+                handler.postDelayed({ syncMetadata() }, 300L)
+            }
+
+            ev.musicStop -> {
+                val controller = activeController
+                if (controller != null) {
+                    try {
+                        controller.transportControls.stop()
+                    } catch (_: Exception) {
+                        sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_STOP)
+                    }
+                } else {
+                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_STOP)
+                }
+                handler.postDelayed({ syncMetadata() }, 300L)
+            }
+        }
+    }
+
+    fun setVolumeFromCluster(volumeNibble: Int) {
+        if (volumeNibble !in 0..10) return
+        try {
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+            val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            if (maxVol > 0) {
+                val d = volumeNibble.toDouble() * (maxVol.toDouble() / 10.0)
+                var targetVol = d.toInt()
+                if (d - targetVol >= 0.5) {
+                    targetVol = (d + 0.5).toInt()
+                }
+                targetVol = targetVol.coerceIn(0, maxVol)
+                am.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, AudioManager.FLAG_SHOW_UI)
+                Log.i(TAG, "Cluster volume adjusted: $volumeNibble/10 -> $targetVol/$maxVol")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error setting volume from cluster: ${e.message}")
+        }
+    }
+
+    fun getCurrentVolumeTenths(): Int {
+        try {
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return 5
+            val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val curVol = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            if (maxVol > 0) {
+                return ((curVol * 10.0) / maxVol).roundToInt().coerceIn(0, 10)
+            }
+        } catch (_: Exception) {
+        }
+        return 5
+    }
+
     fun destroy() {
         PulsarNotificationService.setSessionUpdateListener(null)
         handler.removeCallbacksAndMessages(null)
@@ -442,6 +564,7 @@ class MediaStateListener(context: Context) {
         } catch (_: Exception) {
         }
         activeController = null
+        bleMediaSender = null
 
         sessionsChangedListener?.let { listener ->
             try {
@@ -473,19 +596,19 @@ class MediaStateListener(context: Context) {
             return "$m:${if (s < 10) "0$s" else "$s"}"
         }
 
-        private fun formatSourceLabel(packageName: String?): String {
+        private fun formatSourceLabel(context: Context, packageName: String?): String {
             if (packageName.isNullOrEmpty()) return ""
             return when (packageName) {
-                PKG_YT_MUSIC_MORPHE, PKG_YT_MUSIC_OFFICIAL -> "YT MUSIC"
-                PKG_METROLIST -> "METROLIST"
+                PKG_YT_MUSIC_MORPHE, PKG_YT_MUSIC_OFFICIAL -> context.getString(R.string.media_source_yt_music)
+                PKG_METROLIST -> context.getString(R.string.media_source_metrolist)
                 else -> {
                     val lower = packageName.lowercase()
                     if (lower.contains("youtube.music")) {
-                        "YT MUSIC"
+                        context.getString(R.string.media_source_yt_music)
                     } else if (lower.contains("metrolist")) {
-                        "METROLIST"
+                        context.getString(R.string.media_source_metrolist)
                     } else {
-                        "MUSIC"
+                        context.getString(R.string.media_source_generic)
                     }
                 }
             }

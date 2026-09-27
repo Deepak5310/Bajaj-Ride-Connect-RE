@@ -34,18 +34,9 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = CockpitBlack
                 ) {
-                    CockpitHud(
-                        onLaunchMaps = {
-                            if (Settings.canDrawOverlays(this)) {
-                                launchCoPilotAndMaps()
-                            } else {
-                                requestOverlayPermission()
-                            }
-                        },
-                        onRequestNotificationPermission = {
-                            openNotificationListenerSettings()
-                        }
-                    )
+                    CockpitHud(onRequestNotificationPermission = {
+                        openNotificationListenerSettings()
+                    })
                 }
             }
         }
@@ -94,9 +85,7 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         } catch (_: Exception) {
             Toast.makeText(
-                this,
-                getString(R.string.notification_settings_not_found),
-                Toast.LENGTH_SHORT
+                this, getString(R.string.notification_settings_not_found), Toast.LENGTH_SHORT
             ).show()
         }
     }
