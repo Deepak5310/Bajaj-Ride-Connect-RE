@@ -1,291 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:background="@color/bg_root"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp"
-    android:baselineAligned="false">
+    android:background="@color/bg_root">
 
-    <!-- ============================================================= -->
-    <!-- 1. LEFT CARD: BIKE CONNECTION & TELEMETRY STAGE               -->
-    <!-- ============================================================= -->
+    <!-- Central Setup Card -->
     <LinearLayout
-        android:id="@+id/cardBikeStage"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
+        android:id="@+id/cardSetup"
+        android:layout_width="480dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
         android:orientation="vertical"
-        android:background="@drawable/bg_cockpit_card"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
-        android:layout_marginEnd="8dp">
+        android:background="@drawable/bg_setup_card"
+        android:padding="20dp">
 
-        <!-- Header: Pulsar Brand + Status Dot -->
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
 
             <View
-                android:id="@+id/ivBleStatusDot"
                 android:layout_width="10dp"
                 android:layout_height="10dp"
                 android:background="@drawable/bg_pulse_dot"
                 android:layout_marginEnd="8dp" />
 
             <TextView
-                android:id="@+id/tvBikeName"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/bike_default_name"
+                android:text="@string/hud_permission_title"
                 android:textColor="@color/text_primary"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:singleLine="true" />
-
-            <ProgressBar
-                android:id="@+id/pbBleConnecting"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
-                android:indeterminate="true"
-                android:visibility="gone" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/tvBleStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/status_disconnected"
-            android:textColor="@color/pulsar_red"
-            android:textSize="11sp"
-            android:layout_marginTop="2dp" />
-
-        <!-- Bike Silhouette Visual Area -->
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="6dp">
-
-            <ImageView
-                android:id="@+id/ivBikeSilhouette"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:src="@drawable/img_drawer_bike"
-                android:scaleType="fitCenter"
-                android:contentDescription="@string/content_desc_bike_stage" />
-        </FrameLayout>
-
-        <!-- Handlebar & Telemetry Badges -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
-
-            <TextView
-                android:id="@+id/tvHandlebarStatus"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/handlebar_controls_active"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp" />
-
-            <TextView
-                android:id="@+id/tvBatterySync"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/battery_sync_label"
-                android:textColor="@color/pulsar_cyan"
-                android:textSize="11sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- BLE Connect / Disconnect Action Button -->
-        <FrameLayout
-            android:id="@+id/btnBleConnect"
+        <TextView
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_chip_primary"
-            android:clickable="true"
-            android:focusable="true">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <ImageView
-                    android:id="@+id/ivBleActionIcon"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@drawable/ic_bluetooth"
-                    android:tint="@color/pulsar_cyan"
-                    android:layout_marginEnd="6dp"
-                    android:contentDescription="@string/content_desc_bluetooth" />
-
-                <TextView
-                    android:id="@+id/tvBleActionText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/action_connect"
-                    android:textColor="@color/pulsar_cyan"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </FrameLayout>
-    </LinearLayout>
-
-    <!-- ============================================================= -->
-    <!-- 2. CENTER CARD: CO-PILOT HUD & GPS SPEEDOMETER                -->
-    <!-- ============================================================= -->
-    <LinearLayout
-        android:id="@+id/cardCoPilot"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="0.95"
-        android:orientation="vertical"
-        android:background="@drawable/bg_cockpit_card"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp"
-        android:layout_marginEnd="8dp">
-
-        <TextView
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/copilot_title"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/copilot_subtitle"
+            android:text="@string/hud_permission_desc"
             android:textColor="@color/text_secondary"
             android:textSize="11sp"
-            android:layout_marginTop="2dp" />
+            android:layout_marginBottom="16dp" />
 
-        <!-- GPS Speedometer Stage -->
+        <!-- 1. Overlay Permission Row -->
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp">
-
-            <TextView
-                android:id="@+id/tvGpsSpeed"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/gps_speed_default"
-                android:textColor="@color/text_primary"
-                android:textSize="52sp"
-                android:fontFamily="sans-serif-condensed"
-                android:textStyle="bold"
-                android:includeFontPadding="false" />
-
-            <TextView
-                android:id="@+id/tvGpsUnit"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/gps_live_unit"
-                android:textColor="@color/pulsar_cyan"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.08" />
-        </LinearLayout>
-
-        <!-- Launch Floating HUD Button -->
-        <FrameLayout
-            android:id="@+id/btnLaunchFloatingHud"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_chip_primary"
-            android:clickable="true"
-            android:focusable="true"
-            android:layout_marginBottom="8dp">
-
-            <TextView
-                android:id="@+id/tvLaunchHudText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="@string/action_launch_hud"
-                android:textColor="@color/pulsar_cyan"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </FrameLayout>
-
-        <!-- Open Native Google Maps Button -->
-        <FrameLayout
-            android:id="@+id/btnOpenGoogleMaps"
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:background="@drawable/bg_circle_action"
-            android:clickable="true"
-            android:focusable="true">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="@string/action_open_maps"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </FrameLayout>
-    </LinearLayout>
-
-    <!-- ============================================================= -->
-    <!-- 3. RIGHT CARD: COCKPIT MEDIA DECK                             -->
-    <!-- ============================================================= -->
-    <LinearLayout
-        android:id="@+id/cardMediaDeck"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1.15"
-        android:orientation="vertical"
-        android:background="@drawable/bg_cockpit_card"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
-
-        <!-- Top Row: Album Art + Track Info -->
-        <LinearLayout
+            android:id="@+id/rowPermOverlay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:background="@drawable/bg_cockpit_card"
+            android:padding="10dp"
             android:layout_marginBottom="8dp">
-
-            <com.bajaj.rideconnect.re.RoundedImageView
-                android:id="@+id/ivAlbumArt"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:src="@drawable/ic_album_art_placeholder"
-                android:scaleType="centerCrop"
-                android:layout_marginEnd="12dp"
-                android:contentDescription="@string/content_desc_album_art" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -294,122 +65,147 @@
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tvTrackTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/media_no_music"
-                    android:textColor="@color/text_primary"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:singleLine="true"
-                    android:ellipsize="marquee"
-                    android:marqueeRepeatLimit="marquee_forever" />
-
-                <TextView
-                    android:id="@+id/tvTrackArtist"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/media_launch_hint"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:singleLine="true"
-                    android:ellipsize="end"
-                    android:layout_marginTop="2dp" />
-
-                <TextView
-                    android:id="@+id/tvPlayerSource"
+                    android:id="@+id/tvOverlayTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/media_handlebar_ready"
-                    android:textColor="@color/pulsar_cyan"
-                    android:textSize="11sp"
-                    android:layout_marginTop="2dp" />
+                    android:text="@string/perm_overlay_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/perm_overlay_desc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp" />
             </LinearLayout>
-        </LinearLayout>
-
-        <!-- Wavy Seekbar -->
-        <com.bajaj.rideconnect.re.WavySeekBar
-            android:id="@+id/wavySeekBar"
-            android:layout_width="match_parent"
-            android:layout_height="22dp" />
-
-        <!-- Track Time Row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/tvMediaElapsed"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/media_time_default"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvMediaDuration"
+                android:id="@+id/btnGrantOverlay"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/media_time_default"
-                android:textColor="@color/text_secondary"
+                android:text="@string/perm_overlay_btn"
+                android:textColor="@color/pulsar_cyan"
                 android:textSize="11sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:background="@drawable/bg_chip_action"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
         </LinearLayout>
 
-        <!-- Flexible Spacer -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
-
-        <!-- Media Controls Row (Glove Friendly Targets: 44dp Prev/Next, 54dp Play/Pause) -->
+        <!-- 2. Notification Listener Permission Row -->
         <LinearLayout
+            android:id="@+id/rowPermNotification"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical|center_horizontal"
-            android:layout_marginTop="4dp">
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_cockpit_card"
+            android:padding="10dp"
+            android:layout_marginBottom="8dp">
 
-            <ImageView
-                android:id="@+id/btnMediaPrev"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_media_prev"
-                android:background="@drawable/bg_circle_action"
-                android:padding="11dp"
-                android:tint="@color/text_primary"
-                android:clickable="true"
-                android:focusable="true"
-                android:layout_marginEnd="16dp"
-                android:contentDescription="@string/content_desc_prev" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <ImageView
-                android:id="@+id/btnMediaPlayPause"
-                android:layout_width="54dp"
-                android:layout_height="54dp"
-                android:src="@drawable/ic_media_play"
-                android:background="@drawable/bg_circle_action"
-                android:padding="14dp"
-                android:tint="@color/text_primary"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/content_desc_play_pause" />
+                <TextView
+                    android:id="@+id/tvNotificationTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/perm_notification_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-            <ImageView
-                android:id="@+id/btnMediaNext"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:src="@drawable/ic_media_next"
-                android:background="@drawable/bg_circle_action"
-                android:padding="11dp"
-                android:tint="@color/text_primary"
-                android:clickable="true"
-                android:focusable="true"
-                android:layout_marginStart="16dp"
-                android:contentDescription="@string/content_desc_next" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/perm_notification_desc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btnGrantNotification"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/perm_notification_btn"
+                android:textColor="@color/pulsar_cyan"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_chip_action"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
         </LinearLayout>
+
+        <!-- 3. Location Permission Row -->
+        <LinearLayout
+            android:id="@+id/rowPermLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_cockpit_card"
+            android:padding="10dp"
+            android:layout_marginBottom="14dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvLocationTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/perm_location_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/perm_location_desc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btnGrantLocation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/perm_location_btn"
+                android:textColor="@color/pulsar_cyan"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_chip_action"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
+        </LinearLayout>
+
+        <!-- Main Launch Action -->
+        <TextView
+            android:id="@+id/btnLaunchCoPilot"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:gravity="center"
+            android:text="@string/perm_launch_btn"
+            android:textColor="@color/bg_root"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_chip_primary" />
+
     </LinearLayout>
-</LinearLayout>
+
+</FrameLayout>

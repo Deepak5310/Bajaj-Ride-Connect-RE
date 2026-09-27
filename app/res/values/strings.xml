@@ -26,4 +26,19 @@
     <string name="content_desc_prev">Previous Track</string>
     <string name="content_desc_play_pause">Play or Pause</string>
     <string name="content_desc_next">Next Track</string>
+    <string name="hud_permission_title">Pulsar Co-Pilot Setup</string>
+    <string name="hud_permission_desc">Enable permissions to launch the floating HUD over Google Maps</string>
+    <string name="perm_overlay_title">Floating Overlay (HUD)</string>
+    <string name="perm_overlay_desc">Displays speed &amp; media dock over Google Maps</string>
+    <string name="perm_overlay_btn">Grant Overlay</string>
+    <string name="perm_notification_title">Media &amp; Maps Access</string>
+    <string name="perm_notification_desc">Enables handlebar track skip &amp; bike cluster turns</string>
+    <string name="perm_notification_btn">Grant Access</string>
+    <string name="perm_location_title">Speedometer GPS</string>
+    <string name="perm_location_desc">Provides real-time GPS speed to floating HUD</string>
+    <string name="perm_location_btn">Grant Location</string>
+    <string name="perm_all_granted">Ready to Ride</string>
+    <string name="perm_launch_btn">Launch Co-Pilot &amp; Maps</string>
+    <string name="hud_dock_collapse">Collapse</string>
+    <string name="hud_dock_dismiss">Exit HUD</string>
 </resources>

@@ -76,6 +76,12 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
 
+        <!-- Pulsar Co-Pilot Floating HUD Service -->
+        <service
+            android:name=".FloatingHudService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
         <!-- Auto-Start on Boot Receiver -->
         <receiver
             android:name=".BootReceiver"

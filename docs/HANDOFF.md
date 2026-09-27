@@ -45,9 +45,10 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 | **Media Controller & Ticker** | `app/src/com/bajaj/rideconnect/re/MediaStateListener.kt` | ✅ **Verified on Bike** |
 | **Phone Telemetry Heartbeat** | `app/src/com/bajaj/rideconnect/re/PhoneStateMonitor.kt` | ✅ **Verified on Bike** (Zero telephony dependencies) |
 | **Caller ID & Telephony** | N/A | 🗑️ **Dropped (Phase 1 Clean)** — Removed distracting in-ride call interruptions & invasive permissions |
-| **Co-Pilot Floating HUD Launcher** | `app/src/com/bajaj/rideconnect/re/MainActivity.kt` | ✅ **Phase 1 Complete** (Clean 3-cluster cockpit dashboard, GPS ground speed, media controls, Google Maps launcher) |
+| **Co-Pilot Floating HUD Service** | `app/src/com/bajaj/rideconnect/re/FloatingHudService.kt` | ✅ **Phase 2 Complete & Verified Live** — Floating HUD Pill (~15%) and expandable Rider Dock (~25%) docked on the left screen edge over native Google Maps |
+| **Permissions Gatekeeper & Launcher** | `app/src/com/bajaj/rideconnect/re/MainActivity.kt` | ✅ **Phase 2 Complete** — Lightweight zero-clutter launcher: requests setup if permissions missing, otherwise auto-shifts into left floating HUD & launches Google Maps |
 | **Official Bajaj Adaptive Launcher Icon** | `app/res/drawable/ic_launcher*.xml` | ✅ **Complete & Verified** |
-| **Dead Code & Asset Audit** | `./app/` | ✅ **Deep Cleaned (Phase 1)** — Completely removed heavy WebView OSM/Mappls map, software keyboard, 40+ unused drawables; APK down to 884K with 0 lint errors |
+| **Dead Code & Asset Audit** | `./app/` | ✅ **Deep Cleaned** — Completely removed heavy WebView OSM/Mappls map, software keyboard, 40+ unused drawables; APK down to 788K with 0 suppressions |
 
 ---
 
