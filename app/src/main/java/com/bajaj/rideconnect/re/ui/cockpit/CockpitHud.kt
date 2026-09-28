@@ -1,5 +1,6 @@
 package com.bajaj.rideconnect.re.ui.cockpit
 
+import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedContent
@@ -65,6 +66,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -76,6 +78,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import com.bajaj.rideconnect.re.R
 import com.bajaj.rideconnect.re.ui.theme.CockpitAccent
 import com.bajaj.rideconnect.re.ui.theme.CockpitAction
@@ -797,42 +800,57 @@ private fun HandlebarGuideOverlay(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Guide Rows
+            // Guide Rows (4 Switchgear Controls)
             Column(
                 modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 GuideRow(
-                    badge = stringResource(R.string.guide_btn_set),
+                    icon = { PlayPauseIcon(modifier = Modifier.size(13.dp), tint = PulsarGreen) },
                     badgeColor = PulsarGreen,
-                    desc = stringResource(R.string.guide_desc_play_pause)
+                    action = stringResource(R.string.guide_action_play_pause),
+                    instruction = stringResource(R.string.guide_inst_set)
                 )
                 GuideRow(
-                    badge = stringResource(R.string.guide_btn_hold_up),
+                    icon = { NextIcon(modifier = Modifier.size(12.dp), tint = CockpitAccent) },
                     badgeColor = CockpitAccent,
-                    desc = stringResource(R.string.guide_desc_next)
+                    action = stringResource(R.string.guide_action_next),
+                    instruction = stringResource(R.string.guide_inst_next)
                 )
                 GuideRow(
-                    badge = stringResource(R.string.guide_btn_hold_down),
+                    icon = { PreviousIcon(modifier = Modifier.size(12.dp), tint = CockpitAccent) },
                     badgeColor = CockpitAccent,
-                    desc = stringResource(R.string.guide_desc_prev)
+                    action = stringResource(R.string.guide_action_prev),
+                    instruction = stringResource(R.string.guide_inst_prev)
                 )
                 GuideRow(
-                    badge = stringResource(R.string.guide_btn_click_vol),
-                    badgeColor = TextPrimary,
-                    desc = stringResource(R.string.guide_desc_volume)
-                )
-                GuideRow(
-                    badge = stringResource(R.string.guide_btn_tab),
+                    icon = {
+                        VolumeSpeakerIcon(
+                            modifier = Modifier.size(13.dp), tint = PulsarAmber
+                        )
+                    },
                     badgeColor = PulsarAmber,
-                    desc = stringResource(R.string.guide_desc_tab)
+                    action = stringResource(R.string.guide_action_volume),
+                    instruction = stringResource(R.string.guide_inst_volume)
                 )
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Dismiss Button
+            // Developer GitHub Handle / Link
+            val context = LocalContext.current
             Surface(
-                onClick = onDismiss,
+                onClick = {
+                    try {
+                        val browserIntent = Intent(
+                            Intent.ACTION_VIEW, "https://github.com/Deepak5310".toUri()
+                        ).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(browserIntent)
+                    } catch (_: Exception) {
+                    }
+                    onDismiss()
+                },
                 shape = RoundedCornerShape(8.dp),
                 color = CockpitSurfaceElevated,
                 border = BorderStroke(1.dp, CockpitBorder),
@@ -840,9 +858,15 @@ private fun HandlebarGuideOverlay(
                     .fillMaxWidth()
                     .height(30.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    GithubIcon(modifier = Modifier.size(14.dp), tint = CockpitAccent)
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = stringResource(R.string.guide_action_close),
+                        text = stringResource(R.string.guide_github_handle),
                         style = MaterialTheme.typography.labelSmall,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
@@ -857,7 +881,11 @@ private fun HandlebarGuideOverlay(
 
 @Composable
 private fun GuideRow(
-    badge: String, badgeColor: Color, desc: String, modifier: Modifier = Modifier
+    icon: @Composable () -> Unit,
+    badgeColor: Color,
+    action: String,
+    instruction: String,
+    modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
@@ -871,26 +899,33 @@ private fun GuideRow(
         Surface(
             shape = RoundedCornerShape(4.dp),
             color = badgeColor.copy(alpha = 0.15f),
-            border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
+            border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f)),
+            modifier = Modifier.size(24.dp)
         ) {
-            Text(
-                text = badge,
-                color = badgeColor,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = 9.sp,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-            )
+            Box(contentAlignment = Alignment.Center) {
+                icon()
+            }
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = desc,
-            color = TextSecondary,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 9.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Column(
+            modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = action,
+                color = TextPrimary,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp
+            )
+            Text(
+                text = instruction,
+                color = TextSecondary,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                maxLines = 2,
+                softWrap = true
+            )
+        }
     }
 }
 
@@ -995,10 +1030,11 @@ private fun PulsingDot(
         ), label = "dotAlpha"
     )
 
-    Box(modifier = modifier
-        .size(8.dp)
-        .graphicsLayer { this.alpha = alpha }
-        .background(color, CircleShape))
+    Box(
+        modifier = modifier
+            .size(8.dp)
+            .graphicsLayer { this.alpha = alpha }
+            .background(color, CircleShape))
 }
 
 // Clean Automotive Vector Icons
@@ -1231,6 +1267,117 @@ fun CloseIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
             strokeWidth = stroke,
             cap = StrokeCap.Round
         )
+    }
+}
+
+@Composable
+fun PlayPauseIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val playPath = Path().apply {
+            moveTo(w * 0.14f, h * 0.20f)
+            lineTo(w * 0.46f, h * 0.50f)
+            lineTo(w * 0.14f, h * 0.80f)
+            close()
+        }
+        drawPath(playPath, color = tint)
+
+        val barWidth = w * 0.13f
+        val barHeight = h * 0.58f
+        val top = (h - barHeight) / 2f
+        val corner = CornerRadius(barWidth / 2f)
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(w * 0.58f, top),
+            size = Size(barWidth, barHeight),
+            cornerRadius = corner
+        )
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(w * 0.78f, top),
+            size = Size(barWidth, barHeight),
+            cornerRadius = corner
+        )
+    }
+}
+
+@Composable
+fun VolumeSpeakerIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        val speakerPath = Path().apply {
+            moveTo(w * 0.10f, h * 0.36f)
+            lineTo(w * 0.30f, h * 0.36f)
+            lineTo(w * 0.52f, h * 0.18f)
+            lineTo(w * 0.52f, h * 0.82f)
+            lineTo(w * 0.30f, h * 0.64f)
+            lineTo(w * 0.10f, h * 0.64f)
+            close()
+        }
+        drawPath(speakerPath, color = tint)
+
+        val stroke = 1.6f.dp.toPx()
+        drawArc(
+            color = tint,
+            startAngle = -45f,
+            sweepAngle = 90f,
+            useCenter = false,
+            topLeft = Offset(w * 0.44f, h * 0.34f),
+            size = Size(w * 0.28f, h * 0.32f),
+            style = Stroke(width = stroke, cap = StrokeCap.Round)
+        )
+        drawArc(
+            color = tint,
+            startAngle = -45f,
+            sweepAngle = 90f,
+            useCenter = false,
+            topLeft = Offset(w * 0.48f, h * 0.22f),
+            size = Size(w * 0.44f, h * 0.56f),
+            style = Stroke(width = stroke, cap = StrokeCap.Round)
+        )
+    }
+}
+
+@Composable
+fun GithubIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        val headPath = Path().apply {
+            moveTo(w * 0.50f, h * 0.14f)
+            lineTo(w * 0.38f, h * 0.14f)
+            lineTo(w * 0.24f, h * 0.08f)
+            lineTo(w * 0.24f, h * 0.28f)
+            cubicTo(w * 0.10f, h * 0.40f, w * 0.10f, h * 0.65f, w * 0.22f, h * 0.80f)
+            cubicTo(w * 0.32f, h * 0.92f, w * 0.68f, h * 0.92f, w * 0.78f, h * 0.80f)
+            cubicTo(w * 0.90f, h * 0.65f, w * 0.90f, h * 0.40f, w * 0.76f, h * 0.28f)
+            lineTo(w * 0.76f, h * 0.08f)
+            lineTo(w * 0.62f, h * 0.14f)
+            close()
+        }
+        drawPath(headPath, color = tint)
+
+        val facePath = Path().apply {
+            moveTo(w * 0.50f, h * 0.32f)
+            cubicTo(w * 0.34f, h * 0.32f, w * 0.26f, h * 0.44f, w * 0.26f, h * 0.58f)
+            cubicTo(w * 0.26f, h * 0.74f, w * 0.36f, h * 0.82f, w * 0.50f, h * 0.82f)
+            cubicTo(w * 0.64f, h * 0.82f, w * 0.74f, h * 0.74f, w * 0.74f, h * 0.58f)
+            cubicTo(w * 0.74f, h * 0.44f, w * 0.66f, h * 0.32f, w * 0.50f, h * 0.32f)
+            close()
+        }
+        drawPath(facePath, color = CockpitSurfaceElevated)
+
+        val nosePath = Path().apply {
+            moveTo(w * 0.44f, h * 0.56f)
+            lineTo(w * 0.56f, h * 0.56f)
+            lineTo(w * 0.50f, h * 0.62f)
+            close()
+        }
+        drawPath(nosePath, color = tint)
     }
 }
 
