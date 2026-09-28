@@ -32,10 +32,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -821,8 +819,7 @@ private fun HandlebarGuideOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 8.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Header
@@ -835,7 +832,7 @@ private fun HandlebarGuideOverlay(
                     Icon(
                         imageVector = FeatherIcons.Info,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                         tint = CockpitAccent
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -860,31 +857,29 @@ private fun HandlebarGuideOverlay(
                 HudCircleButton(
                     onClick = onDismiss,
                     contentDescription = stringResource(R.string.guide_action_close),
-                    size = 30.dp,
+                    size = 32.dp,
                     containerColor = CockpitSurfaceElevated,
                     borderColor = CockpitBorder
                 ) {
                     Icon(
                         imageVector = FeatherIcons.X,
                         contentDescription = null,
-                        modifier = Modifier.size(12.dp),
+                        modifier = Modifier.size(14.dp),
                         tint = TextSecondary
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-
             // Guide Rows (4 Switchgear Controls)
             Column(
-                modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 GuideRow(
                     icon = {
                         Icon(
                             imageVector = FeatherIcons.Play,
                             contentDescription = null,
-                            modifier = Modifier.size(13.dp),
+                            modifier = Modifier.size(12.dp),
                             tint = PulsarGreen
                         )
                     },
@@ -923,7 +918,7 @@ private fun HandlebarGuideOverlay(
                         Icon(
                             imageVector = FeatherIcons.Volume2,
                             contentDescription = null,
-                            modifier = Modifier.size(13.dp),
+                            modifier = Modifier.size(12.dp),
                             tint = PulsarAmber
                         )
                     },
@@ -932,8 +927,6 @@ private fun HandlebarGuideOverlay(
                     instruction = stringResource(R.string.guide_inst_volume)
                 )
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
 
             // Developer GitHub Handle / Link
             val context = LocalContext.current
@@ -950,12 +943,12 @@ private fun HandlebarGuideOverlay(
                     }
                     onDismiss()
                 },
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(10.dp),
                 color = CockpitSurfaceElevated,
                 border = BorderStroke(1.dp, CockpitBorder),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(30.dp)
+                    .height(34.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxSize(),
@@ -994,42 +987,43 @@ private fun GuideRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(CockpitSurface)
-            .border(BorderStroke(0.5.dp, CockpitBorder), RoundedCornerShape(6.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .border(BorderStroke(0.5.dp, CockpitBorder), RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Surface(
-            shape = RoundedCornerShape(4.dp),
-            color = badgeColor.copy(alpha = 0.15f),
-            border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f)),
-            modifier = Modifier.size(24.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                icon()
+            Surface(
+                shape = RoundedCornerShape(5.dp),
+                color = badgeColor.copy(alpha = 0.15f),
+                border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f)),
+                modifier = Modifier.size(22.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    icon()
+                }
             }
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(
-            modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center
-        ) {
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = action,
                 color = TextPrimary,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
-                fontSize = 10.sp
-            )
-            Text(
-                text = instruction,
-                color = TextSecondary,
-                fontFamily = FontFamily.Monospace,
-                fontSize = 9.sp,
-                maxLines = 2,
-                softWrap = true
+                fontSize = 10.sp,
+                maxLines = 1
             )
         }
+        Text(
+            text = instruction,
+            color = TextSecondary,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 9.5.sp,
+            maxLines = 1
+        )
     }
 }
 
