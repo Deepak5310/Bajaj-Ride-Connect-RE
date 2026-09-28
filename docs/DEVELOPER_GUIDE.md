@@ -134,18 +134,35 @@ if ((data[8] & 0xFF) != lastMusicNextCtr) {
 }
 ```
 
-#### Critical Volume Idle Pulse Filter:
-When pressing `^` or `v`, the cluster reports the target volume in `data[0] & 0x0F` (0–10). However, upon button release/idle, the cluster sends an idle pulse resetting `data[0] & 0x0F` to `0`. Without filtering, the phone volume drops to 0 (mute).
+#### Critical Volume Idle Pulse Filter & Synchronous Telemetry Feedback:
+When pressing `^` or `v`, the cluster reports the target volume in `data[0] & 0x0F` (0–10). However, upon button release/idle, legacy cluster firmware sends an idle pulse resetting `data[0] & 0x0F` to `0`. Furthermore, asynchronous AudioService updates in Android return stale volume (`0`) if queried immediately after `setStreamVolume`.
 
-```java
-// Official Bajaj reference filter (Controls.java:163)
+To prevent single-step volume increases from rebounding back to mute:
+1. **Direction & Timestamp Tracking (`MediaStateListener.kt`)**: Rejection of `volume=0` if preceded by an UP click within 1500ms (`isRecentUp`) or if current phone volume `> 1`.
+2. **Synchronous Telemetry Push (`PhoneStateMonitor.sendImmediateVolumeTelemetry(vol)`)**: Bypasses asynchronous `AudioManager.getStreamVolume()` queries to immediately feed the exact target volume nibble back to the dash in the `0210` telemetry packet.
+
+```kotlin
 if (ev.volumeChanged) {
-    int curVol = getCurrentVolumeTenths();
-    if (ev.volumeLevel == 0 && curVol > 1) {
-        Log.i(TAG, "Ignoring cluster volume=0 idle pulse");
-    } else {
-        setVolumeFromCluster(ev.volumeLevel);
+    val newNibble = ev.volumeLevel
+    val curVol = getCurrentVolumeTenths()
+
+    if (newNibble == 0) {
+        val isRecentUp = lastVolumeDirectionIsUp && (System.currentTimeMillis() - lastVolumeUpTimestamp < 1500L)
+        if (isRecentUp || curVol > 1) {
+            Log.i(TAG, "Ignoring cluster volume=0 idle pulse (vol=$curVol/10, recentUp=$isRecentUp)")
+            return
+        }
     }
+
+    if (lastVolumeNibble >= 0) {
+        lastVolumeDirectionIsUp = newNibble > lastVolumeNibble
+        if (lastVolumeDirectionIsUp) {
+            lastVolumeUpTimestamp = System.currentTimeMillis()
+        }
+    }
+    lastVolumeNibble = newNibble
+
+    setVolumeFromCluster(newNibble)
 }
 ```
 

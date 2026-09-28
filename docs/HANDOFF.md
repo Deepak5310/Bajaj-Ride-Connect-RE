@@ -15,9 +15,10 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 1. **Volume Buttons (`^` / `v` single-press)**:
    - Increments and decrements phone media volume smoothly via `AudioManager.STREAM_MUSIC`.
    - Uses cluster volume tenths (0–10) with official Bajaj half-step rounding calculation (`d - (int)d >= 0.5`).
-2. **Volume Mute Protection**:
-   - Fixed the issue where releasing `^` caused volume to mute after a few seconds.
-   - Cluster `0a10` Byte 0 idle pulse (`volume=0`) is filtered when current phone volume `> 1` (`MediaStateListener.kt`).
+2. **Volume Mute Protection & Telemetry Feedback**:
+   - Fixed the issue where single-press `^` from mute rebound back to 0.
+   - Direction & timestamp tracking (`MediaStateListener.kt`) filters cluster `0a10` Byte 0 idle pulses (`volume=0`) occurring within 1.5s of an upward step or when current phone volume `> 1`.
+   - Direct synchronous telemetry (`PhoneStateMonitor.sendImmediateVolumeTelemetry`) feeds back the new volume nibble immediately without waiting for asynchronous `AudioService` updates.
 3. **Track Skip (`^` / `v` long-press / hold)**:
    - Long-press `^` skips to **Next Track**.
    - Long-press `v` skips to **Previous Track**.
