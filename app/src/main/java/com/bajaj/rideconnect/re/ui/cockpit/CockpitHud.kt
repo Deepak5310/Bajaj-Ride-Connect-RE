@@ -3,6 +3,7 @@ package com.bajaj.rideconnect.re.ui.cockpit
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -129,9 +130,11 @@ fun CockpitHud(
     onBikeClick: () -> Unit = {},
     onExitApp: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var isManuallyCollapsed by remember { mutableStateOf(false) }
+    val rotateToastText = stringResource(R.string.toast_rotate_landscape)
 
     val showDock = isLandscape && !isManuallyCollapsed
 
@@ -169,7 +172,13 @@ fun CockpitHud(
                     bikeName = bikeName,
                     isBleConnected = isBleConnected,
                     mediaInfo = mediaInfo,
-                    onClick = { if (isLandscape) isManuallyCollapsed = false })
+                    onClick = {
+                        if (isLandscape) {
+                            isManuallyCollapsed = false
+                        } else {
+                            Toast.makeText(context, rotateToastText, Toast.LENGTH_SHORT).show()
+                        }
+                    })
             }
         }
     }

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -86,6 +87,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun launchCoPilotAndMaps() {
+        if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
+            Toast.makeText(this, getString(R.string.toast_rotate_landscape), Toast.LENGTH_SHORT)
+                .show()
+        }
         FloatingHudService.start(this)
         launchGoogleMaps()
         finish()

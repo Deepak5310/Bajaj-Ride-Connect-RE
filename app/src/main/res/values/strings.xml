@@ -47,6 +47,7 @@
     <!-- User Feedback & Toasts -->
     <string name="toast_connected">Connected: %1$s</string>
     <string name="toast_connecting">Connecting to Pulsar&#8230;</string>
+    <string name="toast_rotate_landscape">Rotate to landscape to use Cockpit HUD</string>
     <string name="maps_not_installed">Google Maps is not installed</string>
     <string name="notification_settings_not_found">Notification settings could not be opened</string>
 
