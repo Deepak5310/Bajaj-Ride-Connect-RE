@@ -91,6 +91,13 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP_SERVICE) {
+            Toast.makeText(
+                this, getString(R.string.toast_service_stopped), Toast.LENGTH_SHORT
+            ).show()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (::mediaStateListener.isInitialized) {
             mediaStateListener.refreshMediaSessions()
         }
@@ -121,11 +128,19 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
             this, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val stopIntent = Intent(this, FloatingHudService::class.java).apply {
+            action = ACTION_STOP_SERVICE
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this, 1, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(getString(R.string.notification_cockpit_title))
             .setContentText(getString(R.string.notification_cockpit_desc))
             .setSmallIcon(R.drawable.ic_stat_pulsar).setContentIntent(pendingIntent)
-            .setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).build()
+            .addAction(0, getString(R.string.action_exit), stopPendingIntent).setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW).build()
 
         ServiceCompat.startForeground(
             this,
@@ -322,6 +337,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
     companion object {
         private const val NOTIFICATION_ID = 4001
+        private const val ACTION_STOP_SERVICE = "com.bajaj.rideconnect.re.ACTION_STOP_SERVICE"
 
         fun start(context: Context) {
             val intent = Intent(context, FloatingHudService::class.java)

@@ -16,6 +16,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -433,12 +434,13 @@ private fun MediaControlCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             // Album Artwork & Track Info
+            val albumBitmap = remember(mediaInfo.albumArt) { mediaInfo.albumArt?.asImageBitmap() }
             Row(
                 modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
             ) {
-                if (mediaInfo.albumArt != null) {
+                if (albumBitmap != null) {
                     Image(
-                        bitmap = mediaInfo.albumArt.asImageBitmap(),
+                        bitmap = albumBitmap,
                         contentDescription = stringResource(R.string.cd_album_art),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -473,7 +475,7 @@ private fun MediaControlCard(
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        modifier = Modifier.basicMarquee()
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
