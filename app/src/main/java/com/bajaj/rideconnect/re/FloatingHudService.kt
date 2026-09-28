@@ -77,8 +77,8 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                 bleManager.sendMedia(title, artist, album, pos, dur, state)
             }
 
-        mediaStateListener.onVolumeChangedExternally = {
-            phoneStateMonitor.triggerImmediateUpdate()
+        mediaStateListener.onVolumeChangedExternally = { requestedNibble ->
+            phoneStateMonitor.sendImmediateVolumeTelemetry(requestedNibble)
         }
 
         phoneStateMonitor.start()

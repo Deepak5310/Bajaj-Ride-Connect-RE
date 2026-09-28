@@ -143,6 +143,24 @@ class PhoneStateMonitor(
         handler.post(heartbeatRunnable)
     }
 
+    fun sendImmediateVolumeTelemetry(volLevel: Int) {
+        if (!bleManager.connectionState.value.isConnected) return
+        val currentBattery = if (batteryPercent >= 0) batteryPercent else readDirectBatteryPercent()
+        signalBars = readCurrentSignalBars()
+        val isHeadset = isHeadsetConnected()
+
+        bleManager.sendTelemetry(
+            batteryPercent = currentBattery,
+            signalBars = signalBars,
+            callState = 0,
+            callerNameOrNumber = null,
+            missedCalls = 0,
+            unreadSms = 0,
+            volumeLevel = volLevel.coerceIn(0, 10),
+            isHeadset = isHeadset
+        )
+    }
+
     init {
         initStateReceiver()
         registerVolumeObserver()

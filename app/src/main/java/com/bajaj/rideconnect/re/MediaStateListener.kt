@@ -46,6 +46,9 @@ class MediaStateListener(context: Context) {
     val mediaTrackInfo: StateFlow<MediaTrackInfo> = _mediaTrackInfo.asStateFlow()
     var bleMediaSender: BleMediaSender? = null
     var onVolumeChangedExternally: ((Int) -> Unit)? = null
+    private var lastVolumeNibble = -1
+    private var lastVolumeDirectionIsUp = false
+    private var lastVolumeUpTimestamp = 0L
 
     private val sessionUpdateListener = PulsarNotificationService.SessionUpdateListener {
         refreshMediaSessions()
@@ -489,12 +492,30 @@ class MediaStateListener(context: Context) {
         )
 
         if (ev.volumeChanged) {
+            val newNibble = ev.volumeLevel
             val curVol = getCurrentVolumeTenths()
-            if (ev.volumeLevel == 0 && curVol > 1) {
-                Log.i(TAG, "Ignoring cluster volume=0 idle pulse (phone vol=$curVol/10)")
-            } else {
-                setVolumeFromCluster(ev.volumeLevel)
+
+            if (newNibble == 0) {
+                val isRecentUp =
+                    lastVolumeDirectionIsUp && (System.currentTimeMillis() - lastVolumeUpTimestamp < 1500L)
+                if (isRecentUp || curVol > 1) {
+                    Log.i(
+                        TAG,
+                        "Ignoring cluster volume=0 idle pulse (phone vol=$curVol/10, recentUp=$isRecentUp)"
+                    )
+                    return
+                }
             }
+
+            if (lastVolumeNibble >= 0) {
+                lastVolumeDirectionIsUp = newNibble > lastVolumeNibble
+                if (lastVolumeDirectionIsUp) {
+                    lastVolumeUpTimestamp = System.currentTimeMillis()
+                }
+            }
+            lastVolumeNibble = newNibble
+
+            setVolumeFromCluster(newNibble)
         }
 
         if (activeController == null) {
@@ -591,6 +612,9 @@ class MediaStateListener(context: Context) {
         }
         activeController = null
         bleMediaSender = null
+        lastVolumeNibble = -1
+        lastVolumeDirectionIsUp = false
+        lastVolumeUpTimestamp = 0L
 
         sessionsChangedListener?.let { listener ->
             try {
