@@ -124,8 +124,8 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(getString(R.string.notification_cockpit_title))
             .setContentText(getString(R.string.notification_cockpit_desc))
-            .setSmallIcon(R.mipmap.ic_launcher).setContentIntent(pendingIntent).setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW).build()
+            .setSmallIcon(R.drawable.ic_stat_pulsar).setContentIntent(pendingIntent)
+            .setOngoing(true).setPriority(NotificationCompat.PRIORITY_LOW).build()
 
         ServiceCompat.startForeground(
             this,
