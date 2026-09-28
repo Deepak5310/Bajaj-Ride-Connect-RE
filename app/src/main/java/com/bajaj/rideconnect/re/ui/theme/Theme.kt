@@ -5,9 +5,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
 private val PulsarColorScheme = darkColorScheme(
-    primary = PulsarCyan,
+    primary = CockpitAccent,
     onPrimary = CockpitBlack,
-    primaryContainer = PulsarCyanDim,
+    primaryContainer = CockpitAccentDim,
     onPrimaryContainer = TextPrimary,
     secondary = PulsarGreen,
     onSecondary = CockpitBlack,

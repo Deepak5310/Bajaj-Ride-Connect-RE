@@ -7,7 +7,6 @@
     <!-- BLE Connection States -->
     <string name="status_linked">LINKED</string>
     <string name="status_connecting">CONNECTING</string>
-    <string name="status_disconnected">DISCONNECTED</string>
     <string name="status_standby">STANDBY</string>
     <string name="bike_handlebar_ready">HANDLEBAR ACTIVE</string>
 
@@ -16,15 +15,11 @@
     <string name="media_open_player">Open media player</string>
     <string name="media_status_playing">PLAYING</string>
     <string name="media_status_paused">PAUSED</string>
-    <string name="media_status_standby">STANDBY</string>
     <string name="media_source_default">COCKPIT AUDIO</string>
     <string name="media_source_yt_music">YT MUSIC</string>
     <string name="media_source_metrolist">METROLIST</string>
     <string name="media_source_generic">MUSIC</string>
-    <string name="media_time_default">0:00</string>
     <string name="media_time_unknown">--:--</string>
-    <string name="media_tab_now_playing">%1$s</string>
-    <string name="volume_format">VOL %1$d%%</string>
 
     <!-- Permissions & Onboarding -->
     <string name="media_access_required">MEDIA ACCESS REQUIRED</string>
@@ -32,12 +27,12 @@
     <string name="media_enable_access">ENABLE ACCESS</string>
 
     <!-- Actions & Navigation -->
-    <string name="action_open_maps">OPEN MAPS</string>
     <string name="action_connect_bike">CONNECT BIKE</string>
 
     <!-- User Feedback & Toasts -->
     <string name="toast_connected">Connected: %1$s</string>
     <string name="toast_connecting">Connecting to Pulsar&#8230;</string>
+    <string name="toast_enable_bluetooth">Please turn on Bluetooth to connect</string>
     <string name="maps_not_installed">Google Maps is not installed</string>
     <string name="notification_settings_not_found">Notification settings could not be opened</string>
 
@@ -54,7 +49,5 @@
     <string name="cd_collapse_hud">Collapse HUD</string>
     <string name="cd_expand_hud">Expand HUD</string>
     <string name="cd_rotate_screen">Rotate to landscape for cockpit view</string>
-    <string name="cd_volume_down">Decrease volume</string>
-    <string name="cd_volume_up">Increase volume</string>
     <string name="cd_album_art">Album artwork</string>
 </resources>

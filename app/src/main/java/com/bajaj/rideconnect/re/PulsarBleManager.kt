@@ -12,11 +12,15 @@ import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +55,27 @@ class PulsarBleManager(context: Context) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isScanning = false
     private var autoReconnect = true
+
+    private val bluetoothStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                when (state) {
+                    BluetoothAdapter.STATE_ON -> {
+                        Log.i(TAG, "Bluetooth turned ON. Triggering auto-scan/connect...")
+                        startScanOrConnect()
+                    }
+
+                    BluetoothAdapter.STATE_TURNING_OFF, BluetoothAdapter.STATE_OFF -> {
+                        Log.i(TAG, "Bluetooth turned OFF. Resetting connection state...")
+                        stopScan()
+                        disconnect()
+                        _connectionState.value = BleConnectionState()
+                    }
+                }
+            }
+        }
+    }
 
     private class GattWriteTask(
         val characteristic: BluetoothGattCharacteristic, val data: ByteArray
@@ -99,6 +124,10 @@ class PulsarBleManager(context: Context) {
     init {
         val manager = this.context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
         manager?.let { this.bluetoothAdapter = it.adapter }
+        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        ContextCompat.registerReceiver(
+            this.context, bluetoothStateReceiver, filter, ContextCompat.RECEIVER_EXPORTED
+        )
     }
 
     fun hasConnectPermission(): Boolean {
@@ -159,10 +188,53 @@ class PulsarBleManager(context: Context) {
         return bluetoothAdapter
     }
 
+    fun isBluetoothEnabled(): Boolean {
+        val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        val adapter = manager?.adapter ?: bluetoothAdapter
+        return adapter != null && adapter.isEnabled
+    }
+
+    fun requestEnableBluetooth(callingContext: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
+                callingContext, Manifest.permission.BLUETOOTH_CONNECT
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            try {
+                val settingsIntent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                callingContext.startActivity(settingsIntent)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not launch Bluetooth settings: ${e.message}")
+            }
+            return
+        }
+
+        try {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            callingContext.startActivity(enableBtIntent)
+        } catch (_: Exception) {
+            try {
+                val settingsIntent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                callingContext.startActivity(settingsIntent)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not launch Bluetooth settings: ${e.message}")
+            }
+        }
+    }
+
     fun startScanOrConnect() {
+        autoReconnect = true
         val adapter = getAdapter()
         if (adapter == null || !adapter.isEnabled) {
             Log.e(TAG, "Bluetooth not available or disabled.")
+            if (_connectionState.value.isConnecting || _connectionState.value.isConnected) {
+                _connectionState.value = BleConnectionState()
+            }
             return
         }
 
@@ -733,6 +805,10 @@ class PulsarBleManager(context: Context) {
     }
 
     fun destroy() {
+        try {
+            context.unregisterReceiver(bluetoothStateReceiver)
+        } catch (_: Exception) {
+        }
         disconnect()
         mainHandler.removeCallbacksAndMessages(null)
     }

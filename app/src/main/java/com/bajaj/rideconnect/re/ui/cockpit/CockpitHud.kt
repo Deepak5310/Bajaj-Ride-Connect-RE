@@ -110,9 +110,6 @@ fun CockpitHud(
     bikeStatus: String = stringResource(R.string.status_standby),
     isBleConnected: Boolean = false,
     mediaInfo: MediaTrackInfo = MediaTrackInfo(),
-    volumePct: Int = 70,
-    onVolumeDown: () -> Unit = {},
-    onVolumeUp: () -> Unit = {},
     onExpandedChanged: (Boolean) -> Unit = {},
     onPlayPauseToggle: () -> Unit = {},
     onSkipNext: () -> Unit = {},
@@ -145,9 +142,6 @@ fun CockpitHud(
                     bikeStatus = bikeStatus,
                     isBleConnected = isBleConnected,
                     mediaInfo = mediaInfo,
-                    volumePct = volumePct,
-                    onVolumeDown = onVolumeDown,
-                    onVolumeUp = onVolumeUp,
                     onCollapse = { isManuallyCollapsed = true },
                     onPlayPauseToggle = onPlayPauseToggle,
                     onSkipNext = onSkipNext,
@@ -175,9 +169,6 @@ private fun RiderDock(
     bikeStatus: String,
     isBleConnected: Boolean,
     mediaInfo: MediaTrackInfo,
-    volumePct: Int,
-    onVolumeDown: () -> Unit,
-    onVolumeUp: () -> Unit,
     onCollapse: () -> Unit,
     onPlayPauseToggle: () -> Unit,
     onSkipNext: () -> Unit,
@@ -263,12 +254,7 @@ private fun RiderDock(
                 onRequestNotificationPermission = onRequestNotificationPermission
             )
 
-            // 3. Ergonomic Glove-Friendly Volume Deck
-            VolumeCockpitDeck(
-                volumePct = volumePct, onVolumeDown = onVolumeDown, onVolumeUp = onVolumeUp
-            )
-
-            // 4. Cockpit Footer Deck: Connection / Handlebar Monitor
+            // 3. Cockpit Footer Deck: Connection / Handlebar Monitor
             CockpitFooterDeck(
                 isBleConnected = isBleConnected, onBikeClick = onBikeClick
             )
@@ -461,7 +447,7 @@ private fun MediaControlCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 14.dp, end = 4.dp)
+                    .padding(start = 22.dp, end = 6.dp)
                     .height(18.dp)
                     .pointerInput(mediaInfo.totalDuration) {
                         detectTapGestures { offset ->
@@ -530,7 +516,7 @@ private fun MediaControlCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 14.dp, end = 4.dp),
+                    .padding(start = 22.dp, end = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -595,104 +581,6 @@ private fun MediaControlCard(
     }
 }
 
-@Composable
-private fun VolumeCockpitDeck(
-    volumePct: Int, onVolumeDown: () -> Unit, onVolumeUp: () -> Unit, modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CockpitSurface),
-        border = BorderStroke(1.dp, CockpitBorder)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Large Tactile Minus Button (48dp x 44dp)
-            Surface(
-                onClick = onVolumeDown,
-                shape = RoundedCornerShape(10.dp),
-                color = CockpitSurfaceElevated,
-                border = BorderStroke(1.dp, CockpitBorder),
-                modifier = Modifier
-                    .size(width = 48.dp, height = 44.dp)
-                    .semantics { contentDescription = "Decrease volume" }) {
-                Box(contentAlignment = Alignment.Center) {
-                    MinusIcon(modifier = Modifier.size(18.dp), tint = TextPrimary)
-                }
-            }
-
-            // Center Gauge & Percentage Display
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 10.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    SpeakerIcon(modifier = Modifier.size(14.dp), tint = CockpitAccent)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.volume_format, volumePct),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        fontSize = 11.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // 10-Step LED Segment Meter matching Pulsar cluster scale
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(3.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val activeSegments = (volumePct / 10).coerceIn(0, 10)
-                    for (i in 1..10) {
-                        val isActive = i <= activeSegments
-                        val segmentColor = when {
-                            !isActive -> CockpitBorder
-                            i > 8 -> PulsarAmber
-                            else -> CockpitAccent
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(segmentColor)
-                        )
-                    }
-                }
-            }
-
-            // Large Tactile Plus Button (48dp x 44dp)
-            Surface(
-                onClick = onVolumeUp,
-                shape = RoundedCornerShape(10.dp),
-                color = CockpitSurfaceElevated,
-                border = BorderStroke(1.dp, CockpitBorder),
-                modifier = Modifier
-                    .size(width = 48.dp, height = 44.dp)
-                    .semantics { contentDescription = "Increase volume" }) {
-                Box(contentAlignment = Alignment.Center) {
-                    PlusIcon(modifier = Modifier.size(18.dp), tint = TextPrimary)
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun CockpitFooterDeck(
@@ -936,53 +824,6 @@ fun NextIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
     }
 }
 
-@Composable
-fun PlusIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val stroke = 2.5f.dp.toPx()
-        val c = center
-        val arm = size.minDimension * 0.36f
-        drawLine(tint, Offset(c.x - arm, c.y), Offset(c.x + arm, c.y), stroke, StrokeCap.Round)
-        drawLine(tint, Offset(c.x, c.y - arm), Offset(c.x, c.y + arm), stroke, StrokeCap.Round)
-    }
-}
-
-@Composable
-fun MinusIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val stroke = 2.5f.dp.toPx()
-        val c = center
-        val arm = size.minDimension * 0.36f
-        drawLine(tint, Offset(c.x - arm, c.y), Offset(c.x + arm, c.y), stroke, StrokeCap.Round)
-    }
-}
-
-@Composable
-fun SpeakerIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val cone = Path().apply {
-            moveTo(w * 0.12f, h * 0.34f)
-            lineTo(w * 0.36f, h * 0.34f)
-            lineTo(w * 0.62f, h * 0.14f)
-            lineTo(w * 0.62f, h * 0.86f)
-            lineTo(w * 0.36f, h * 0.66f)
-            lineTo(w * 0.12f, h * 0.66f)
-            close()
-        }
-        drawPath(cone, color = tint)
-        drawArc(
-            color = tint,
-            startAngle = -40f,
-            sweepAngle = 80f,
-            useCenter = false,
-            topLeft = Offset(w * 0.44f, h * 0.24f),
-            size = Size(w * 0.42f, h * 0.52f),
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-        )
-    }
-}
 
 @Composable
 fun ChevronLeftIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {

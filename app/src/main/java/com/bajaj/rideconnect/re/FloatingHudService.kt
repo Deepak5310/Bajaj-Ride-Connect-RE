@@ -19,7 +19,6 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
 import androidx.core.app.NotificationCompat
@@ -53,14 +52,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     private var layoutParams: WindowManager.LayoutParams? = null
     private lateinit var mediaStateListener: MediaStateListener
     private lateinit var bleManager: PulsarBleManager
-
-    private val currentVolumePct = mutableIntStateOf(70)
-
-    private val volumeReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            updateVolumeState()
-        }
-    }
 
     private val simReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -120,7 +111,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
         bleManager.startScanOrConnect()
 
-        registerReceiver(volumeReceiver, IntentFilter("android.media.VOLUME_CHANGED_ACTION"))
         val simFilter = IntentFilter().apply {
             addAction(ACTION_SIMULATE_BLE)
             addAction(ACTION_SIMULATE_KEY)
@@ -128,19 +118,11 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         ContextCompat.registerReceiver(
             this, simReceiver, simFilter, ContextCompat.RECEIVER_EXPORTED
         )
-        updateVolumeState()
 
         initOverlay()
 
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-    }
-
-    private fun updateVolumeState() {
-        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return
-        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-        val curVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-        currentVolumePct.intValue = ((curVol * 100f) / maxVol).toInt().coerceIn(0, 100)
     }
 
     private fun adjustVolume(delta: Int) {
@@ -149,7 +131,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         audioManager.adjustStreamVolume(
             AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI
         )
-        updateVolumeState()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -245,18 +226,20 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                     val mediaInfo by mediaStateListener.mediaTrackInfo.collectAsState()
                     val bleState by bleManager.connectionState.collectAsState()
 
+                    val isBtEnabled = bleManager.isBluetoothEnabled()
+
                     val bikeNameText = when {
                         bleState.isBound || bleState.isConnected -> {
                             bleState.deviceName.ifEmpty { stringResource(R.string.bike_name) }
                         }
 
-                        bleState.isConnecting -> stringResource(R.string.bike_name)
+                        bleState.isConnecting && isBtEnabled -> stringResource(R.string.bike_name)
                         else -> stringResource(R.string.no_bike_connected)
                     }
 
                     val bikeStatusText = when {
                         bleState.isBound || bleState.isConnected -> stringResource(R.string.status_linked)
-                        bleState.isConnecting -> stringResource(R.string.status_connecting)
+                        bleState.isConnecting && isBtEnabled -> stringResource(R.string.status_connecting)
                         else -> stringResource(R.string.status_standby)
                     }
 
@@ -265,9 +248,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                         bikeStatus = bikeStatusText,
                         isBleConnected = bleState.isConnected,
                         mediaInfo = mediaInfo,
-                        volumePct = currentVolumePct.intValue,
-                        onVolumeDown = { adjustVolume(-1) },
-                        onVolumeUp = { adjustVolume(+1) },
                         onExpandedChanged = { expanded -> updateOverlayDimensions(expanded) },
                         onPlayPauseToggle = { mediaStateListener.togglePlayPause() },
                         onSkipNext = { mediaStateListener.skipNext() },
@@ -281,6 +261,13 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                                     getString(R.string.toast_connected, bikeNameText),
                                     Toast.LENGTH_SHORT
                                 ).show()
+                            } else if (!bleManager.isBluetoothEnabled()) {
+                                Toast.makeText(
+                                    this@FloatingHudService,
+                                    getString(R.string.toast_enable_bluetooth),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                bleManager.requestEnableBluetooth(this@FloatingHudService)
                             } else {
                                 Toast.makeText(
                                     this@FloatingHudService,
@@ -353,10 +340,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         viewModelStore.clear()
 
-        try {
-            unregisterReceiver(volumeReceiver)
-        } catch (_: Exception) {
-        }
         try {
             unregisterReceiver(simReceiver)
         } catch (_: Exception) {

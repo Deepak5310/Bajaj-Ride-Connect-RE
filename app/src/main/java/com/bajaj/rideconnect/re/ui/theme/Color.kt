@@ -25,7 +25,3 @@ val PulsarRed = Color(0xFFEF4444)
 val TextPrimary = Color(0xFFF8FAFC)
 val TextSecondary = Color(0xFF94A3B8)
 val TextTertiary = Color(0xFF64748B)
-
-// Backward compatibility mappings
-val PulsarCyan = CockpitAccent
-val PulsarCyanDim = CockpitAccentDim
