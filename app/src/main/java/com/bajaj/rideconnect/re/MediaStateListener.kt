@@ -385,12 +385,21 @@ class MediaStateListener(context: Context) {
         handler.postDelayed({ syncMetadata() }, 400L)
     }
 
-    fun skipPrevious() {
-        val controller = activeController ?: run {
-            updateActiveController()
-            activeController
+    fun getCurrentPositionMs(): Long {
+        val controller = activeController ?: return 0L
+        val pbState = controller.playbackState ?: return 0L
+        var currentMs = pbState.position
+        if (pbState.state == PlaybackState.STATE_PLAYING) {
+            val delta = SystemClock.elapsedRealtime() - pbState.lastPositionUpdateTime
+            if (delta > 0) {
+                val speed = if (pbState.playbackSpeed <= 0f) 1.0f else pbState.playbackSpeed
+                currentMs += (delta * speed).toLong()
+            }
         }
+        return currentMs.coerceAtLeast(0L)
+    }
 
+    private fun executePreviousCommand(controller: MediaController?) {
         if (controller != null) {
             try {
                 controller.transportControls.skipToPrevious()
@@ -398,14 +407,10 @@ class MediaStateListener(context: Context) {
                 Log.w(TAG, "TransportControls skipToPrevious failed: ${e.message}")
                 try {
                     controller.dispatchMediaButtonEvent(
-                        KeyEvent(
-                            KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS
-                        )
+                        KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
                     )
                     controller.dispatchMediaButtonEvent(
-                        KeyEvent(
-                            KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS
-                        )
+                        KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
                     )
                 } catch (_: Exception) {
                     sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
@@ -414,6 +419,25 @@ class MediaStateListener(context: Context) {
         } else {
             sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
         }
+    }
+
+    fun skipPrevious() {
+        val controller = activeController ?: run {
+            updateActiveController()
+            activeController
+        }
+
+        val currentPos = getCurrentPositionMs()
+        val shouldDoubleSkip = currentPos > 2500L
+
+        executePreviousCommand(controller)
+
+        if (shouldDoubleSkip) {
+            handler.postDelayed({
+                executePreviousCommand(activeController ?: controller)
+            }, 120L)
+        }
+
         handler.postDelayed({ syncMetadata() }, 400L)
     }
 
