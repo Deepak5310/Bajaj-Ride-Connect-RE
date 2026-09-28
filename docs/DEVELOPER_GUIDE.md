@@ -284,12 +284,24 @@ adb logcat -v time -s PulsarBleManager:D MediaStateListener:D TelephonyCallHandl
 ## 9. Key Source Files Directory
 
 ```
-app/src/com/bajaj/rideconnect/re/
-├── MainActivity.kt             # Modern Automotive Cockpit UI & Map View
-├── PulsarBleManager.kt         # BLE GATT Connection, Queue & 500ms Poller
-├── PulsarProtocol.kt           # Binary Encoders (0110, 0210, 0610) & Parser (0a10)
-├── MediaStateListener.kt       # MediaSession hook, 1s ticker, Volume sync & filter
-├── TelephonyCallHandler.kt     # Caller ID & Handlebar Call Accept/Reject
-├── PhoneStateMonitor.kt        # Battery %, Signal bars & 4s Heartbeat Telemetry
-└── PulsarNotificationService.kt# Android Notification Listener
+StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
+├── MainActivity.kt             # Auto-shifts to Cockpit HUD overlay & launches Google Maps
+├── FloatingHudService.kt       # WindowManager overlay service, volume sync & simulation dispatcher
+├── PulsarBleManager.kt         # BLE GATT Engine, Write Queue, 500ms poller, simulation API (Pulsar & Dominar)
+├── PulsarProtocol.kt           # Binary Media Frame Encoder (0610) & Handlebar Event Parser (0a10)
+├── MediaStateListener.kt       # MediaSession controller, 1s ticker, Volume sync & filter
+├── ui/cockpit/CockpitHud.kt    # Minimalist Automotive Music Cockpit UI, integrated volume bar, Edge Tab
+└── ui/theme/Color.kt           # OLED Obsidian + Cobalt Titanium palette tokens
 ```
+
+---
+
+## 10. StudioApp Compose Cockpit HUD
+
+### 10.1 UI/UX Architecture
+* **Target Motorcycles**: Bajaj Pulsar Series (NS400Z, N250, F250, NS200, N160, NS160, N150) & Dominar Series (400, 250). Strictly Petrol/ICE motorcycles — zero EV/Chetak support.
+* **Minimalist Automotive Palette**: OLED Obsidian (`#090B10`), Charcoal Slate (`#131722`), Electric Cobalt (`#3B82F6`), Titanium White action button (`#F8FAFC`), and subtle hairline borders (`#222938`) eliminating distraction and glare.
+* **Pure Media Focus**: Dedicated floating music card with album art, track/artist info, interactive seekbar, primary playback controls (44-52dp glove-friendly touch targets), and punch-hole camera offset. Handlebar switchgear provides physical hardware volume control.
+* **Edge Tab Pill**: Collapsed mode renders a sleek, non-intrusive floating pill on the left display bezel with live bike/music status.
+
+

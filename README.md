@@ -10,13 +10,13 @@ Compatible with ~80% of Bajaj Bluetooth-equipped motorcycles (Pulsar NS400Z, N25
 
 ```
 bajaj-ride-connect-re/
-├── app/                           # "My Pulsar" standalone Android cockpit app
+├── StudioApp/                     # Production Jetpack Compose Cockpit HUD app (Material3, BLE, Media)
+├── app/                           # "My Pulsar" standalone Android cockpit app (Legacy View)
 │   ├── AndroidManifest.xml
 │   ├── res/                       # Vectors, HUD layouts & Dark Knight themes
 │   └── src/                       # 100% Idiomatic Kotlin sources (BLE, Media, Navigation, Telemetry)
 ├── docs/                          # Hardware specs, BLE protocol & owner manual
 │   ├── ble_protocol_spec.md       # Full Bluetooth Low Energy GATT specification & schemas
-│   ├── wifi_protocol_spec.md      # Wi-Fi Navigation V2, TCP/UDP ports & AES screen mirroring
 │   ├── HANDOFF.md                 # Hardware target notes & protocol findings
 │   └── pulsar-ns400z-owners-manual.pdf
 ├── references/                    # Original APK bundles, split APKs & Hermes string dumps
@@ -38,11 +38,10 @@ bajaj-ride-connect-re/
 
 ## 🏍️ Vehicle Target & Architecture
 
-* **Target Ecosystem:** Bajaj Bluetooth-enabled motorcycles (~80% of current line-up including Pulsar NS400Z, Pulsar N-Series, Dominar series).
+* **Target Ecosystem:** Bajaj Bluetooth-enabled motorcycles (Pulsar NS400Z, Pulsar N-Series, Dominar series). **Strictly Petrol/ICE motorcycles — zero EV/Chetak support.**
 * **Cluster Hardware:** Segmented LCD with Dot-Matrix display (`CLUSTER_V1`, Pricol / Uno Minda / OTC Engineering).
 * **Connectivity Architecture:**
-  1. **Bluetooth Low Energy (GATT):** 100% active transport. Telemetry (`0210`), Phone battery/signal, Caller ID, Music controls (`0610`), Handlebar triggers (`0a10`), and 48-byte Turn-by-Turn maneuvers (`0110`).
-  2. **Wi-Fi Hotspot (TCP:5558 / UDP:5556):** Available on full-color TFT vehicles (Chetak EV / KTM).
+  * **Bluetooth Low Energy (GATT):** 100% active transport for Now-Playing Media streaming (`0610`), phone battery & volume sync telemetry (`0210`), and physical handlebar switchgear triggers (`0a10` - Play/Pause, Next/Prev, Volume).
 
 ---
 
