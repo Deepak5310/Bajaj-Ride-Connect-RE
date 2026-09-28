@@ -4,14 +4,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
-import android.media.AudioManager
 import android.os.IBinder
 import android.provider.Settings
 import android.view.Gravity
@@ -53,41 +50,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     private lateinit var mediaStateListener: MediaStateListener
     private lateinit var bleManager: PulsarBleManager
 
-    private val simReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            when (intent?.action) {
-                ACTION_SIMULATE_BLE -> {
-                    val connected = intent.getBooleanExtra("connected", true)
-                    val name = intent.getStringExtra("name") ?: getString(R.string.bike_name)
-                    bleManager.simulateConnection(connected, name)
-                }
-
-                ACTION_SIMULATE_KEY -> {
-                    val key = intent.getStringExtra("key") ?: return
-                    val ev = PulsarProtocol.HandlebarEvent()
-                    when (key.uppercase()) {
-                        "VOL_UP" -> adjustVolume(+1)
-                        "VOL_DOWN" -> adjustVolume(-1)
-                        "TRACK_NEXT", "NEXT" -> {
-                            ev.musicNext = true
-                            bleManager.simulateHandlebarEvent(ev)
-                        }
-
-                        "TRACK_PREV", "PREV" -> {
-                            ev.musicPrev = true
-                            bleManager.simulateHandlebarEvent(ev)
-                        }
-
-                        "PLAY_PAUSE", "PLAY", "PAUSE" -> {
-                            ev.musicPlay = true
-                            bleManager.simulateHandlebarEvent(ev)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -111,26 +73,10 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
         bleManager.startScanOrConnect()
 
-        val simFilter = IntentFilter().apply {
-            addAction(ACTION_SIMULATE_BLE)
-            addAction(ACTION_SIMULATE_KEY)
-        }
-        ContextCompat.registerReceiver(
-            this, simReceiver, simFilter, ContextCompat.RECEIVER_EXPORTED
-        )
-
         initOverlay()
 
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-    }
-
-    private fun adjustVolume(delta: Int) {
-        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return
-        val direction = if (delta > 0) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER
-        audioManager.adjustStreamVolume(
-            AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI
-        )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -340,11 +286,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         viewModelStore.clear()
 
-        try {
-            unregisterReceiver(simReceiver)
-        } catch (_: Exception) {
-        }
-
         if (::bleManager.isInitialized) {
             bleManager.destroy()
         }
@@ -364,8 +305,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
     companion object {
         private const val NOTIFICATION_ID = 4001
-        const val ACTION_SIMULATE_BLE = "com.bajaj.rideconnect.re.SIMULATE_BLE"
-        const val ACTION_SIMULATE_KEY = "com.bajaj.rideconnect.re.SIMULATE_KEY"
 
         fun start(context: Context) {
             val intent = Intent(context, FloatingHudService::class.java)

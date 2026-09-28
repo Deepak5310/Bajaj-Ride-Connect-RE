@@ -450,34 +450,6 @@ class PulsarBleManager(context: Context) {
         _connectionState.value = BleConnectionState()
     }
 
-    fun simulateConnection(connected: Boolean, deviceName: String = "PULSAR_N250") {
-        Log.i(TAG, "simulateConnection: connected=$connected, name=$deviceName")
-        _connectionState.value = if (connected) {
-            BleConnectionState(
-                isConnected = true,
-                isConnecting = false,
-                isBound = true,
-                deviceName = deviceName,
-                deviceAddress = TARGET_MAC
-            )
-        } else {
-            BleConnectionState(
-                isConnected = false,
-                isConnecting = false,
-                isBound = false,
-                deviceName = "",
-                deviceAddress = ""
-            )
-        }
-    }
-
-    fun simulateHandlebarEvent(event: PulsarProtocol.HandlebarEvent) {
-        Log.i(TAG, "simulateHandlebarEvent: $event")
-        mainHandler.post {
-            handlebarListener?.invoke(event)
-        }
-    }
-
     fun sendMedia(
         title: String?, artist: String?, album: String?, posSec: Int, durSec: Int, state: Int
     ): Boolean {
