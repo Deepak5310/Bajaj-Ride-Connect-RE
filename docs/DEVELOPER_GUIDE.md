@@ -16,12 +16,12 @@ The following features have been tested and verified on the physical motorcycle:
 |---|---|---|---|
 | **Media Play / Pause** | Single-press `SET` button | ✅ **Working** | Triggers `TransportControls.play()` / `pause()` with `dispatchMediaButtonEvent` fallback. |
 | **Track Skip (Next)** | Long-press / Hold `^` (Up) | ✅ **Working** | Triggers `TransportControls.skipToNext()` with `KEYCODE_MEDIA_NEXT` fallback. |
-| **Track Skip (Prev)** | Long-press / Hold `v` (Down) | ✅ **Working** | Triggers `TransportControls.skipToPrevious()` with `KEYCODE_MEDIA_PREVIOUS` fallback. |
+| **Track Skip (Prev)** | Long-press / Hold `v` (Down) | ✅ **Working** | Auto-double skips if played > 2.5s so music players switch to previous track instead of rewinding to 0:00. |
 | **Volume Up / Down** | Single-press `^` / `v` | ✅ **Working** | Adjusts `AudioManager.STREAM_MUSIC` using cluster volume tenths (0–10) with half-step rounding. |
 | **Volume Mute Protection** | Button release / idle | ✅ **Working** | Filters cluster `0a10` Byte 0 idle pulse (`volume=0` when phone `volume > 1`). |
 | **Song Playback Ticker** | 1-second background ticker | ✅ **Working** | Continuously streams `0610` frames so track elapsed time (`00:01`, `00:02`, ...) ticks smoothly on cluster LCD. |
 | **Phone Battery Gauge** | Phone battery change | ✅ **Working** | Bit-packed `0–4` bar scale into `0210` telemetry (`batteryLevel << 3`), accurately matching bike LCD icons. |
-| **Phone Signal Gauge** | Cellular signal strength | ✅ **Working** | Streams `0–4` signal bars into `0210` telemetry. |
+| **Phone Signal Gauge** | Cellular signal strength | ✅ **Working** | Streams `0–4` signal bars into `0210` telemetry; sets 0 when SIM is absent or airplane mode active. |
 | **Bidirectional Volume Sync**| Phone volume rocker buttons | ✅ **Working** | `ContentObserver` on `Settings.System.CONTENT_URI` triggers immediate `0210` telemetry update to bike. |
 | **Call Handling** | Telephony permissions | 🚫 **Dropped** | Removed telephony permissions & call handlers per zero-distraction riding design. |
 | **Turn-by-Turn Nav** | Google Maps / Navigation | ℹ️ **Background Bridge** | 48-byte `0110` frame encoding with reverse distance byte ordering sent to bike LCD. |

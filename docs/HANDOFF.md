@@ -20,13 +20,16 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
    - Cluster `0a10` Byte 0 idle pulse (`volume=0`) is filtered when current phone volume `> 1` (`MediaStateListener.kt`).
 3. **Track Skip (`^` / `v` long-press / hold)**:
    - Long-press `^` skips to **Next Track**.
-   - Long-press `v` skips to **Previous Track**.
+   - Long-press `v` skips to **Previous Track**. Includes auto-double skip if playback position > 2.5s so music players (YT Music, Spotify) switch to previous song instead of rewinding to 0:00.
    - Dispatches via `MediaController.TransportControls` with fallback to `dispatchMediaKeyEvent`.
 4. **Media Play / Pause (`SET` single-press)**:
    - Single-press `SET` on the left handlebar switch toggles Play and Pause reliably.
 5. **Continuous Playback Ticker (`0610`)**:
    - 1-second background `progressTicker` continuously streams updated elapsed seconds (`00:01`, `00:02`, ...) so the cluster LCD playback time never freezes.
-6. **Bidirectional Hardware Volume Sync**:
+6. **Dynamic Phone Battery & Signal Telemetry (`0210`)**:
+   - Discrete 0–4 bar scaling (`getBatteryLevel(percent)`) bit-packed at `(batteryLevel << 3)` in `0210` telemetry byte 1.
+   - Dynamic SIM card state detection (`TelephonyManager.simState`): 0 bars when SIM is absent or airplane mode active; live signal bars when SIM is active.
+7. **Bidirectional Hardware Volume Sync**:
    - Phone volume rocker adjustments update the HUD and cluster volume synchronously.
 
 ---
