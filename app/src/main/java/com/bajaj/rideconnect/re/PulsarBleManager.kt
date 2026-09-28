@@ -44,6 +44,7 @@ class PulsarBleManager(context: Context) {
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothGatt: BluetoothGatt? = null
 
+    private var charTelemetry: BluetoothGattCharacteristic? = null
     private var charMedia: BluetoothGattCharacteristic? = null
     private var charControls: BluetoothGattCharacteristic? = null
 
@@ -51,10 +52,12 @@ class PulsarBleManager(context: Context) {
     val connectionState: StateFlow<BleConnectionState> = _connectionState.asStateFlow()
 
     var handlebarListener: ((PulsarProtocol.HandlebarEvent) -> Unit)? = null
+    var onConnectedListener: (() -> Unit)? = null
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var isScanning = false
     private var autoReconnect = true
+    private var telemetrySeq: Byte = 0
 
     private val bluetoothStateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -78,7 +81,9 @@ class PulsarBleManager(context: Context) {
     }
 
     private class GattWriteTask(
-        val characteristic: BluetoothGattCharacteristic, val data: ByteArray
+        val characteristic: BluetoothGattCharacteristic,
+        val data: ByteArray,
+        val writeType: Int = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
     )
 
     private val writeQueue: Queue<GattWriteTask> = LinkedList()
@@ -116,7 +121,7 @@ class PulsarBleManager(context: Context) {
                         }
                     }
                 }
-                mainHandler.postDelayed(this, 500L)
+                mainHandler.postDelayed(this, 350L)
             }
         }
     }
@@ -441,6 +446,7 @@ class PulsarBleManager(context: Context) {
             }
             bluetoothGatt = null
         }
+        charTelemetry = null
         charMedia = null
         charControls = null
         synchronized(writeQueue) {
@@ -450,19 +456,51 @@ class PulsarBleManager(context: Context) {
         _connectionState.value = BleConnectionState()
     }
 
+    fun sendTelemetry(
+        batteryPercent: Int,
+        signalBars: Int,
+        callState: Int = 0,
+        callerNameOrNumber: String? = null,
+        missedCalls: Int = 0,
+        unreadSms: Int = 0,
+        volumeLevel: Int = 5,
+        isHeadset: Boolean = false
+    ): Boolean {
+        val targetChar = charTelemetry ?: return false
+        if (!_connectionState.value.isConnected) return false
+        telemetrySeq++
+        val frame = PulsarProtocol.buildCompactTelemetryFrame(
+            batteryPercent = batteryPercent,
+            signalBars = signalBars,
+            callState = callState,
+            callerNameOrNumber = callerNameOrNumber,
+            missedCalls = missedCalls,
+            unreadSms = unreadSms,
+            seqCounter = telemetrySeq,
+            volumeLevel = volumeLevel,
+            isHeadset = isHeadset
+        )
+        enqueueWrite(targetChar, frame, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+        return true
+    }
+
     fun sendMedia(
         title: String?, artist: String?, album: String?, posSec: Int, durSec: Int, state: Int
     ): Boolean {
         val targetChar = charMedia ?: return false
         if (!_connectionState.value.isConnected) return false
         val frame = PulsarProtocol.buildMediaFrame(title, artist, album, posSec, durSec, state)
-        enqueueWrite(targetChar, frame)
+        enqueueWrite(targetChar, frame, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
         return true
     }
 
-    private fun enqueueWrite(characteristic: BluetoothGattCharacteristic, data: ByteArray) {
+    private fun enqueueWrite(
+        characteristic: BluetoothGattCharacteristic,
+        data: ByteArray,
+        writeType: Int = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+    ) {
         synchronized(writeQueue) {
-            writeQueue.add(GattWriteTask(characteristic, data))
+            writeQueue.add(GattWriteTask(characteristic, data, writeType))
             if (!isWriting) {
                 processNextWrite()
             }
@@ -498,7 +536,7 @@ class PulsarBleManager(context: Context) {
             currentTask = task
 
             val result = try {
-                writeCharacteristicCompat(gatt, task.characteristic, task.data)
+                writeCharacteristicCompat(gatt, task.characteristic, task.data, task.writeType)
             } catch (e: SecurityException) {
                 Log.w(TAG, "SecurityException writing characteristic: ${e.message}")
                 false
@@ -517,7 +555,10 @@ class PulsarBleManager(context: Context) {
 
     @Suppress("DEPRECATION")
     private fun writeCharacteristicCompat(
-        gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, data: ByteArray
+        gatt: BluetoothGatt,
+        characteristic: BluetoothGattCharacteristic,
+        data: ByteArray,
+        writeType: Int
     ): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
                 context, Manifest.permission.BLUETOOTH_CONNECT
@@ -528,12 +569,12 @@ class PulsarBleManager(context: Context) {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val status = gatt.writeCharacteristic(
-                    characteristic, data, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                    characteristic, data, writeType
                 )
                 status == BluetoothStatusCodes.SUCCESS
             } else {
                 characteristic.value = data
-                characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                characteristic.writeType = writeType
                 gatt.writeCharacteristic(characteristic)
             }
         } catch (e: SecurityException) {
@@ -660,12 +701,13 @@ class PulsarBleManager(context: Context) {
 
                 val service = gatt.getService(SERVICE_UUID)
                 if (service != null) {
+                    charTelemetry = service.getCharacteristic(CHAR_TELEMETRY_UUID)
                     charMedia = service.getCharacteristic(CHAR_MEDIA_UUID)
                     charControls = service.getCharacteristic(CHAR_CONTROLS_UUID)
 
                     Log.i(
                         TAG,
-                        "Characteristics bound: Media=${charMedia != null}, Controls=${charControls != null}"
+                        "Characteristics bound: Telemetry=${charTelemetry != null}, Media=${charMedia != null}, Controls=${charControls != null}"
                     )
 
                     for (c in service.characteristics) {
@@ -694,12 +736,13 @@ class PulsarBleManager(context: Context) {
 
                     mainHandler.removeCallbacks(controlsPollRunnable)
                     if (charControls != null) {
-                        Log.i(TAG, "Starting periodic 500ms Handlebar Controls poller (0a10)...")
-                        mainHandler.postDelayed(controlsPollRunnable, 500L)
+                        Log.i(TAG, "Starting periodic 350ms Handlebar Controls poller (0a10)...")
+                        mainHandler.postDelayed(controlsPollRunnable, 350L)
                     }
 
-                    val isBound = charMedia != null
+                    val isBound = charMedia != null && charTelemetry != null
                     _connectionState.value = _connectionState.value.copy(isBound = isBound)
+                    mainHandler.post { onConnectedListener?.invoke() }
                 } else {
                     Log.e(TAG, "Primary Service $SERVICE_UUID not found!")
                 }
@@ -790,6 +833,7 @@ class PulsarBleManager(context: Context) {
         private const val TARGET_MAC = "C0:63:80:2D:0C:42"
 
         val SERVICE_UUID: UUID = UUID.fromString(PulsarProtocol.SERVICE_UUID)
+        val CHAR_TELEMETRY_UUID: UUID = UUID.fromString(PulsarProtocol.CHAR_TELEMETRY_UUID)
         val CHAR_MEDIA_UUID: UUID = UUID.fromString(PulsarProtocol.CHAR_MEDIA_UUID)
         val CHAR_CONTROLS_UUID: UUID = UUID.fromString(PulsarProtocol.CHAR_CONTROLS_UUID)
         val CCCD_UUID: UUID = UUID.fromString(PulsarProtocol.CCCD_DESCRIPTOR_UUID)

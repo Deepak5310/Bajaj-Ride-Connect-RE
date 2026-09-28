@@ -45,6 +45,7 @@ class MediaStateListener(context: Context) {
     )
     val mediaTrackInfo: StateFlow<MediaTrackInfo> = _mediaTrackInfo.asStateFlow()
     var bleMediaSender: BleMediaSender? = null
+    var onVolumeChangedExternally: ((Int) -> Unit)? = null
 
     private val sessionUpdateListener = PulsarNotificationService.SessionUpdateListener {
         refreshMediaSessions()
@@ -537,6 +538,7 @@ class MediaStateListener(context: Context) {
                 targetVol = targetVol.coerceIn(0, maxVol)
                 am.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, AudioManager.FLAG_SHOW_UI)
                 Log.i(TAG, "Cluster volume adjusted: $volumeNibble/10 -> $targetVol/$maxVol")
+                onVolumeChangedExternally?.invoke(volumeNibble)
             }
         } catch (e: Exception) {
             Log.w(TAG, "Error setting volume from cluster: ${e.message}")

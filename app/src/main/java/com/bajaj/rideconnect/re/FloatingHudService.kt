@@ -49,6 +49,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     private var layoutParams: WindowManager.LayoutParams? = null
     private lateinit var mediaStateListener: MediaStateListener
     private lateinit var bleManager: PulsarBleManager
+    private lateinit var phoneStateMonitor: PhoneStateMonitor
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -61,9 +62,14 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         startInForeground()
         mediaStateListener = MediaStateListener(this)
         bleManager = PulsarBleManager(this)
+        phoneStateMonitor = PhoneStateMonitor(this, bleManager, mediaStateListener)
 
         bleManager.handlebarListener = { ev ->
             mediaStateListener.handleHandlebarEvent(ev)
+        }
+
+        bleManager.onConnectedListener = {
+            phoneStateMonitor.triggerImmediateUpdate()
         }
 
         mediaStateListener.bleMediaSender =
@@ -71,6 +77,11 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                 bleManager.sendMedia(title, artist, album, pos, dur, state)
             }
 
+        mediaStateListener.onVolumeChangedExternally = {
+            phoneStateMonitor.triggerImmediateUpdate()
+        }
+
+        phoneStateMonitor.start()
         bleManager.startScanOrConnect()
 
         initOverlay()
@@ -175,16 +186,15 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                     val isBtEnabled = bleManager.isBluetoothEnabled()
 
                     val bikeNameText = when {
-                        bleState.isBound || bleState.isConnected -> {
+                        bleState.isConnected -> {
                             bleState.deviceName.ifEmpty { stringResource(R.string.bike_name) }
                         }
 
-                        bleState.isConnecting && isBtEnabled -> stringResource(R.string.bike_name)
                         else -> stringResource(R.string.no_bike_connected)
                     }
 
                     val bikeStatusText = when {
-                        bleState.isBound || bleState.isConnected -> stringResource(R.string.status_linked)
+                        bleState.isConnected -> stringResource(R.string.status_linked)
                         bleState.isConnecting && isBtEnabled -> stringResource(R.string.status_connecting)
                         else -> stringResource(R.string.status_standby)
                     }
@@ -208,11 +218,6 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else if (!bleManager.isBluetoothEnabled()) {
-                                Toast.makeText(
-                                    this@FloatingHudService,
-                                    getString(R.string.toast_enable_bluetooth),
-                                    Toast.LENGTH_SHORT
-                                ).show()
                                 bleManager.requestEnableBluetooth(this@FloatingHudService)
                             } else {
                                 Toast.makeText(
@@ -285,6 +290,10 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         viewModelStore.clear()
+
+        if (::phoneStateMonitor.isInitialized) {
+            phoneStateMonitor.stop()
+        }
 
         if (::bleManager.isInitialized) {
             bleManager.destroy()
