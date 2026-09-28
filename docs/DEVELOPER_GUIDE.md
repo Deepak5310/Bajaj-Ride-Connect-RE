@@ -319,6 +319,5 @@ StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
 * **Target Motorcycles**: Bajaj Pulsar Series (NS400Z, N250, F250, NS200, N160, NS160, N150) & Dominar Series (400, 250). Strictly Petrol/ICE motorcycles — zero EV/Chetak support.
 * **Minimalist Automotive Palette**: OLED Obsidian (`#090B10`), Charcoal Slate (`#131722`), Electric Cobalt (`#3B82F6`), Titanium White action button (`#F8FAFC`), and subtle hairline borders (`#222938`) eliminating distraction and glare.
 * **Pure Media Focus**: Dedicated floating music card with album art, track/artist info, interactive seekbar, primary playback controls (44-52dp glove-friendly touch targets), and punch-hole camera offset. Handlebar switchgear provides physical hardware volume control.
+* **Minimalist Iconography**: Uses `br.com.devsrsouza.compose.icons:feather` (Feather Icons) for crisp, uniform 2px stroke vector icons across all HUD transport controls, status pills, and the Handlebar Guide overlay — zero inline `Canvas` path bloat.
 * **Edge Tab Pill**: Collapsed mode renders a sleek, non-intrusive floating pill on the left display bezel with live bike/music status.
-
-
