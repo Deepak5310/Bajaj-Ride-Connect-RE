@@ -13,7 +13,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,15 +53,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -94,6 +87,20 @@ import com.bajaj.rideconnect.re.ui.theme.PulsarGreen
 import com.bajaj.rideconnect.re.ui.theme.TextPrimary
 import com.bajaj.rideconnect.re.ui.theme.TextSecondary
 import com.bajaj.rideconnect.re.ui.theme.TextTertiary
+import compose.icons.FeatherIcons
+import compose.icons.feathericons.ChevronLeft
+import compose.icons.feathericons.ChevronRight
+import compose.icons.feathericons.Github
+import compose.icons.feathericons.Info
+import compose.icons.feathericons.Lock
+import compose.icons.feathericons.Music
+import compose.icons.feathericons.Pause
+import compose.icons.feathericons.Play
+import compose.icons.feathericons.Power
+import compose.icons.feathericons.SkipBack
+import compose.icons.feathericons.SkipForward
+import compose.icons.feathericons.Volume2
+import compose.icons.feathericons.X
 
 @Immutable
 data class MediaTrackInfo(
@@ -251,7 +258,12 @@ private fun RiderDock(
                         containerColor = CockpitSurfaceElevated,
                         borderColor = CockpitBorder
                     ) {
-                        ChevronLeftIcon(modifier = Modifier.size(16.dp), tint = TextSecondary)
+                        Icon(
+                            imageVector = FeatherIcons.ChevronLeft,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = TextSecondary
+                        )
                     }
                 }
 
@@ -308,7 +320,12 @@ private fun MediaControlCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    LockIcon(modifier = Modifier.size(16.dp), tint = PulsarAmber)
+                    Icon(
+                        imageVector = FeatherIcons.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = PulsarAmber
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.media_access_required),
@@ -430,7 +447,12 @@ private fun MediaControlCard(
                         modifier = Modifier.size(44.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            MusicNoteIcon(modifier = Modifier.size(20.dp), tint = TextSecondary)
+                            Icon(
+                                imageVector = FeatherIcons.Music,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = TextSecondary
+                            )
                         }
                     }
                 }
@@ -571,7 +593,12 @@ private fun MediaControlCard(
                     containerColor = CockpitSurfaceElevated,
                     borderColor = CockpitBorder
                 ) {
-                    PreviousIcon(modifier = Modifier.size(18.dp), tint = TextPrimary)
+                    Icon(
+                        imageVector = FeatherIcons.SkipBack,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = TextPrimary
+                    )
                 }
 
                 HudCircleButton(
@@ -582,9 +609,19 @@ private fun MediaControlCard(
                     borderColor = if (mediaInfo.isPlaying) Color.Transparent else CockpitBorder
                 ) {
                     if (mediaInfo.isPlaying) {
-                        PauseIcon(modifier = Modifier.size(20.dp), tint = CockpitActionOn)
+                        Icon(
+                            imageVector = FeatherIcons.Pause,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = CockpitActionOn
+                        )
                     } else {
-                        PlayIcon(modifier = Modifier.size(22.dp), tint = CockpitAction)
+                        Icon(
+                            imageVector = FeatherIcons.Play,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                            tint = CockpitAction
+                        )
                     }
                 }
 
@@ -595,7 +632,12 @@ private fun MediaControlCard(
                     containerColor = CockpitSurfaceElevated,
                     borderColor = CockpitBorder
                 ) {
-                    NextIcon(modifier = Modifier.size(18.dp), tint = TextPrimary)
+                    Icon(
+                        imageVector = FeatherIcons.SkipForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = TextPrimary
+                    )
                 }
             }
         }
@@ -648,8 +690,11 @@ private fun CockpitFooterDeck(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    ChevronRightIcon(
-                        modifier = Modifier.size(12.dp), tint = TextSecondary
+                    Icon(
+                        imageVector = FeatherIcons.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = TextSecondary
                     )
                 }
             }
@@ -663,7 +708,12 @@ private fun CockpitFooterDeck(
                 containerColor = CockpitSurfaceElevated,
                 borderColor = CockpitBorder
             ) {
-                InfoIcon(modifier = Modifier.size(15.dp), tint = CockpitAccent)
+                Icon(
+                    imageVector = FeatherIcons.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(15.dp),
+                    tint = CockpitAccent
+                )
             }
 
             Spacer(modifier = Modifier.width(6.dp))
@@ -675,7 +725,12 @@ private fun CockpitFooterDeck(
                 containerColor = CockpitSurfaceElevated,
                 borderColor = PulsarAmber.copy(alpha = 0.5f)
             ) {
-                PowerIcon(modifier = Modifier.size(14.dp), tint = PulsarAmber)
+                Icon(
+                    imageVector = FeatherIcons.Power,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = PulsarAmber
+                )
             }
         } else {
             // Connected State: Two Dedicated Buttons (Guide & Exit)
@@ -695,7 +750,12 @@ private fun CockpitFooterDeck(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    InfoIcon(modifier = Modifier.size(14.dp), tint = CockpitAccent)
+                    Icon(
+                        imageVector = FeatherIcons.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = CockpitAccent
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.action_guide),
@@ -726,7 +786,12 @@ private fun CockpitFooterDeck(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    PowerIcon(modifier = Modifier.size(14.dp), tint = PulsarAmber)
+                    Icon(
+                        imageVector = FeatherIcons.Power,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = PulsarAmber
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.action_exit),
@@ -767,7 +832,12 @@ private fun HandlebarGuideOverlay(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    InfoIcon(modifier = Modifier.size(16.dp), tint = CockpitAccent)
+                    Icon(
+                        imageVector = FeatherIcons.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = CockpitAccent
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
@@ -794,7 +864,12 @@ private fun HandlebarGuideOverlay(
                     containerColor = CockpitSurfaceElevated,
                     borderColor = CockpitBorder
                 ) {
-                    CloseIcon(modifier = Modifier.size(12.dp), tint = TextSecondary)
+                    Icon(
+                        imageVector = FeatherIcons.X,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = TextSecondary
+                    )
                 }
             }
 
@@ -805,27 +880,51 @@ private fun HandlebarGuideOverlay(
                 modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 GuideRow(
-                    icon = { PlayPauseIcon(modifier = Modifier.size(13.dp), tint = PulsarGreen) },
+                    icon = {
+                        Icon(
+                            imageVector = FeatherIcons.Play,
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp),
+                            tint = PulsarGreen
+                        )
+                    },
                     badgeColor = PulsarGreen,
                     action = stringResource(R.string.guide_action_play_pause),
                     instruction = stringResource(R.string.guide_inst_set)
                 )
                 GuideRow(
-                    icon = { NextIcon(modifier = Modifier.size(12.dp), tint = CockpitAccent) },
+                    icon = {
+                        Icon(
+                            imageVector = FeatherIcons.SkipForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = CockpitAccent
+                        )
+                    },
                     badgeColor = CockpitAccent,
                     action = stringResource(R.string.guide_action_next),
                     instruction = stringResource(R.string.guide_inst_next)
                 )
                 GuideRow(
-                    icon = { PreviousIcon(modifier = Modifier.size(12.dp), tint = CockpitAccent) },
+                    icon = {
+                        Icon(
+                            imageVector = FeatherIcons.SkipBack,
+                            contentDescription = null,
+                            modifier = Modifier.size(12.dp),
+                            tint = CockpitAccent
+                        )
+                    },
                     badgeColor = CockpitAccent,
                     action = stringResource(R.string.guide_action_prev),
                     instruction = stringResource(R.string.guide_inst_prev)
                 )
                 GuideRow(
                     icon = {
-                        VolumeSpeakerIcon(
-                            modifier = Modifier.size(13.dp), tint = PulsarAmber
+                        Icon(
+                            imageVector = FeatherIcons.Volume2,
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp),
+                            tint = PulsarAmber
                         )
                     },
                     badgeColor = PulsarAmber,
@@ -863,7 +962,12 @@ private fun HandlebarGuideOverlay(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    GithubIcon(modifier = Modifier.size(14.dp), tint = CockpitAccent)
+                    Icon(
+                        imageVector = FeatherIcons.Github,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = CockpitAccent
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.guide_github_handle),
@@ -992,7 +1096,12 @@ private fun RiderEdgeTab(
             Spacer(modifier = Modifier.width(6.dp))
 
             if (mediaInfo.isPlaying && mediaInfo.title.isNotEmpty()) {
-                MusicNoteIcon(modifier = Modifier.size(12.dp), tint = CockpitAccent)
+                Icon(
+                    imageVector = FeatherIcons.Music,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = CockpitAccent
+                )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = mediaInfo.title.take(12),
@@ -1014,7 +1123,12 @@ private fun RiderEdgeTab(
             }
 
             Spacer(modifier = Modifier.width(6.dp))
-            ChevronRightIcon(modifier = Modifier.size(12.dp), tint = TextSecondary)
+            Icon(
+                imageVector = FeatherIcons.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+                tint = TextSecondary
+            )
         }
     }
 }
@@ -1030,355 +1144,10 @@ private fun PulsingDot(
         ), label = "dotAlpha"
     )
 
-    Box(
-        modifier = modifier
-            .size(8.dp)
-            .graphicsLayer { this.alpha = alpha }
-            .background(color, CircleShape))
-}
-
-// Clean Automotive Vector Icons
-@Composable
-fun PlayIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val path = Path().apply {
-            moveTo(w * 0.24f, h * 0.16f)
-            lineTo(w * 0.86f, h * 0.50f)
-            lineTo(w * 0.24f, h * 0.84f)
-            close()
-        }
-        drawPath(path, color = tint)
-    }
-}
-
-@Composable
-fun PauseIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val barWidth = w * 0.26f
-        val barHeight = h * 0.72f
-        val top = (h - barHeight) / 2f
-        val corner = CornerRadius(barWidth / 2f)
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.16f, top),
-            size = Size(barWidth, barHeight),
-            cornerRadius = corner
-        )
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.58f, top),
-            size = Size(barWidth, barHeight),
-            cornerRadius = corner
-        )
-    }
-}
-
-@Composable
-fun PreviousIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val path = Path().apply {
-            moveTo(w * 0.82f, h * 0.20f)
-            lineTo(w * 0.34f, h * 0.50f)
-            lineTo(w * 0.82f, h * 0.80f)
-            close()
-        }
-        drawPath(path, color = tint)
-        val barWidth = w * 0.14f
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.12f, h * 0.20f),
-            size = Size(barWidth, h * 0.60f),
-            cornerRadius = CornerRadius(barWidth / 2f)
-        )
-    }
-}
-
-@Composable
-fun NextIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val path = Path().apply {
-            moveTo(w * 0.18f, h * 0.20f)
-            lineTo(w * 0.66f, h * 0.50f)
-            lineTo(w * 0.18f, h * 0.80f)
-            close()
-        }
-        drawPath(path, color = tint)
-        val barWidth = w * 0.14f
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.74f, h * 0.20f),
-            size = Size(barWidth, h * 0.60f),
-            cornerRadius = CornerRadius(barWidth / 2f)
-        )
-    }
-}
-
-
-@Composable
-fun ChevronLeftIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val path = Path().apply {
-            moveTo(size.width * 0.64f, size.height * 0.24f)
-            lineTo(size.width * 0.36f, size.height * 0.50f)
-            lineTo(size.width * 0.64f, size.height * 0.76f)
-        }
-        drawPath(
-            path, color = tint, style = Stroke(
-                width = 2.2f.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round
-            )
-        )
-    }
-}
-
-@Composable
-fun ChevronRightIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val path = Path().apply {
-            moveTo(size.width * 0.36f, size.height * 0.24f)
-            lineTo(size.width * 0.64f, size.height * 0.50f)
-            lineTo(size.width * 0.36f, size.height * 0.76f)
-        }
-        drawPath(
-            path, color = tint, style = Stroke(
-                width = 2.2f.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round
-            )
-        )
-    }
-}
-
-@Composable
-fun MusicNoteIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val r = w * 0.18f
-        drawCircle(color = tint, radius = r, center = Offset(w * 0.32f, h * 0.74f))
-        drawLine(
-            color = tint,
-            start = Offset(w * 0.32f + r, h * 0.74f),
-            end = Offset(w * 0.32f + r, h * 0.20f),
-            strokeWidth = 2.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-        val flag = Path().apply {
-            moveTo(w * 0.32f + r, h * 0.20f)
-            cubicTo(
-                w * 0.75f, h * 0.24f, w * 0.75f, h * 0.44f, w * 0.52f, h * 0.52f
-            )
-        }
-        drawPath(flag, color = tint, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
-    }
-}
-
-@Composable
-fun LockIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        drawArc(
-            color = tint,
-            startAngle = 180f,
-            sweepAngle = 180f,
-            useCenter = false,
-            topLeft = Offset(w * 0.26f, h * 0.12f),
-            size = Size(w * 0.48f, h * 0.46f),
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
-        )
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.18f, h * 0.44f),
-            size = Size(w * 0.64f, h * 0.46f),
-            cornerRadius = CornerRadius(3.dp.toPx())
-        )
-    }
-}
-
-@Composable
-fun InfoIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        drawCircle(
-            color = tint,
-            radius = w * 0.44f,
-            center = Offset(w * 0.5f, h * 0.5f),
-            style = Stroke(width = 1.6f.dp.toPx())
-        )
-        drawCircle(
-            color = tint, radius = 1.3f.dp.toPx(), center = Offset(w * 0.5f, h * 0.32f)
-        )
-        drawLine(
-            color = tint,
-            start = Offset(w * 0.5f, h * 0.45f),
-            end = Offset(w * 0.5f, h * 0.70f),
-            strokeWidth = 1.8f.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-    }
-}
-
-@Composable
-fun PowerIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        drawArc(
-            color = tint,
-            startAngle = 135f,
-            sweepAngle = 270f,
-            useCenter = false,
-            topLeft = Offset(w * 0.16f, h * 0.16f),
-            size = Size(w * 0.68f, h * 0.68f),
-            style = Stroke(width = 1.8f.dp.toPx(), cap = StrokeCap.Round)
-        )
-        drawLine(
-            color = tint,
-            start = Offset(w * 0.5f, h * 0.10f),
-            end = Offset(w * 0.5f, h * 0.46f),
-            strokeWidth = 1.8f.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-    }
-}
-
-@Composable
-fun CloseIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val stroke = 1.8f.dp.toPx()
-        drawLine(
-            color = tint,
-            start = Offset(size.width * 0.25f, size.height * 0.25f),
-            end = Offset(size.width * 0.75f, size.height * 0.75f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round
-        )
-        drawLine(
-            color = tint,
-            start = Offset(size.width * 0.75f, size.height * 0.25f),
-            end = Offset(size.width * 0.25f, size.height * 0.75f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round
-        )
-    }
-}
-
-@Composable
-fun PlayPauseIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val playPath = Path().apply {
-            moveTo(w * 0.14f, h * 0.20f)
-            lineTo(w * 0.46f, h * 0.50f)
-            lineTo(w * 0.14f, h * 0.80f)
-            close()
-        }
-        drawPath(playPath, color = tint)
-
-        val barWidth = w * 0.13f
-        val barHeight = h * 0.58f
-        val top = (h - barHeight) / 2f
-        val corner = CornerRadius(barWidth / 2f)
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.58f, top),
-            size = Size(barWidth, barHeight),
-            cornerRadius = corner
-        )
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(w * 0.78f, top),
-            size = Size(barWidth, barHeight),
-            cornerRadius = corner
-        )
-    }
-}
-
-@Composable
-fun VolumeSpeakerIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-
-        val speakerPath = Path().apply {
-            moveTo(w * 0.10f, h * 0.36f)
-            lineTo(w * 0.30f, h * 0.36f)
-            lineTo(w * 0.52f, h * 0.18f)
-            lineTo(w * 0.52f, h * 0.82f)
-            lineTo(w * 0.30f, h * 0.64f)
-            lineTo(w * 0.10f, h * 0.64f)
-            close()
-        }
-        drawPath(speakerPath, color = tint)
-
-        val stroke = 1.6f.dp.toPx()
-        drawArc(
-            color = tint,
-            startAngle = -45f,
-            sweepAngle = 90f,
-            useCenter = false,
-            topLeft = Offset(w * 0.44f, h * 0.34f),
-            size = Size(w * 0.28f, h * 0.32f),
-            style = Stroke(width = stroke, cap = StrokeCap.Round)
-        )
-        drawArc(
-            color = tint,
-            startAngle = -45f,
-            sweepAngle = 90f,
-            useCenter = false,
-            topLeft = Offset(w * 0.48f, h * 0.22f),
-            size = Size(w * 0.44f, h * 0.56f),
-            style = Stroke(width = stroke, cap = StrokeCap.Round)
-        )
-    }
-}
-
-@Composable
-fun GithubIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-
-        val headPath = Path().apply {
-            moveTo(w * 0.50f, h * 0.14f)
-            lineTo(w * 0.38f, h * 0.14f)
-            lineTo(w * 0.24f, h * 0.08f)
-            lineTo(w * 0.24f, h * 0.28f)
-            cubicTo(w * 0.10f, h * 0.40f, w * 0.10f, h * 0.65f, w * 0.22f, h * 0.80f)
-            cubicTo(w * 0.32f, h * 0.92f, w * 0.68f, h * 0.92f, w * 0.78f, h * 0.80f)
-            cubicTo(w * 0.90f, h * 0.65f, w * 0.90f, h * 0.40f, w * 0.76f, h * 0.28f)
-            lineTo(w * 0.76f, h * 0.08f)
-            lineTo(w * 0.62f, h * 0.14f)
-            close()
-        }
-        drawPath(headPath, color = tint)
-
-        val facePath = Path().apply {
-            moveTo(w * 0.50f, h * 0.32f)
-            cubicTo(w * 0.34f, h * 0.32f, w * 0.26f, h * 0.44f, w * 0.26f, h * 0.58f)
-            cubicTo(w * 0.26f, h * 0.74f, w * 0.36f, h * 0.82f, w * 0.50f, h * 0.82f)
-            cubicTo(w * 0.64f, h * 0.82f, w * 0.74f, h * 0.74f, w * 0.74f, h * 0.58f)
-            cubicTo(w * 0.74f, h * 0.44f, w * 0.66f, h * 0.32f, w * 0.50f, h * 0.32f)
-            close()
-        }
-        drawPath(facePath, color = CockpitSurfaceElevated)
-
-        val nosePath = Path().apply {
-            moveTo(w * 0.44f, h * 0.56f)
-            lineTo(w * 0.56f, h * 0.56f)
-            lineTo(w * 0.50f, h * 0.62f)
-            close()
-        }
-        drawPath(nosePath, color = tint)
-    }
+    Box(modifier = modifier
+        .size(8.dp)
+        .graphicsLayer { this.alpha = alpha }
+        .background(color, CircleShape))
 }
 
 @Preview(
