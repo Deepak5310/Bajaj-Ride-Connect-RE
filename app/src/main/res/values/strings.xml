@@ -28,6 +28,22 @@
 
     <!-- Actions & Navigation -->
     <string name="action_connect_bike">CONNECT BIKE</string>
+    <string name="action_guide">GUIDE</string>
+    <string name="action_exit">EXIT</string>
+    <string name="guide_title">HANDLEBAR CONTROLS</string>
+    <string name="guide_subtitle">Pulsar &amp; Dominar Switchgear</string>
+    <string name="guide_btn_set">SET</string>
+    <string name="guide_desc_play_pause">Single click • Play / Pause</string>
+    <string name="guide_btn_hold_up">HOLD ▲</string>
+    <string name="guide_desc_next">Long press • Next Track</string>
+    <string name="guide_btn_hold_down">HOLD ▼</string>
+    <string name="guide_desc_prev">Long press • Previous Track</string>
+    <string name="guide_btn_click_vol">CLICK ▲▼</string>
+    <string name="guide_desc_volume">Single click • Volume Up / Down</string>
+    <string name="guide_btn_tab">TAB ◀</string>
+    <string name="guide_desc_tab">Tap edge • Minimize to Pill</string>
+    <string name="guide_action_close">GOT IT</string>
+    <string name="toast_service_stopped">Ride Connect stopped</string>
 
     <!-- User Feedback & Toasts -->
     <string name="toast_connected">Connected: %1$s</string>

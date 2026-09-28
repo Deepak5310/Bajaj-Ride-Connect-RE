@@ -227,6 +227,14 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                                 ).show()
                                 bleManager.startScanOrConnect()
                             }
+                        },
+                        onExitApp = {
+                            Toast.makeText(
+                                this@FloatingHudService,
+                                getString(R.string.toast_service_stopped),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            stopSelf()
                         })
                 }
             }

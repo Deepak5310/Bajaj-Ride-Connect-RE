@@ -32,8 +32,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -116,7 +118,8 @@ fun CockpitHud(
     onSkipPrevious: () -> Unit = {},
     onSeek: (Float) -> Unit = {},
     onRequestNotificationPermission: () -> Unit = {},
-    onBikeClick: () -> Unit = {}
+    onBikeClick: () -> Unit = {},
+    onExitApp: () -> Unit = {}
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -149,6 +152,7 @@ fun CockpitHud(
                     onSeek = onSeek,
                     onRequestNotificationPermission = onRequestNotificationPermission,
                     onBikeClick = onBikeClick,
+                    onExitApp = onExitApp,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
@@ -176,87 +180,101 @@ private fun RiderDock(
     onSeek: (Float) -> Unit,
     onRequestNotificationPermission: () -> Unit,
     onBikeClick: () -> Unit,
+    onExitApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = CockpitBlack.copy(alpha = 0.95f)),
-        border = BorderStroke(1.dp, CockpitBorder)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+    var showGuide by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = CockpitBlack.copy(alpha = 0.95f)),
+            border = BorderStroke(1.dp, CockpitBorder)
         ) {
-            // 1. Header: Bike Status & Collapse Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
+                // 1. Header: Bike Status & Collapse Button
                 Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onBikeClick() }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    val dotColor = when {
-                        isBleConnected -> PulsarGreen
-                        bikeStatus == stringResource(R.string.status_connecting) -> PulsarAmber
-                        else -> TextTertiary
-                    }
-                    PulsingDot(color = dotColor)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = bikeName,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = bikeStatus,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = if (isBleConnected) PulsarGreen else TextSecondary,
-                            fontSize = 9.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(6.dp))
-
-                HudCircleButton(
-                    onClick = onCollapse,
-                    contentDescription = stringResource(R.string.cd_collapse_hud),
-                    size = 36.dp,
-                    containerColor = CockpitSurfaceElevated,
-                    borderColor = CockpitBorder
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    ChevronLeftIcon(modifier = Modifier.size(16.dp), tint = TextSecondary)
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onBikeClick() }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        val dotColor = when {
+                            isBleConnected -> PulsarGreen
+                            bikeStatus == stringResource(R.string.status_connecting) -> PulsarAmber
+                            else -> TextTertiary
+                        }
+                        PulsingDot(color = dotColor)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = bikeName,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = bikeStatus,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = if (isBleConnected) PulsarGreen else TextSecondary,
+                                fontSize = 9.sp
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    HudCircleButton(
+                        onClick = onCollapse,
+                        contentDescription = stringResource(R.string.cd_collapse_hud),
+                        size = 36.dp,
+                        containerColor = CockpitSurfaceElevated,
+                        borderColor = CockpitBorder
+                    ) {
+                        ChevronLeftIcon(modifier = Modifier.size(16.dp), tint = TextSecondary)
+                    }
                 }
+
+                // 2. Media Control Card (Track info, Seekbar & Large Transport Controls)
+                MediaControlCard(
+                    mediaInfo = mediaInfo,
+                    onPlayPauseToggle = onPlayPauseToggle,
+                    onSkipNext = onSkipNext,
+                    onSkipPrevious = onSkipPrevious,
+                    onSeek = onSeek,
+                    onRequestNotificationPermission = onRequestNotificationPermission
+                )
+
+                // 3. Cockpit Footer Deck: Connection / Handlebar Guide & Exit
+                CockpitFooterDeck(
+                    isBleConnected = isBleConnected,
+                    onBikeClick = onBikeClick,
+                    onShowGuide = { showGuide = true },
+                    onExitApp = onExitApp
+                )
             }
+        }
 
-            // 2. Media Control Card (Track info, Seekbar & Large Transport Controls)
-            MediaControlCard(
-                mediaInfo = mediaInfo,
-                onPlayPauseToggle = onPlayPauseToggle,
-                onSkipNext = onSkipNext,
-                onSkipPrevious = onSkipPrevious,
-                onSeek = onSeek,
-                onRequestNotificationPermission = onRequestNotificationPermission
-            )
-
-            // 3. Cockpit Footer Deck: Connection / Handlebar Monitor
-            CockpitFooterDeck(
-                isBleConnected = isBleConnected, onBikeClick = onBikeClick
+        if (showGuide) {
+            HandlebarGuideOverlay(
+                onDismiss = { showGuide = false }, modifier = Modifier.fillMaxSize()
             )
         }
     }
@@ -584,52 +602,295 @@ private fun MediaControlCard(
 
 @Composable
 private fun CockpitFooterDeck(
-    isBleConnected: Boolean, onBikeClick: () -> Unit, modifier: Modifier = Modifier
+    isBleConnected: Boolean,
+    onBikeClick: () -> Unit,
+    onShowGuide: () -> Unit,
+    onExitApp: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Surface(
-        onClick = onBikeClick,
-        shape = RoundedCornerShape(10.dp),
-        color = if (isBleConnected) CockpitSurfaceElevated else CockpitSurface,
-        border = BorderStroke(
-            1.dp, if (isBleConnected) PulsarGreen.copy(alpha = 0.35f) else CockpitBorder
-        ),
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(34.dp)
+            .height(34.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        if (!isBleConnected) {
+            Surface(
+                onClick = onBikeClick,
+                shape = RoundedCornerShape(10.dp),
+                color = CockpitSurface,
+                border = BorderStroke(1.dp, CockpitBorder),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PulsingDot(color = PulsarAmber)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.action_connect_bike),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = PulsarAmber,
+                            fontSize = 10.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    ChevronRightIcon(
+                        modifier = Modifier.size(12.dp), tint = TextSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            HudCircleButton(
+                onClick = onShowGuide,
+                contentDescription = stringResource(R.string.action_guide),
+                size = 34.dp,
+                containerColor = CockpitSurfaceElevated,
+                borderColor = CockpitBorder
+            ) {
+                InfoIcon(modifier = Modifier.size(15.dp), tint = CockpitAccent)
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            HudCircleButton(
+                onClick = onExitApp,
+                contentDescription = stringResource(R.string.action_exit),
+                size = 34.dp,
+                containerColor = CockpitSurfaceElevated,
+                borderColor = PulsarAmber.copy(alpha = 0.5f)
+            ) {
+                PowerIcon(modifier = Modifier.size(14.dp), tint = PulsarAmber)
+            }
+        } else {
+            // Connected State: Two Dedicated Buttons (Guide & Exit)
+            Surface(
+                onClick = onShowGuide,
+                shape = RoundedCornerShape(10.dp),
+                color = CockpitSurfaceElevated,
+                border = BorderStroke(1.dp, CockpitAccent.copy(alpha = 0.4f)),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    InfoIcon(modifier = Modifier.size(14.dp), tint = CockpitAccent)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.action_guide),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = CockpitAccent,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Surface(
+                onClick = onExitApp,
+                shape = RoundedCornerShape(10.dp),
+                color = CockpitSurfaceElevated,
+                border = BorderStroke(1.dp, PulsarAmber.copy(alpha = 0.4f)),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    PowerIcon(modifier = Modifier.size(14.dp), tint = PulsarAmber)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.action_exit),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = PulsarAmber,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HandlebarGuideOverlay(
+    onDismiss: () -> Unit, modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxSize(),
+        shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = CockpitBlack.copy(alpha = 0.98f)),
+        border = BorderStroke(1.dp, CockpitBorder)
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Header
             Row(
-                verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                PulsingDot(color = if (isBleConnected) PulsarGreen else PulsarAmber)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (isBleConnected) {
-                        stringResource(R.string.bike_handlebar_ready)
-                    } else {
-                        stringResource(R.string.action_connect_bike)
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isBleConnected) PulsarGreen else PulsarAmber,
-                    fontSize = 10.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    InfoIcon(modifier = Modifier.size(16.dp), tint = CockpitAccent)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = stringResource(R.string.guide_title),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = stringResource(R.string.guide_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextSecondary,
+                            fontSize = 9.sp
+                        )
+                    }
+                }
+                HudCircleButton(
+                    onClick = onDismiss,
+                    contentDescription = stringResource(R.string.guide_action_close),
+                    size = 30.dp,
+                    containerColor = CockpitSurfaceElevated,
+                    borderColor = CockpitBorder
+                ) {
+                    CloseIcon(modifier = Modifier.size(12.dp), tint = TextSecondary)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Guide Rows
+            Column(
+                modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                GuideRow(
+                    badge = stringResource(R.string.guide_btn_set),
+                    badgeColor = PulsarGreen,
+                    desc = stringResource(R.string.guide_desc_play_pause)
+                )
+                GuideRow(
+                    badge = stringResource(R.string.guide_btn_hold_up),
+                    badgeColor = CockpitAccent,
+                    desc = stringResource(R.string.guide_desc_next)
+                )
+                GuideRow(
+                    badge = stringResource(R.string.guide_btn_hold_down),
+                    badgeColor = CockpitAccent,
+                    desc = stringResource(R.string.guide_desc_prev)
+                )
+                GuideRow(
+                    badge = stringResource(R.string.guide_btn_click_vol),
+                    badgeColor = TextPrimary,
+                    desc = stringResource(R.string.guide_desc_volume)
+                )
+                GuideRow(
+                    badge = stringResource(R.string.guide_btn_tab),
+                    badgeColor = PulsarAmber,
+                    desc = stringResource(R.string.guide_desc_tab)
                 )
             }
 
-            ChevronRightIcon(
-                modifier = Modifier.size(12.dp),
-                tint = if (isBleConnected) PulsarGreen else TextSecondary
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Dismiss Button
+            Surface(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(8.dp),
+                color = CockpitSurfaceElevated,
+                border = BorderStroke(1.dp, CockpitBorder),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(30.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(R.string.guide_action_close),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuideRow(
+    badge: String, badgeColor: Color, desc: String, modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(CockpitSurface)
+            .border(BorderStroke(0.5.dp, CockpitBorder), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = badgeColor.copy(alpha = 0.15f),
+            border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
+        ) {
+            Text(
+                text = badge,
+                color = badgeColor,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                fontSize = 9.sp,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
             )
         }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = desc,
+            color = TextSecondary,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 9.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -900,6 +1161,75 @@ fun LockIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
             topLeft = Offset(w * 0.18f, h * 0.44f),
             size = Size(w * 0.64f, h * 0.46f),
             cornerRadius = CornerRadius(3.dp.toPx())
+        )
+    }
+}
+
+@Composable
+fun InfoIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        drawCircle(
+            color = tint,
+            radius = w * 0.44f,
+            center = Offset(w * 0.5f, h * 0.5f),
+            style = Stroke(width = 1.6f.dp.toPx())
+        )
+        drawCircle(
+            color = tint, radius = 1.3f.dp.toPx(), center = Offset(w * 0.5f, h * 0.32f)
+        )
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.5f, h * 0.45f),
+            end = Offset(w * 0.5f, h * 0.70f),
+            strokeWidth = 1.8f.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+fun PowerIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        drawArc(
+            color = tint,
+            startAngle = 135f,
+            sweepAngle = 270f,
+            useCenter = false,
+            topLeft = Offset(w * 0.16f, h * 0.16f),
+            size = Size(w * 0.68f, h * 0.68f),
+            style = Stroke(width = 1.8f.dp.toPx(), cap = StrokeCap.Round)
+        )
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.5f, h * 0.10f),
+            end = Offset(w * 0.5f, h * 0.46f),
+            strokeWidth = 1.8f.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+fun CloseIcon(modifier: Modifier = Modifier, tint: Color = Color.White) {
+    Canvas(modifier = modifier) {
+        val stroke = 1.8f.dp.toPx()
+        drawLine(
+            color = tint,
+            start = Offset(size.width * 0.25f, size.height * 0.25f),
+            end = Offset(size.width * 0.75f, size.height * 0.75f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = tint,
+            start = Offset(size.width * 0.75f, size.height * 0.25f),
+            end = Offset(size.width * 0.25f, size.height * 0.75f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
         )
     }
 }
