@@ -23,6 +23,7 @@ import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -126,6 +127,8 @@ class PulsarBleManager(context: Context) {
         }
     }
 
+    private val prefs = this.context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
     init {
         val manager = this.context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
         manager?.let { this.bluetoothAdapter = it.adapter }
@@ -177,7 +180,9 @@ class PulsarBleManager(context: Context) {
     }
 
     private fun isMatchingCluster(name: String?, address: String?): Boolean {
-        if (address.equals(TARGET_MAC, ignoreCase = true)) return true
+        if (address.isNullOrEmpty()) return false
+        val savedMac = prefs.getString(KEY_LAST_MAC, null)
+        if (!savedMac.isNullOrEmpty() && address.equals(savedMac, ignoreCase = true)) return true
         name ?: return false
         val upper = name.uppercase()
         return upper.contains("PULSAR") || upper.contains("NS400") || upper.contains("DOMINAR") || upper.contains(
@@ -331,7 +336,9 @@ class PulsarBleManager(context: Context) {
             if (name.isNullOrEmpty() && result.scanRecord != null) {
                 name = result.scanRecord?.deviceName
             }
-            if (isMatchingCluster(name, device.address)) {
+            val advertisesOtcService =
+                result.scanRecord?.serviceUuids?.any { it.uuid == SERVICE_UUID } == true
+            if (advertisesOtcService || isMatchingCluster(name, device.address)) {
                 Log.i(TAG, "Discovered Pulsar cluster in BLE scan: $name [${device.address}]")
                 stopScan()
                 connect(device.address, name)
@@ -708,6 +715,7 @@ class PulsarBleManager(context: Context) {
 
                 val service = gatt.getService(SERVICE_UUID)
                 if (service != null) {
+                    prefs.edit { putString(KEY_LAST_MAC, gatt.device.address) }
                     charTelemetry = service.getCharacteristic(CHAR_TELEMETRY_UUID)
                     charMedia = service.getCharacteristic(CHAR_MEDIA_UUID)
                     charControls = service.getCharacteristic(CHAR_CONTROLS_UUID)
@@ -837,7 +845,8 @@ class PulsarBleManager(context: Context) {
 
     companion object {
         private const val TAG = "PulsarBleManager"
-        private const val TARGET_MAC = "C0:63:80:2D:0C:42"
+        private const val PREFS_NAME = "pulsar_ble_prefs"
+        private const val KEY_LAST_MAC = "last_cluster_mac"
 
         val SERVICE_UUID: UUID = UUID.fromString(PulsarProtocol.SERVICE_UUID)
         val CHAR_TELEMETRY_UUID: UUID = UUID.fromString(PulsarProtocol.CHAR_TELEMETRY_UUID)
