@@ -10,14 +10,15 @@ Compatible with ~80% of Bajaj Bluetooth-equipped motorcycles (Pulsar NS400Z, N25
 
 ```
 bajaj-ride-connect-re/
-├── StudioApp/                     # Production Jetpack Compose Cockpit HUD app (Material3, BLE, Media)
-├── app/                           # "My Pulsar" standalone Android cockpit app (Legacy View)
+├── StudioApp/                     # Production Jetpack Compose Cockpit HUD app (Material3, BLE, Media, Telemetry)
+│   └── app/src/main/              # Kotlin sources, custom Pulsar emblem icons, WindowManager overlay HUD
+├── app/                           # "My Pulsar" standalone Android cockpit app (Legacy View reference)
 │   ├── AndroidManifest.xml
 │   ├── res/                       # Vectors, HUD layouts & Dark Knight themes
 │   └── src/                       # 100% Idiomatic Kotlin sources (BLE, Media, Navigation, Telemetry)
 ├── docs/                          # Hardware specs, BLE protocol & owner manual
-│   ├── ble_protocol_spec.md       # Full Bluetooth Low Energy GATT specification & schemas
-│   ├── HANDOFF.md                 # Hardware target notes & protocol findings
+│   ├── DEVELOPER_GUIDE.md         # Full BLE GATT specification, architecture & verified hardware matrix
+│   ├── HANDOFF.md                 # Production implementation status & hardware target notes
 │   └── pulsar-ns400z-owners-manual.pdf
 ├── references/                    # Original APK bundles, split APKs & Hermes string dumps
 ├── scripts/                       # Diagnostic CLI tools & protocol decoders
@@ -30,7 +31,7 @@ bajaj-ride-connect-re/
 │       ├── mappls/                # MapmyIndia navigation SDK reference
 │       ├── spotify/               # Spotify app remote protocol reference
 │       └── zersys/                # Anti-tamper security reference
-├── build.sh                       # Optimized Linux Bash build script (AAPT2 + D8)
+├── build.sh                       # Optimized Linux Bash build script (AAPT2 + D8 for legacy app/)
 └── README.md
 ```
 
@@ -41,15 +42,25 @@ bajaj-ride-connect-re/
 * **Target Ecosystem:** Bajaj Bluetooth-enabled motorcycles (Pulsar NS400Z, Pulsar N-Series, Dominar series). **Strictly Petrol/ICE motorcycles — zero EV/Chetak support.**
 * **Cluster Hardware:** Segmented LCD with Dot-Matrix display (`CLUSTER_V1`, Pricol / Uno Minda / OTC Engineering).
 * **Connectivity Architecture:**
-  * **Bluetooth Low Energy (GATT):** 100% active transport for Now-Playing Media streaming (`0610`), phone battery & volume sync telemetry (`0210`), and physical handlebar switchgear triggers (`0a10` - Play/Pause, Next/Prev, Volume).
+  * **Bluetooth Low Energy (GATT):** 100% active transport for Now-Playing Media streaming (`0610` with UTF-8 multi-byte safe truncation and Album metadata sync), phone battery & signal telemetry (`0210`), and physical handlebar switchgear triggers (`0a10` - Play/Pause, Next/Prev, Volume with idle-pulse mute protection).
+  * **Dynamic Cluster Pairing & Persistence:** Automatically discovers Pulsar/Dominar clusters by advertised OTC Service UUID or device name keywords and persists the last connected cluster MAC in `SharedPreferences` for instant future reconnections.
 
 ---
 
 ## 🛠️ Usage & Tools
 
-### 1. "My Pulsar" Standalone Landscape Cockpit Bridge APK
-A native, lightweight automotive cockpit dashboard and background service (`com.bajaj.rideconnect.re`) that connects directly to the Bajaj BLE cluster, intercepts active navigation notifications from **Google Maps**, and renders turn arrows, step distances, ETA, and street names on the bike's LCD dot-matrix display:
+### 1. "My Pulsar" Jetpack Compose Cockpit HUD (`StudioApp/`)
+A native, zero-bloat automotive floating overlay HUD (`com.bajaj.rideconnect.re`) that docks alongside **Google Maps** in landscape mode, connects directly to the Bajaj BLE cluster, and provides glove-friendly media controls, auto-scrolling marquee track titles, and 1-tap notification exit:
 
+```bash
+# Build StudioApp debug APK via Gradle
+cd StudioApp && ./gradlew :app:assembleDebug
+
+# Install directly to connected phone over ADB
+adb install -r StudioApp/app/build/outputs/apk/debug/app-debug.apk
+```
+
+### 2. Legacy Standalone Build Script (`app/`)
 ```bash
 # Build optimized release APK (arm64-v8a, RSA 4096-bit production signed, V1/V2/V3/V4)
 ./build.sh release

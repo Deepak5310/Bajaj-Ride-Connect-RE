@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-**Pulsar Ride Connect** (`com.bajaj.rideconnect.re`) is a standalone, lightweight, zero-bloat native Android automotive application engineered to interface directly with the **Bajaj Pulsar NS400Z digital instrument cluster** (`PULSAR6741`, MAC: `C0:63:80:2D:0C:42`).
+**Pulsar Ride Connect** (`com.bajaj.rideconnect.re`) is a standalone, lightweight, zero-bloat native Android automotive application engineered to interface directly with **Bajaj Pulsar & Dominar digital instrument clusters** over Bluetooth Low Energy (BLE).
 
 The instrument cluster utilizes a custom Bluetooth Low Energy (BLE) GATT profile designed by **OTC Engineering**. This document provides a complete technical reference on the wire protocol, Android subsystem integrations, handlebar button handling, verified hardware features, and troubleshooting guidelines.
 
@@ -277,23 +277,24 @@ The official Bajaj Connect app computes Trip Distances, Ride Time, Average Speed
 
 ## 8. Build, Deploy & Verification
 
-### 8.1 Build Pipeline
-The project uses a standalone Python build script without Gradle overhead:
+### 8.1 StudioApp Gradle Build & CI Pipeline
+`StudioApp/` uses the standard Android Gradle Plugin (Kotlin 2.2 / Jetpack Compose Material3) with an automated GitHub Actions CI workflow (`.github/workflows/android-ci.yml`) that runs `./gradlew test lintDebug assembleDebug` on every push and PR:
+```bash
+# Build and install StudioApp debug APK over ADB
+cd StudioApp && ./gradlew :app:assembleDebug && adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+### 8.2 Legacy Standalone Build Script (`app/`)
+The legacy View prototype uses a standalone Bash build script without Gradle overhead:
 ```bash
 # Build, package, sign and install directly to connected phone over ADB
 ./build.sh -i
 ```
-Pipeline stages:
-1. `aapt2 compile` & `aapt2 link` $\rightarrow$ Resources & `R.java`
-2. `javac -release 17` $\rightarrow$ Compiles Java sources
-3. `d8` (Android DEX compiler) $\rightarrow$ Produces `classes.dex`
-4. `zipalign` $\rightarrow$ 4-byte aligns APK
-5. `apksigner` $\rightarrow$ Signs with v2/v3 signatures
 
-### 8.2 Logcat Monitoring Filters
-To debug BLE, Media, Calls, and Telemetry in real time:
+### 8.3 Logcat Monitoring Filters
+To debug BLE, Media, and Telemetry in real time:
 ```bash
-adb logcat -v time -s PulsarBleManager:D MediaStateListener:D TelephonyCallHandler:D PhoneStateMonitor:D
+adb logcat -v time -s PulsarBleManager:D MediaStateListener:D PhoneStateMonitor:D FloatingHudService:D
 ```
 
 ---
@@ -302,22 +303,29 @@ adb logcat -v time -s PulsarBleManager:D MediaStateListener:D TelephonyCallHandl
 
 ```
 StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
-├── MainActivity.kt             # Auto-shifts to Cockpit HUD overlay & launches Google Maps
-├── FloatingHudService.kt       # WindowManager overlay service, volume sync & simulation dispatcher
-├── PulsarBleManager.kt         # BLE GATT Engine, Write Queue, 500ms poller, simulation API (Pulsar & Dominar)
-├── PulsarProtocol.kt           # Binary Media Frame Encoder (0610) & Handlebar Event Parser (0a10)
-├── MediaStateListener.kt       # MediaSession controller, 1s ticker, Volume sync & filter
-├── ui/cockpit/CockpitHud.kt    # Minimalist Automotive Music Cockpit UI, integrated volume bar, Edge Tab
+├── MainActivity.kt             # Single-shot Co-Pilot launcher (HUD + Google Maps + Portrait rotation toast)
+├── FloatingHudService.kt       # WindowManager overlay service, notification EXIT action & orientation watcher
+├── PulsarBleManager.kt         # BLE GATT Engine, Write Queue reset on disconnect, MAC persistence & 350ms poller
+├── PulsarProtocol.kt           # Binary Encoders (0210, 0610 with UTF-8 safe writeUtf8Field, 0a10 parser)
+├── MediaStateListener.kt       # MediaSession controller, Title/Artist/Album sync, 1s ticker & Volume filter
+├── PhoneStateMonitor.kt        # Battery (0-4 bars), Cellular Signal (0-4 bars) & Volume ContentObserver
+├── ui/cockpit/CockpitHud.kt    # Minimalist Automotive Music Cockpit UI, marquee title, cached album art, Edge Tab
 └── ui/theme/Color.kt           # OLED Obsidian + Cobalt Titanium palette tokens
 ```
 
 ---
 
-## 10. StudioApp Compose Cockpit HUD
+## 10. StudioApp Compose Cockpit HUD & Reliability Highlights
 
-### 10.1 UI/UX Architecture
+### 10.1 UI/UX Architecture & Ergonomics
 * **Target Motorcycles**: Bajaj Pulsar Series (NS400Z, N250, F250, NS200, N160, NS160, N150) & Dominar Series (400, 250). Strictly Petrol/ICE motorcycles — zero EV/Chetak support.
 * **Minimalist Automotive Palette**: OLED Obsidian (`#090B10`), Charcoal Slate (`#131722`), Electric Cobalt (`#3B82F6`), Titanium White action button (`#F8FAFC`), and subtle hairline borders (`#222938`) eliminating distraction and glare.
-* **Pure Media Focus**: Dedicated floating music card with album art, track/artist info, interactive seekbar, primary playback controls (44-52dp glove-friendly touch targets), and punch-hole camera offset. Handlebar switchgear provides physical hardware volume control.
-* **Minimalist Iconography**: Uses `br.com.devsrsouza.compose.icons:feather` (Feather Icons) for crisp, uniform 2px stroke vector icons across all HUD transport controls, status pills, and the Handlebar Guide overlay — zero inline `Canvas` path bloat.
-* **Edge Tab Pill**: Collapsed mode renders a sleek, non-intrusive floating pill on the left display bezel with live bike/music status.
+* **Custom Brand Identity**: Custom Pulsar emblem launcher icon (`ic_launcher_foreground.xml` + `mipmap-*`) and monochrome status bar notification silhouette (`ic_stat_pulsar.xml`).
+* **Pure Media Focus & Zero-Allocation Ticker**: Dedicated floating music card with cached `ImageBitmap` album art (`remember(mediaInfo.albumArt)`), auto-scrolling `basicMarquee()` track titles, interactive seekbar, primary playback controls (44–52dp glove-friendly touch targets), and punch-hole camera offset (22dp).
+* **Portrait Ergonomics & 1-Tap Notification Exit**: Launching the app or tapping the collapsed edge pill in Portrait mode shows a clear rotation toast (`"Rotate to landscape to use Cockpit HUD"`), while the foreground notification provides a direct **EXIT** action button (`ACTION_STOP_SERVICE`) so riders can stop the service in Portrait mode without rotating their phone.
+* **Minimalist Iconography**: Uses `br.com.devsrsouza.compose.icons:feather` (Feather Icons) for crisp, uniform 2px stroke vector icons across all HUD transport controls, status pills, and the Handlebar Guide overlay.
+
+### 10.2 BLE GATT & Protocol Hardening
+* **UTF-8 Multi-Byte Safe Truncation (`PulsarProtocol.writeUtf8Field`)**: Safely truncates track, artist, and album strings to $\le 31$ UTF-8 bytes without splitting multi-byte characters (Devanagari, emojis, accented symbols) or overflowing field boundaries in the 105-byte `0610` packet.
+* **Unexpected Disconnect Queue Recovery**: Resets `charTelemetry`, `charMedia`, `charControls`, `writeQueue`, and `isWriting` on unexpected GATT disconnects (`status=8` / `status=19`) so reconnections never deadlock the write queue.
+* **Dynamic Cluster MAC Persistence**: Automatically saves the verified OTC cluster MAC address to `SharedPreferences` (`pulsar_ble_prefs` / `last_cluster_mac`) upon service discovery, enabling instant reconnection to any rider's Pulsar/Dominar cluster alongside keyword matching.
