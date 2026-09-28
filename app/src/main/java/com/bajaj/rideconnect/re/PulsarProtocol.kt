@@ -68,6 +68,8 @@ object PulsarProtocol {
         return frame
     }
 
+    private const val MAX_MEDIA_FIELD_BYTES = 31
+
     fun buildMediaFrame(
         title: String?,
         artist: String?,
@@ -79,29 +81,9 @@ object PulsarProtocol {
         val frame = ByteArray(105)
         frame[0] = 0x01.toByte()
 
-        if (!title.isNullOrEmpty()) {
-            var t = title
-            if (t.length > 31) t = t.substring(0, 31)
-            frame[1] = t.length.toByte()
-            val titleBytes = t.toByteArray(StandardCharsets.UTF_8)
-            System.arraycopy(titleBytes, 0, frame, 2, min(titleBytes.size, 32))
-        }
-
-        if (!artist.isNullOrEmpty()) {
-            var a = artist
-            if (a.length > 31) a = a.substring(0, 31)
-            frame[34] = a.length.toByte()
-            val artistBytes = a.toByteArray(StandardCharsets.UTF_8)
-            System.arraycopy(artistBytes, 0, frame, 35, min(artistBytes.size, 32))
-        }
-
-        if (!album.isNullOrEmpty()) {
-            var al = album
-            if (al.length > 31) al = al.substring(0, 31)
-            frame[67] = al.length.toByte()
-            val albumBytes = al.toByteArray(StandardCharsets.UTF_8)
-            System.arraycopy(albumBytes, 0, frame, 68, min(albumBytes.size, 32))
-        }
+        writeUtf8Field(frame, lengthOffset = 1, dataOffset = 2, text = title)
+        writeUtf8Field(frame, lengthOffset = 34, dataOffset = 35, text = artist)
+        writeUtf8Field(frame, lengthOffset = 67, dataOffset = 68, text = album)
 
         frame[100] = ((positionSec shr 8) and 0xFF).toByte()
         frame[101] = (positionSec and 0xFF).toByte()
@@ -112,6 +94,23 @@ object PulsarProtocol {
         frame[104] = (playbackState and 0xFF).toByte()
 
         return frame
+    }
+
+    private fun writeUtf8Field(
+        frame: ByteArray, lengthOffset: Int, dataOffset: Int, text: String?
+    ) {
+        if (text.isNullOrEmpty()) return
+        val rawBytes = text.toByteArray(StandardCharsets.UTF_8)
+        var len = min(rawBytes.size, MAX_MEDIA_FIELD_BYTES)
+        if (rawBytes.size > MAX_MEDIA_FIELD_BYTES) {
+            while (len > 0 && (rawBytes[len].toInt() and 0xC0) == 0x80) {
+                len--
+            }
+        }
+        frame[lengthOffset] = len.toByte()
+        if (len > 0) {
+            System.arraycopy(rawBytes, 0, frame, dataOffset, len)
+        }
     }
 
     class HandlebarEvent {

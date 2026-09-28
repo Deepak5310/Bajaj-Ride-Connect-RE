@@ -452,6 +452,7 @@ class PulsarBleManager(context: Context) {
         synchronized(writeQueue) {
             writeQueue.clear()
             isWriting = false
+            currentTask = null
         }
         _connectionState.value = BleConnectionState()
     }
@@ -642,8 +643,14 @@ class PulsarBleManager(context: Context) {
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Disconnected from NS400Z (status=$status).")
                 mainHandler.removeCallbacks(controlsPollRunnable)
+                charTelemetry = null
                 charMedia = null
                 charControls = null
+                synchronized(writeQueue) {
+                    writeQueue.clear()
+                    isWriting = false
+                    currentTask = null
+                }
 
                 bluetoothGatt?.let {
                     if (hasConnectPermission()) {

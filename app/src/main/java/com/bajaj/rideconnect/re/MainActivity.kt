@@ -24,6 +24,8 @@ import com.bajaj.rideconnect.re.ui.theme.MyPulsarTheme
 
 class MainActivity : ComponentActivity() {
 
+    private var hasLaunchedCoPilot = false
+
     private val btPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
@@ -51,7 +53,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        checkPermissionsAndProceed()
+        if (!isFinishing && !hasLaunchedCoPilot) {
+            checkPermissionsAndProceed()
+        }
     }
 
     private fun hasBluetoothPermissions(): Boolean {
@@ -87,6 +91,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun launchCoPilotAndMaps() {
+        if (hasLaunchedCoPilot) return
+        hasLaunchedCoPilot = true
         if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
             Toast.makeText(this, getString(R.string.toast_rotate_landscape), Toast.LENGTH_SHORT)
                 .show()

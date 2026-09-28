@@ -35,6 +35,7 @@ class MediaStateListener(context: Context) {
     private val handler = Handler(Looper.getMainLooper())
 
     private var totalDurationSec: Int = 0
+    private var currentAlbum: String = ""
     private var lastPositionUpdateTime: Long = 0L
     private var playbackSpeed: Float = 1.0f
 
@@ -164,6 +165,7 @@ class MediaStateListener(context: Context) {
                     }
                     activeController = null
                     totalDurationSec = 0
+                    currentAlbum = ""
                     handler.removeCallbacks(progressTicker)
                     _mediaTrackInfo.value = MediaTrackInfo(hasPermission = true)
                     bleMediaSender?.sendMedia("", "", "", 0, 0, 0)
@@ -209,6 +211,7 @@ class MediaStateListener(context: Context) {
 
         var title = ""
         var artist = ""
+        var album = ""
         var artwork: Bitmap? = null
         var durMs = 0L
 
@@ -220,6 +223,8 @@ class MediaStateListener(context: Context) {
             artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: metadata.getString(
                 MediaMetadata.METADATA_KEY_ALBUM_ARTIST
             ) ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE) ?: ""
+
+            album = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM) ?: ""
 
             durMs = try {
                 metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
@@ -237,6 +242,7 @@ class MediaStateListener(context: Context) {
             }
         }
 
+        currentAlbum = album
         totalDurationSec = if (durMs > 0L) (durMs / 1000L).toInt() else 0
 
         var isPlaying = false
@@ -284,7 +290,9 @@ class MediaStateListener(context: Context) {
             pbState?.state == PlaybackState.STATE_PAUSED -> 1
             else -> 0
         }
-        bleMediaSender?.sendMedia(title, artist, "", clampedPosSec, totalDurationSec, pbStateInt)
+        bleMediaSender?.sendMedia(
+            title, artist, currentAlbum, clampedPosSec, totalDurationSec, pbStateInt
+        )
 
         handler.removeCallbacks(progressTicker)
         if (isPlaying) {
@@ -316,7 +324,7 @@ class MediaStateListener(context: Context) {
             progress = progress, currentPosition = formatSeconds(clampedPosSec)
         )
         bleMediaSender?.sendMedia(
-            currentInfo.title, currentInfo.artist, "", clampedPosSec, totalDurationSec, 2
+            currentInfo.title, currentInfo.artist, currentAlbum, clampedPosSec, totalDurationSec, 2
         )
     }
 
