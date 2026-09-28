@@ -20,16 +20,13 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
    - Cluster `0a10` Byte 0 idle pulse (`volume=0`) is filtered when current phone volume `> 1` (`MediaStateListener.kt`).
 3. **Track Skip (`^` / `v` long-press / hold)**:
    - Long-press `^` skips to **Next Track**.
-   - Long-press `v` skips to **Previous Track**. Includes auto-double skip if playback position > 2.5s so music players (YT Music, Spotify) switch to previous song instead of rewinding to 0:00.
+   - Long-press `v` skips to **Previous Track**.
    - Dispatches via `MediaController.TransportControls` with fallback to `dispatchMediaKeyEvent`.
 4. **Media Play / Pause (`SET` single-press)**:
    - Single-press `SET` on the left handlebar switch toggles Play and Pause reliably.
 5. **Continuous Playback Ticker (`0610`)**:
    - 1-second background `progressTicker` continuously streams updated elapsed seconds (`00:01`, `00:02`, ...) so the cluster LCD playback time never freezes.
-6. **Dynamic Phone Battery & Signal Telemetry (`0210`)**:
-   - Discrete 0–4 bar scaling (`getBatteryLevel(percent)`) bit-packed at `(batteryLevel << 3)` in `0210` telemetry byte 1.
-   - Dynamic SIM card state detection (`TelephonyManager.simState`): 0 bars when SIM is absent or airplane mode active; live signal bars when SIM is active.
-7. **Bidirectional Hardware Volume Sync**:
+6. **Bidirectional Hardware Volume Sync**:
    - Phone volume rocker adjustments update the HUD and cluster volume synchronously.
 
 ---
@@ -38,7 +35,7 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 
 | Subsystem / Feature | File Location | Status |
 |---|---|---|
-| **Minimalist Jetpack Compose Cockpit HUD** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/ui/cockpit/CockpitHud.kt` | ✅ **Phase 4 Complete** — Minimal clean automotive UI (OLED Obsidian + Cobalt Titanium palette), glove-friendly 44–52dp transport controls, pure Canvas vector icons (no emojis), punch-hole camera offset (22dp), handlebar-only volume control (on-screen buttons pruned) |
+| **Minimalist Jetpack Compose Cockpit HUD** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/ui/cockpit/CockpitHud.kt` | ✅ **Phase 4 Complete** — Minimal clean automotive UI (OLED Obsidian + Cobalt Titanium palette), glove-friendly 44–52dp transport controls, pure Canvas vector icons (no emojis), punch-hole camera offset (22dp), handlebar-only volume control, and dynamic footer actions (Exit App service termination + Handlebar Guide overlay) |
 | **BLE GATT Core Engine** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/PulsarBleManager.kt` | ✅ **Phase 4 Complete** — Dynamic Bluetooth enable prompt, automatic connect on BT state ON, leak-free lifecycle, StateFlow reactive state, GATT write queue, MTU 247 |
 | **Binary Protocol Frames** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/PulsarProtocol.kt` | ✅ **Complete & Active** — Clean binary frame builders for telemetry (0210), media (0610), and handlebar switchgear events (0a10) |
 | **Phone State & Battery Monitor** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/PhoneStateMonitor.kt` | ✅ **Complete & Active** — Streams phone battery gauge (0-4 bars), signal strength (0-4), and bidirectional volume sync to cluster (0210) |
