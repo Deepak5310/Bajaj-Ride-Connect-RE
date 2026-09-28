@@ -1,16 +1,21 @@
 package com.bajaj.rideconnect.re
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.bajaj.rideconnect.re.ui.cockpit.CockpitHud
 import com.bajaj.rideconnect.re.ui.theme.CockpitBlack
@@ -18,16 +23,17 @@ import com.bajaj.rideconnect.re.ui.theme.MyPulsarTheme
 
 class MainActivity : ComponentActivity() {
 
+    private val btPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        checkPermissionsAndProceed()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        if (Settings.canDrawOverlays(this)) {
-            launchCoPilotAndMaps()
-            return
-        }
-
-        requestOverlayPermission()
+        checkPermissionsAndProceed()
 
         setContent {
             MyPulsarTheme {
@@ -44,8 +50,38 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        checkPermissionsAndProceed()
+    }
+
+    private fun hasBluetoothPermissions(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val connectGranted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+            val scanGranted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.BLUETOOTH_SCAN
+            ) == PackageManager.PERMISSION_GRANTED
+            return connectGranted && scanGranted
+        }
+        return true
+    }
+
+    private fun checkPermissionsAndProceed() {
+        if (!hasBluetoothPermissions()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                btPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN
+                    )
+                )
+            }
+            return
+        }
+
         if (Settings.canDrawOverlays(this)) {
             launchCoPilotAndMaps()
+        } else {
+            requestOverlayPermission()
         }
     }
 
