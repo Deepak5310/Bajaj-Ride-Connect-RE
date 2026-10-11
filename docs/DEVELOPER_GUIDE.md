@@ -285,11 +285,12 @@ adb logcat -v time -s PulsarBleManager:D MediaStateListener:D PhoneStateMonitor:
 
 ```
 StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
-├── MainActivity.kt             # Single-shot Co-Pilot launcher (HUD + Google Maps + Portrait rotation toast)
-├── FloatingHudService.kt       # WindowManager overlay service, notification EXIT action & orientation watcher
+├── MainActivity.kt             # Minimal launcher (BT/Location & overlay permissions, 1-tap Maps launch)
+├── FloatingHudService.kt       # Single overlay service (portrait pill, landscape dock, notification EXIT action)
 ├── PulsarBleManager.kt         # BLE GATT Engine, Write Queue reset on disconnect, MAC persistence & 350ms poller
 ├── PulsarProtocol.kt           # Binary Encoders (0210, 0610 with UTF-8 safe writeUtf8Field, 0a10 parser)
-├── MediaStateListener.kt       # MediaSession controller, Title/Artist/Album sync, 1s ticker & Volume filter
+├── MediaStateListener.kt       # MediaSession controller, Title/Artist/Album sync, 1s ticker, permission retry & Volume filter
+├── PulsarNotificationService.kt# Dual-layer listener verification (NotificationManagerCompat) & requestRebind recovery
 ├── PhoneStateMonitor.kt        # Battery (0-4 bars), Cellular Signal (0-4 bars) & Volume ContentObserver
 ├── ui/cockpit/CockpitHud.kt    # Minimalist Automotive Music Cockpit UI, marquee title, cached album art, Edge Tab
 └── ui/theme/Color.kt           # OLED Obsidian + Cobalt Titanium palette tokens
@@ -304,6 +305,7 @@ StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
 * **Minimalist Automotive Palette**: OLED Obsidian (`#090B10`), Charcoal Slate (`#131722`), Electric Cobalt (`#3B82F6`), Titanium White action button (`#F8FAFC`), and subtle hairline borders (`#222938`) eliminating distraction and glare.
 * **Custom Brand Identity**: Custom Pulsar emblem launcher icon (`ic_launcher_foreground.xml` + `mipmap-*`) and monochrome status bar notification silhouette (`ic_stat_pulsar.xml`).
 * **Pure Media Focus & Zero-Allocation Ticker**: Dedicated floating music card with cached `ImageBitmap` album art (`remember(mediaInfo.albumArt)`), auto-scrolling `basicMarquee()` track titles, interactive seekbar, primary playback controls (44–52dp glove-friendly touch targets), and punch-hole camera offset (22dp).
+* **Single Overlay Architecture**: The floating HUD overlay is managed solely by `FloatingHudService`, eliminating duplicate HUD invocations in `MainActivity` and preventing stacked pills in portrait mode.
 * **Portrait Ergonomics & 1-Tap Notification Exit**: Launching the app or tapping the collapsed edge pill in Portrait mode shows a clear rotation toast (`"Rotate to landscape to use Cockpit HUD"`), while the foreground notification provides a direct **EXIT** action button (`ACTION_STOP_SERVICE`) so riders can stop the service in Portrait mode without rotating their phone.
 * **Minimalist Iconography**: Uses `br.com.devsrsouza.compose.icons:feather` (Feather Icons) for crisp, uniform 2px stroke vector icons across all HUD transport controls, status pills, and the Handlebar Guide overlay.
 
@@ -317,4 +319,9 @@ StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
 * **Custom ProGuard Rules (`proguard-rules.pro`)**: Keeps framework callbacks (`BluetoothGattCallback`, `ScanCallback`), system services (`NotificationListenerService`, `MediaController.Callback`), Compose data classes (`MediaTrackInfo`, `BleConnectionState`, `HandlebarEvent`), and Feather Icons (`br.com.devsrsouza.compose.icons`).
 * **Ultra-Light Release Footprint**: Strips APK size from 30MB down to **1.7MB** (a 94% reduction) with zero dead code or unused assets.
 * **Modern Permissions & Storage**: Adds Android 13+ `POST_NOTIFICATIONS` runtime declaration, sets `android:allowBackup="false"`, and provides dual backup rules (`dataExtractionRules` for Android 12+ and `fullBackupContent` for Android 10-11) preventing BLE token leakage.
+
+### 10.4 Notification Listener Rebind & Permission Retention
+* **Dual-Layer Listener Detection**: Queries `NotificationManagerCompat.getEnabledListenerPackages(context)` with fallback parsing of `enabled_notification_listeners` secure settings.
+* **Automatic Binder Recovery (`requestRebindIfGranted`)**: Forces Android IPC binder reattachment via `NotificationListenerService.requestRebind()` on process startup and activity resume.
+* **Transient SecurityException Grace**: Prevents falsely resetting `hasPermission = false` when `msm.getActiveSessions` encounters transient binder connection delays; schedules automated retries and immediately renders the ready media controller when sessions activate.
 
