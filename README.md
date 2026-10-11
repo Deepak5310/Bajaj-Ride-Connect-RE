@@ -50,7 +50,7 @@ bajaj-ride-connect-re/
 ## 🛠️ Usage & Tools
 
 ### 1. "My Pulsar" Jetpack Compose Cockpit HUD (`StudioApp/`)
-A native, zero-bloat automotive floating overlay HUD (`com.bajaj.rideconnect.re`) that docks alongside **Google Maps** in landscape mode, connects directly to the Bajaj BLE cluster, and provides glove-friendly media controls, auto-scrolling marquee track titles, and 1-tap notification exit:
+A native, zero-bloat automotive floating overlay HUD (`com.bajaj.rideconnect.re`) that docks alongside **Google Maps** in landscape mode (30% dynamic screen scaling for 70% map viewport), connects directly to the Bajaj BLE cluster, and provides glove-friendly media controls, auto-scrolling marquee track titles, and 1-tap notification exit:
 
 ```bash
 # Build StudioApp debug APK via Gradle
