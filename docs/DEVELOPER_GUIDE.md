@@ -315,6 +315,6 @@ StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
 ### 10.3 R8 Minification, ProGuard & Release Optimization
 * **R8 Minification & Resource Stripping**: `isMinifyEnabled = true` and `isShrinkResources = true` enabled in the release build type.
 * **Custom ProGuard Rules (`proguard-rules.pro`)**: Keeps framework callbacks (`BluetoothGattCallback`, `ScanCallback`), system services (`NotificationListenerService`, `MediaController.Callback`), Compose data classes (`MediaTrackInfo`, `BleConnectionState`, `HandlebarEvent`), and Feather Icons (`br.com.devsrsouza.compose.icons`).
-* **Ultra-Light Release Footprint**: Strips APK size from 30MB down to **1.8MB** (a 94% reduction) with zero dead code or unused assets.
-* **Modern Permissions & Storage**: Adds Android 13+ `POST_NOTIFICATIONS` runtime declaration and sets `android:allowBackup="false"` to prevent BLE token leakage.
+* **Ultra-Light Release Footprint**: Strips APK size from 30MB down to **1.7MB** (a 94% reduction) with zero dead code or unused assets.
+* **Modern Permissions & Storage**: Adds Android 13+ `POST_NOTIFICATIONS` runtime declaration, sets `android:allowBackup="false"`, and provides dual backup rules (`dataExtractionRules` for Android 12+ and `fullBackupContent` for Android 10-11) preventing BLE token leakage.
 
