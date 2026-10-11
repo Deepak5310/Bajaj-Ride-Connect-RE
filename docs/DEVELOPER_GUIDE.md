@@ -312,7 +312,8 @@ StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
 * **Automotive Monospace Typography & Minimalist Iconography**: Utilizes `PulsarTypography` tokens (`MonospaceNumeric`, `MonospaceMeta`) for jitter-free real-time telemetry and track timers, combined with `br.com.devsrsouza.compose.icons:feather` (Feather Icons) for uniform 2px stroke vector iconography.
 
 ### 10.2 BLE GATT & Protocol Hardening
-* **UTF-8 Multi-Byte Safe Truncation (`PulsarProtocol.writeUtf8Field`)**: Safely truncates track, artist, and album strings to $\le 31$ UTF-8 bytes without splitting multi-byte characters (Devanagari, emojis, accented symbols) or overflowing field boundaries in the 105-byte `0610` packet.
+* **UTF-8 Multi-Byte Safe Truncation (`PulsarProtocol.writeUtf8Field`)**: Safely truncates track, artist, and album strings to $\le 32$ UTF-8 bytes (aligned with decompiled `CallFrame.java`) without splitting multi-byte characters (Devanagari, emojis, accented symbols) or overflowing field boundaries in the 105-byte `0610` packet.
+* **Precompiled Caller Cleanup & Conflict-Safe Handlebar Parsing**: Uses precompiled regex for caller name sanitization preventing cyclic GC pressure during 4s heartbeats, with conflict-safe `next` priority over `prev` matching official `Controls.java:224-226`.
 * **Unexpected Disconnect Queue Recovery**: Resets `charTelemetry`, `charMedia`, `charControls`, `writeQueue`, and `isWriting` on unexpected GATT disconnects (`status=8` / `status=19`) so reconnections never deadlock the write queue.
 * **Dynamic Cluster MAC Persistence**: Automatically saves the verified OTC cluster MAC address to `SharedPreferences` (`pulsar_ble_prefs` / `last_cluster_mac`) upon service discovery, enabling instant reconnection to any rider's Pulsar/Dominar cluster alongside keyword matching.
 
