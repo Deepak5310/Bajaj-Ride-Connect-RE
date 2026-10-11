@@ -42,7 +42,7 @@ bajaj-ride-connect-re/
 * **Target Ecosystem:** Bajaj Bluetooth-enabled motorcycles (Pulsar NS400Z, Pulsar N-Series, Dominar series). **Strictly Petrol/ICE motorcycles — zero EV/Chetak support.**
 * **Cluster Hardware:** Segmented LCD with Dot-Matrix display (`CLUSTER_V1`, Pricol / Uno Minda / OTC Engineering).
 * **Connectivity Architecture:**
-  * **Bluetooth Low Energy (GATT):** 100% active transport for Now-Playing Media streaming (`0610` with UTF-8 multi-byte safe truncation and Album metadata sync), phone battery & signal telemetry (`0210`), and physical handlebar switchgear triggers (`0a10` - Play/Pause, Next/Prev, Volume with idle-pulse mute protection).
+  * **Bluetooth Low Energy (GATT):** 100% active transport for Now-Playing Media streaming (`0610` with UTF-8 multi-byte safe truncation and Album metadata sync), phone battery & signal telemetry (`0210`), and physical handlebar switchgear triggers (`0a10` - Play/Pause, Next/Prev, Volume control down to full mute).
   * **Dynamic Cluster Pairing & Persistence:** Automatically discovers Pulsar/Dominar clusters by advertised OTC Service UUID or device name keywords and persists the last connected cluster MAC in `SharedPreferences` for instant future reconnections.
 
 ---

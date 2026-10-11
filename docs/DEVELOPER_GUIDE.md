@@ -17,8 +17,7 @@ The following features have been tested and verified on the physical motorcycle:
 | **Media Play / Pause** | Single-press `SET` button | ✅ **Working** | Triggers `TransportControls.play()` / `pause()` with `dispatchMediaButtonEvent` fallback. |
 | **Track Skip (Next)** | Long-press / Hold `^` (Up) | ✅ **Working** | Triggers `TransportControls.skipToNext()` with `KEYCODE_MEDIA_NEXT` fallback. |
 | **Track Skip (Prev)** | Long-press / Hold `v` (Down) | ✅ **Working** | Auto-double skips if played > 2.5s so music players switch to previous track instead of rewinding to 0:00. |
-| **Volume Up / Down** | Single-press `^` / `v` | ✅ **Working** | Adjusts `AudioManager.STREAM_MUSIC` using cluster volume tenths (0–10) with half-step rounding. |
-| **Volume Mute Protection** | Button release / idle | ✅ **Working** | Filters cluster `0a10` Byte 0 idle pulse (`volume=0` when phone `volume > 1`). |
+| **Volume Control / Mute** | Single-press `^` / `v` | ✅ **Working** | Adjusts `AudioManager.STREAM_MUSIC` using cluster volume tenths (0–10) down to full mute (0) matching Bajaj `Controls.java`. |
 | **Song Playback Ticker** | 1-second background ticker | ✅ **Working** | Continuously streams `0610` frames so track elapsed time (`00:01`, `00:02`, ...) ticks smoothly on cluster LCD. |
 | **Phone Battery Gauge** | Phone battery change | ✅ **Working** | Bit-packed `0–4` bar scale into `0210` telemetry (`batteryLevel << 3`), accurately matching bike LCD icons. |
 | **Phone Signal Gauge** | Cellular signal strength | ✅ **Working** | Streams `0–4` signal bars into `0210` telemetry; sets 0 when SIM is absent or airplane mode active. |
@@ -134,35 +133,18 @@ if ((data[8] & 0xFF) != lastMusicNextCtr) {
 }
 ```
 
-#### Critical Volume Idle Pulse Filter & Synchronous Telemetry Feedback:
-When pressing `^` or `v`, the cluster reports the target volume in `data[0] & 0x0F` (0–10). However, upon button release/idle, legacy cluster firmware sends an idle pulse resetting `data[0] & 0x0F` to `0`. Furthermore, asynchronous AudioService updates in Android return stale volume (`0`) if queried immediately after `setStreamVolume`.
-
-To prevent single-step volume increases from rebounding back to mute:
-1. **Direction & Timestamp Tracking (`MediaStateListener.kt`)**: Rejection of `volume=0` if preceded by an UP click within 1500ms (`isRecentUp`) or if current phone volume `> 1`.
-2. **Synchronous Telemetry Push (`PhoneStateMonitor.sendImmediateVolumeTelemetry(vol)`)**: Bypasses asynchronous `AudioManager.getStreamVolume()` queries to immediately feed the exact target volume nibble back to the dash in the `0210` telemetry packet.
+#### Handlebar Volume Control & Synchronous Telemetry Feedback:
+Matching official Bajaj `Controls.java`, volume level (0–10) is received in Byte 0 (`data[0] & 0x0F`) and mapped directly to `AudioManager.STREAM_MUSIC`:
+1. **Delta Tracking (`volumeToSet`)**: Volume adjustments are dispatched whenever `newNibble != volumeToSet`, supporting full step-down to complete silence/mute (`0`) and step-up to maximum (`10`).
+2. **Synchronous Telemetry Feedback (`PhoneStateMonitor.sendImmediateVolumeTelemetry(vol)`)**: Immediately feeds the confirmed volume nibble back to the dash in the `0210` telemetry packet, eliminating echo loops from asynchronous `AudioManager` status queries.
 
 ```kotlin
 if (ev.volumeChanged) {
     val newNibble = ev.volumeLevel
-    val curVol = getCurrentVolumeTenths()
-
-    if (newNibble == 0) {
-        val isRecentUp = lastVolumeDirectionIsUp && (System.currentTimeMillis() - lastVolumeUpTimestamp < 1500L)
-        if (isRecentUp || curVol > 1) {
-            Log.i(TAG, "Ignoring cluster volume=0 idle pulse (vol=$curVol/10, recentUp=$isRecentUp)")
-            return
-        }
+    if (newNibble != volumeToSet) {
+        volumeToSet = newNibble
+        setVolumeFromCluster(newNibble)
     }
-
-    if (lastVolumeNibble >= 0) {
-        lastVolumeDirectionIsUp = newNibble > lastVolumeNibble
-        if (lastVolumeDirectionIsUp) {
-            lastVolumeUpTimestamp = System.currentTimeMillis()
-        }
-    }
-    lastVolumeNibble = newNibble
-
-    setVolumeFromCluster(newNibble)
 }
 ```
 
