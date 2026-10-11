@@ -285,7 +285,7 @@ adb logcat -v time -s PulsarBleManager:D MediaStateListener:D PhoneStateMonitor:
 
 ```
 StudioApp/app/src/main/java/com/bajaj/rideconnect/re/
-├── MainActivity.kt             # Minimal launcher (BT/Location & overlay permissions, 1-tap Maps launch)
+├── MainActivity.kt             # Minimal launcher (BT & overlay permissions, 1-tap Maps launch)
 ├── FloatingHudService.kt       # Single overlay service (portrait pill, landscape dock, notification EXIT action)
 ├── PulsarBleManager.kt         # BLE GATT Engine, Write Queue reset on disconnect, MAC persistence & 350ms poller
 ├── PulsarProtocol.kt           # Binary Encoders (0210, 0610 with UTF-8 safe writeUtf8Field, 0a10 parser)
