@@ -34,7 +34,6 @@ import java.util.UUID
 data class BleConnectionState(
     val isConnected: Boolean = false,
     val isConnecting: Boolean = false,
-    val isBound: Boolean = false,
     val deviceName: String = "",
     val deviceAddress: String = ""
 )
@@ -105,19 +104,14 @@ class PulsarBleManager(context: Context) {
             val controls = charControls
             if (isConn && gatt != null && controls != null) {
                 if (hasConnectPermission()) {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || ContextCompat.checkSelfPermission(
-                            context, Manifest.permission.BLUETOOTH_CONNECT
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        synchronized(writeQueue) {
-                            if (!isWriting) {
-                                try {
-                                    gatt.readCharacteristic(controls)
-                                } catch (e: SecurityException) {
-                                    Log.w(TAG, "SecurityException polling controls: ${e.message}")
-                                } catch (e: Exception) {
-                                    Log.w(TAG, "Error polling handlebar controls: ${e.message}")
-                                }
+                    synchronized(writeQueue) {
+                        if (!isWriting) {
+                            try {
+                                gatt.readCharacteristic(controls)
+                            } catch (e: SecurityException) {
+                                Log.w(TAG, "SecurityException polling controls: ${e.message}")
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Error polling handlebar controls: ${e.message}")
                             }
                         }
                     }
@@ -165,12 +159,6 @@ class PulsarBleManager(context: Context) {
     private fun getDeviceName(device: BluetoothDevice?): String? {
         device ?: return null
         if (!hasConnectPermission()) return null
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return null
-        }
         return try {
             device.name
         } catch (e: SecurityException) {
@@ -252,12 +240,6 @@ class PulsarBleManager(context: Context) {
             Log.w(TAG, "BLUETOOTH_CONNECT permission not granted")
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
 
         val paired = try {
             adapter.bondedDevices
@@ -281,12 +263,6 @@ class PulsarBleManager(context: Context) {
             Log.w(TAG, "BLUETOOTH_SCAN permission not granted")
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_SCAN
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
 
         val scanner = adapter.bluetoothLeScanner
         if (scanner != null && !isScanning) {
@@ -307,13 +283,6 @@ class PulsarBleManager(context: Context) {
         val adapter = getAdapter()
         if (isScanning && adapter != null) {
             if (!hasScanPermission()) {
-                isScanning = false
-                return
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                    context, Manifest.permission.BLUETOOTH_SCAN
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
                 isScanning = false
                 return
             }
@@ -358,12 +327,6 @@ class PulsarBleManager(context: Context) {
             Log.w(TAG, "BLUETOOTH_CONNECT permission not granted for connect()")
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
 
         try {
             val device = adapter.getRemoteDevice(deviceAddress)
@@ -403,12 +366,7 @@ class PulsarBleManager(context: Context) {
 
     @Suppress("DEPRECATION")
     private fun connectGattCompat(device: BluetoothDevice): BluetoothGatt? {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return null
-        }
+        if (!hasConnectPermission()) return null
         return try {
             if (Build.VERSION.SDK_INT >= 37) {
                 val settings = android.bluetooth.BluetoothGattConnectionSettings.Builder()
@@ -438,17 +396,12 @@ class PulsarBleManager(context: Context) {
         }
         bluetoothGatt?.let {
             if (hasConnectPermission()) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.BLUETOOTH_CONNECT
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    try {
-                        it.disconnect()
-                        it.close()
-                    } catch (e: SecurityException) {
-                        Log.w(TAG, "SecurityException disconnecting GATT: ${e.message}")
-                    } catch (_: Exception) {
-                    }
+                try {
+                    it.disconnect()
+                    it.close()
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "SecurityException disconnecting GATT: ${e.message}")
+                } catch (_: Exception) {
                 }
             }
             bluetoothGatt = null
@@ -508,6 +461,9 @@ class PulsarBleManager(context: Context) {
         writeType: Int = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
     ) {
         synchronized(writeQueue) {
+            if (writeType == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) {
+                writeQueue.removeIf { it.characteristic == characteristic }
+            }
             writeQueue.add(GattWriteTask(characteristic, data, writeType))
             if (!isWriting) {
                 processNextWrite()
@@ -524,13 +480,6 @@ class PulsarBleManager(context: Context) {
             }
 
             if (!hasConnectPermission()) {
-                isWriting = false
-                return
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                    context, Manifest.permission.BLUETOOTH_CONNECT
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
                 isWriting = false
                 return
             }
@@ -568,12 +517,6 @@ class PulsarBleManager(context: Context) {
         data: ByteArray,
         writeType: Int
     ): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return false
-        }
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val status = gatt.writeCharacteristic(
@@ -592,21 +535,17 @@ class PulsarBleManager(context: Context) {
     }
 
     @Suppress("DEPRECATION")
-    private fun writeDescriptorCompat(
-        gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, value: ByteArray
+    private fun enableCccdNotification(
+        gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor
     ): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_CONNECT
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return false
-        }
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val status = gatt.writeDescriptor(descriptor, value)
+                val status = gatt.writeDescriptor(
+                    descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                )
                 status == BluetoothStatusCodes.SUCCESS
             } else {
-                descriptor.value = value
+                descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                 gatt.writeDescriptor(descriptor)
             }
         } catch (e: SecurityException) {
@@ -627,24 +566,18 @@ class PulsarBleManager(context: Context) {
                 _connectionState.value = BleConnectionState(
                     isConnected = true,
                     isConnecting = false,
-                    isBound = false,
                     deviceName = devName,
                     deviceAddress = gatt.device.address
                 )
 
                 if (hasConnectPermission()) {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || ContextCompat.checkSelfPermission(
-                            context, Manifest.permission.BLUETOOTH_CONNECT
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        try {
-                            if (!gatt.requestMtu(247)) {
-                                Log.i(TAG, "MTU request declined; discovering services directly...")
-                                gatt.discoverServices()
-                            }
-                        } catch (e: SecurityException) {
-                            Log.w(TAG, "SecurityException requesting MTU: ${e.message}")
+                    try {
+                        if (!gatt.requestMtu(247)) {
+                            Log.i(TAG, "MTU request declined; discovering services directly...")
+                            gatt.discoverServices()
                         }
+                    } catch (e: SecurityException) {
+                        Log.w(TAG, "SecurityException requesting MTU: ${e.message}")
                     }
                 }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
@@ -661,16 +594,11 @@ class PulsarBleManager(context: Context) {
 
                 bluetoothGatt?.let {
                     if (hasConnectPermission()) {
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.BLUETOOTH_CONNECT
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            try {
-                                it.close()
-                            } catch (e: SecurityException) {
-                                Log.w(TAG, "SecurityException closing GATT: ${e.message}")
-                            } catch (_: Exception) {
-                            }
+                        try {
+                            it.close()
+                        } catch (e: SecurityException) {
+                            Log.w(TAG, "SecurityException closing GATT: ${e.message}")
+                        } catch (_: Exception) {
                         }
                     }
                     bluetoothGatt = null
@@ -687,17 +615,12 @@ class PulsarBleManager(context: Context) {
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
-            Log.i(TAG, "onMtuChanged: mtu=$mtu, status=$status -> Discovering services...")
+            Log.i(TAG, "MTU changed: mtu=$mtu, status=$status -> Discovering services...")
             if (hasConnectPermission()) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.BLUETOOTH_CONNECT
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    try {
-                        gatt.discoverServices()
-                    } catch (e: SecurityException) {
-                        Log.w(TAG, "SecurityException discovering services: ${e.message}")
-                    }
+                try {
+                    gatt.discoverServices()
+                } catch (e: SecurityException) {
+                    Log.w(TAG, "SecurityException discovering services: ${e.message}")
                 }
             }
         }
@@ -705,13 +628,15 @@ class PulsarBleManager(context: Context) {
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 if (!hasConnectPermission()) return
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.BLUETOOTH_CONNECT
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    return
-                }
                 Log.i(TAG, "GATT Services discovered for ${_connectionState.value.deviceName}")
+
+                try {
+                    gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                } catch (e: SecurityException) {
+                    Log.w(
+                        TAG, "SecurityException requesting high connection priority: ${e.message}"
+                    )
+                }
 
                 val service = gatt.getService(SERVICE_UUID)
                 if (service != null) {
@@ -725,27 +650,16 @@ class PulsarBleManager(context: Context) {
                         "Characteristics bound: Telemetry=${charTelemetry != null}, Media=${charMedia != null}, Controls=${charControls != null}"
                     )
 
-                    for (c in service.characteristics) {
-                        val props = c.properties
-                        val hasNotify =
-                            (props and (BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_INDICATE)) != 0
-                        val cccd = c.getDescriptor(CCCD_UUID)
-                        if (hasNotify || cccd != null || CHAR_CONTROLS_UUID == c.uuid) {
-                            try {
-                                gatt.setCharacteristicNotification(c, true)
-                                if (cccd != null) {
-                                    val value =
-                                        if ((props and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0) {
-                                            BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
-                                        } else {
-                                            BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                                        }
-                                    writeDescriptorCompat(gatt, cccd, value)
-                                    Log.i(TAG, "Writing CCCD subscription for ${c.uuid}")
-                                }
-                            } catch (e: SecurityException) {
-                                Log.w(TAG, "SecurityException setting notification: ${e.message}")
+                    charControls?.let { controls ->
+                        try {
+                            gatt.setCharacteristicNotification(controls, true)
+                            val cccd = controls.getDescriptor(CCCD_UUID)
+                            if (cccd != null) {
+                                enableCccdNotification(gatt, cccd)
+                                Log.i(TAG, "Subscribed to Handlebar Controls CCCD (0a10)")
                             }
+                        } catch (e: SecurityException) {
+                            Log.w(TAG, "SecurityException setting notification: ${e.message}")
                         }
                     }
 
@@ -755,8 +669,6 @@ class PulsarBleManager(context: Context) {
                         mainHandler.postDelayed(controlsPollRunnable, 350L)
                     }
 
-                    val isBound = charMedia != null && charTelemetry != null
-                    _connectionState.value = _connectionState.value.copy(isBound = isBound)
                     mainHandler.post { onConnectedListener?.invoke() }
                 } else {
                     Log.e(TAG, "Primary Service $SERVICE_UUID not found!")

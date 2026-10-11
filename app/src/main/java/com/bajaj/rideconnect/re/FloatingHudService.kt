@@ -47,6 +47,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     private var windowManager: WindowManager? = null
     private var composeView: ComposeView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
+    private var isExpanded: Boolean = true
     private lateinit var mediaStateListener: MediaStateListener
     private lateinit var bleManager: PulsarBleManager
     private lateinit var phoneStateMonitor: PhoneStateMonitor
@@ -109,7 +110,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
 
     private fun startInForeground() {
         val channelId = "pulsar_cockpit_channel"
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val nm = getSystemService(NotificationManager::class.java)
 
         val channel = NotificationChannel(
             channelId,
@@ -151,42 +152,23 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     }
 
     private fun initOverlay() {
-        val wm = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
+        if (!Settings.canDrawOverlays(this)) return
+        val wm = getSystemService(WindowManager::class.java) ?: return
         this.windowManager = wm
 
-        val metrics = resources.displayMetrics
-        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val screenWidth = maxOf(metrics.widthPixels, metrics.heightPixels)
-
-        val initialWidth = if (isLandscape) {
-            (screenWidth * 0.35f).toInt().coerceIn(480, 560)
-        } else {
-            WindowManager.LayoutParams.WRAP_CONTENT
-        }
-        val initialHeight = if (isLandscape) {
-            WindowManager.LayoutParams.MATCH_PARENT
-        } else {
-            WindowManager.LayoutParams.WRAP_CONTENT
-        }
-        val initialGravity = if (isLandscape) {
-            Gravity.START or Gravity.TOP
-        } else {
-            Gravity.START or Gravity.CENTER_VERTICAL
-        }
-
         val params = WindowManager.LayoutParams(
-            initialWidth,
-            initialHeight,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = initialGravity
             layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             x = 0
             y = 0
         }
+        applyOverlayDimensions(params, expanded = isExpanded)
         this.layoutParams = params
 
         val view = ComposeView(this).apply {
@@ -198,19 +180,15 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                     val mediaInfo by mediaStateListener.mediaTrackInfo.collectAsState()
                     val bleState by bleManager.connectionState.collectAsState()
 
-                    val isBtEnabled = bleManager.isBluetoothEnabled()
-
-                    val bikeNameText = when {
-                        bleState.isConnected -> {
-                            bleState.deviceName.ifEmpty { stringResource(R.string.bike_name) }
-                        }
-
-                        else -> stringResource(R.string.no_bike_connected)
+                    val bikeNameText = if (bleState.isConnected) {
+                        bleState.deviceName.ifEmpty { stringResource(R.string.bike_name) }
+                    } else {
+                        stringResource(R.string.no_bike_connected)
                     }
 
                     val bikeStatusText = when {
                         bleState.isConnected -> stringResource(R.string.status_linked)
-                        bleState.isConnecting && isBtEnabled -> stringResource(R.string.status_connecting)
+                        bleState.isConnecting -> stringResource(R.string.status_connecting)
                         else -> stringResource(R.string.status_standby)
                     }
 
@@ -219,7 +197,10 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                         bikeStatus = bikeStatusText,
                         isBleConnected = bleState.isConnected,
                         mediaInfo = mediaInfo,
-                        onExpandedChanged = { expanded -> updateOverlayDimensions(expanded) },
+                        onExpandedChanged = { expanded ->
+                            isExpanded = expanded
+                            updateOverlayDimensions(expanded)
+                        },
                         onPlayPauseToggle = { mediaStateListener.togglePlayPause() },
                         onSkipNext = { mediaStateListener.skipNext() },
                         onSkipPrevious = { mediaStateListener.skipPrevious() },
@@ -256,31 +237,36 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         }
         this.composeView = view
 
-        wm.addView(view, params)
+        try {
+            wm.addView(view, params)
+        } catch (e: Exception) {
+            android.util.Log.e(
+                "FloatingHudService", "Failed to add overlay view to WindowManager: ${e.message}"
+            )
+        }
     }
 
-    private fun updateOverlayDimensions(isExpanded: Boolean) {
-        val wm = windowManager ?: return
-        val params = layoutParams ?: return
-        val view = composeView ?: return
-        val metrics = resources.displayMetrics
+    private fun applyOverlayDimensions(params: WindowManager.LayoutParams, expanded: Boolean) {
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-
-        if (isLandscape && isExpanded) {
+        if (isLandscape && expanded) {
+            val metrics = resources.displayMetrics
             val screenWidth = maxOf(metrics.widthPixels, metrics.heightPixels)
-            params.width = (screenWidth * 0.35f).toInt().coerceIn(480, 560)
+            val panelWidthPx = (screenWidth * 0.30f).toInt()
+            params.width = panelWidthPx
             params.height = WindowManager.LayoutParams.MATCH_PARENT
             params.gravity = Gravity.START or Gravity.TOP
-            params.layoutInDisplayCutoutMode =
-                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         } else {
             params.width = WindowManager.LayoutParams.WRAP_CONTENT
             params.height = WindowManager.LayoutParams.WRAP_CONTENT
             params.gravity = Gravity.START or Gravity.CENTER_VERTICAL
-            params.layoutInDisplayCutoutMode =
-                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
+    }
 
+    private fun updateOverlayDimensions(expanded: Boolean) {
+        val wm = windowManager ?: return
+        val params = layoutParams ?: return
+        val view = composeView ?: return
+        applyOverlayDimensions(params, expanded)
         try {
             wm.updateViewLayout(view, params)
         } catch (_: Exception) {
@@ -290,10 +276,8 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         composeView?.dispatchConfigurationChanged(newConfig)
-        val isLandscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
-        updateOverlayDimensions(isLandscape)
+        updateOverlayDimensions(isExpanded)
     }
-
 
     private fun openNotificationListenerSettings() {
         try {
@@ -327,7 +311,11 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         }
 
         composeView?.let { view ->
-            windowManager?.removeView(view)
+            try {
+                view.disposeComposition()
+                windowManager?.removeView(view)
+            } catch (_: Exception) {
+            }
         }
         composeView = null
         windowManager = null

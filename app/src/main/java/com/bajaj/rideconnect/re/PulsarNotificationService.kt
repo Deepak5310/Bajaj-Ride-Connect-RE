@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import androidx.core.app.NotificationManagerCompat
 import java.lang.ref.WeakReference
 
 class PulsarNotificationService : NotificationListenerService() {
@@ -24,16 +25,15 @@ class PulsarNotificationService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        sbn ?: return
-        val notification = sbn.notification ?: return
-        if (notification.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true) {
-            notifyUpdate()
-        }
+        handleMediaNotification(sbn)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        sbn ?: return
-        val notification = sbn.notification ?: return
+        handleMediaNotification(sbn)
+    }
+
+    private fun handleMediaNotification(sbn: StatusBarNotification?) {
+        val notification = sbn?.notification ?: return
         if (notification.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true) {
             notifyUpdate()
         }
@@ -57,8 +57,21 @@ class PulsarNotificationService : NotificationListenerService() {
             sessionListenerRef = listener?.let { WeakReference(it) }
         }
 
+        fun requestRebindIfGranted(context: Context) {
+            if (isNotificationListenerGranted(context)) {
+                try {
+                    requestRebind(ComponentName(context, PulsarNotificationService::class.java))
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to request rebind: ${e.message}")
+                }
+            }
+        }
+
         fun isNotificationListenerGranted(context: Context): Boolean {
             val pkgName = context.packageName
+            val packages = NotificationManagerCompat.getEnabledListenerPackages(context)
+            if (packages.contains(pkgName)) return true
+
             val flat = Settings.Secure.getString(
                 context.contentResolver, "enabled_notification_listeners"
             ) ?: return false

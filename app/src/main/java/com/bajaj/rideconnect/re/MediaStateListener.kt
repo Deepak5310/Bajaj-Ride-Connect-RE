@@ -36,8 +36,6 @@ class MediaStateListener(context: Context) {
 
     private var totalDurationSec: Int = 0
     private var currentAlbum: String = ""
-    private var lastPositionUpdateTime: Long = 0L
-    private var playbackSpeed: Float = 1.0f
 
     private val _mediaTrackInfo = MutableStateFlow(
         MediaTrackInfo(
@@ -47,9 +45,7 @@ class MediaStateListener(context: Context) {
     val mediaTrackInfo: StateFlow<MediaTrackInfo> = _mediaTrackInfo.asStateFlow()
     var bleMediaSender: BleMediaSender? = null
     var onVolumeChangedExternally: ((Int) -> Unit)? = null
-    private var lastVolumeNibble = -1
-    private var lastVolumeDirectionIsUp = false
-    private var lastVolumeUpTimestamp = 0L
+    private var volumeToSet = -1
 
     private val sessionUpdateListener = PulsarNotificationService.SessionUpdateListener {
         refreshMediaSessions()
@@ -94,6 +90,7 @@ class MediaStateListener(context: Context) {
         }
 
         _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = true)
+        PulsarNotificationService.requestRebindIfGranted(context)
 
         try {
             val msm =
@@ -119,7 +116,13 @@ class MediaStateListener(context: Context) {
             updateActiveController()
         } catch (e: SecurityException) {
             Log.w(TAG, "SecurityException initializing MediaSessionManager: ${e.message}")
-            _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = false)
+            if (PulsarNotificationService.isNotificationListenerGranted(context)) {
+                _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = true)
+                PulsarNotificationService.requestRebindIfGranted(context)
+                handler.postDelayed({ updateActiveController() }, 1000L)
+            } else {
+                _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = false)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error initializing MediaSessionManager: ${e.message}")
         }
@@ -128,9 +131,9 @@ class MediaStateListener(context: Context) {
     fun refreshMediaSessions() {
         handler.post {
             val hasPerm = PulsarNotificationService.isNotificationListenerGranted(context)
-            if (!hasPerm) {
-                _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = false)
-            } else {
+            _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = hasPerm)
+            if (hasPerm) {
+                PulsarNotificationService.requestRebindIfGranted(context)
                 if (mediaSessionManager == null || sessionsChangedListener == null) {
                     initMediaSessions()
                 } else {
@@ -167,9 +170,9 @@ class MediaStateListener(context: Context) {
                     totalDurationSec = 0
                     currentAlbum = ""
                     handler.removeCallbacks(progressTicker)
-                    _mediaTrackInfo.value = MediaTrackInfo(hasPermission = true)
                     bleMediaSender?.sendMedia("", "", "", 0, 0, 0)
                 }
+                _mediaTrackInfo.value = MediaTrackInfo(hasPermission = true)
                 return
             }
 
@@ -198,10 +201,40 @@ class MediaStateListener(context: Context) {
             }
         } catch (e: SecurityException) {
             Log.w(TAG, "SecurityException in updateActiveController: ${e.message}")
-            _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = false)
+            if (PulsarNotificationService.isNotificationListenerGranted(context)) {
+                _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = true)
+                PulsarNotificationService.requestRebindIfGranted(context)
+                handler.postDelayed({ updateActiveController() }, 1000L)
+            } else {
+                _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = false)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateActiveController: ${e.message}")
         }
+    }
+
+    private fun calculateCurrentPositionMs(pbState: PlaybackState?): Long {
+        pbState ?: return 0L
+        var currentMs = pbState.position
+        if (pbState.state == PlaybackState.STATE_PLAYING) {
+            val delta = SystemClock.elapsedRealtime() - pbState.lastPositionUpdateTime
+            if (delta > 0) {
+                val speed = if (pbState.playbackSpeed <= 0f) 1.0f else pbState.playbackSpeed
+                currentMs += (delta * speed).toLong()
+            }
+        }
+        return currentMs.coerceAtLeast(0L)
+    }
+
+    private fun calculateClampedProgress(positionMs: Long): Pair<Int, Float> {
+        val currentPosSec = (positionMs / 1000L).toInt().coerceAtLeast(0)
+        val clampedPosSec =
+            if (totalDurationSec > 0) currentPosSec.coerceAtMost(totalDurationSec) else currentPosSec
+        val progress =
+            if (totalDurationSec > 0) (clampedPosSec.toFloat() / totalDurationSec.toFloat()).coerceIn(
+                0f, 1f
+            ) else 0f
+        return clampedPosSec to progress
     }
 
     fun syncMetadata() {
@@ -245,30 +278,9 @@ class MediaStateListener(context: Context) {
         currentAlbum = album
         totalDurationSec = if (durMs > 0L) (durMs / 1000L).toInt() else 0
 
-        var isPlaying = false
-        var currentMs = 0L
-
-        if (pbState != null) {
-            currentMs = pbState.position
-            lastPositionUpdateTime = pbState.lastPositionUpdateTime
-            playbackSpeed = if (pbState.playbackSpeed <= 0f) 1.0f else pbState.playbackSpeed
-
-            if (pbState.state == PlaybackState.STATE_PLAYING) {
-                val delta = SystemClock.elapsedRealtime() - lastPositionUpdateTime
-                if (delta > 0) {
-                    currentMs += (delta * playbackSpeed).toLong()
-                }
-                isPlaying = true
-            }
-        }
-
-        val currentPosSec = (currentMs / 1000L).toInt().coerceAtLeast(0)
-        val clampedPosSec =
-            if (totalDurationSec > 0) currentPosSec.coerceAtMost(totalDurationSec) else currentPosSec
-        val progress =
-            if (totalDurationSec > 0) (clampedPosSec.toFloat() / totalDurationSec.toFloat()).coerceIn(
-                0f, 1f
-            ) else 0f
+        val isPlaying = pbState?.state == PlaybackState.STATE_PLAYING
+        val currentMs = calculateCurrentPositionMs(pbState)
+        val (clampedPosSec, progress) = calculateClampedProgress(currentMs)
         val sourceLabel = formatSourceLabel(context, controller.packageName)
 
         _mediaTrackInfo.value = MediaTrackInfo(
@@ -304,20 +316,8 @@ class MediaStateListener(context: Context) {
         val pbState = controller.playbackState ?: return
         if (pbState.state != PlaybackState.STATE_PLAYING) return
 
-        val delta = SystemClock.elapsedRealtime() - pbState.lastPositionUpdateTime
-        var currentMs = pbState.position
-        if (delta > 0) {
-            val speed = if (pbState.playbackSpeed <= 0f) 1.0f else pbState.playbackSpeed
-            currentMs += (delta * speed).toLong()
-        }
-
-        val currentPosSec = (currentMs / 1000L).toInt().coerceAtLeast(0)
-        val clampedPosSec =
-            if (totalDurationSec > 0) currentPosSec.coerceAtMost(totalDurationSec) else currentPosSec
-        val progress =
-            if (totalDurationSec > 0) (clampedPosSec.toFloat() / totalDurationSec.toFloat()).coerceIn(
-                0f, 1f
-            ) else 0f
+        val currentMs = calculateCurrentPositionMs(pbState)
+        val (clampedPosSec, progress) = calculateClampedProgress(currentMs)
 
         val currentInfo = _mediaTrackInfo.value
         _mediaTrackInfo.value = currentInfo.copy(
@@ -398,16 +398,7 @@ class MediaStateListener(context: Context) {
 
     fun getCurrentPositionMs(): Long {
         val controller = activeController ?: return 0L
-        val pbState = controller.playbackState ?: return 0L
-        var currentMs = pbState.position
-        if (pbState.state == PlaybackState.STATE_PLAYING) {
-            val delta = SystemClock.elapsedRealtime() - pbState.lastPositionUpdateTime
-            if (delta > 0) {
-                val speed = if (pbState.playbackSpeed <= 0f) 1.0f else pbState.playbackSpeed
-                currentMs += (delta * speed).toLong()
-            }
-        }
-        return currentMs.coerceAtLeast(0L)
+        return calculateCurrentPositionMs(controller.playbackState)
     }
 
     private fun executePreviousCommand(controller: MediaController?) {
@@ -461,13 +452,7 @@ class MediaStateListener(context: Context) {
         if (controller != null) {
             try {
                 controller.transportControls.seekTo(positionMs)
-                val currentPosSec = (positionMs / 1000L).toInt().coerceAtLeast(0)
-                val clampedPosSec =
-                    if (totalDurationSec > 0) currentPosSec.coerceAtMost(totalDurationSec) else currentPosSec
-                val progress =
-                    if (totalDurationSec > 0) (clampedPosSec.toFloat() / totalDurationSec.toFloat()).coerceIn(
-                        0f, 1f
-                    ) else 0f
+                val (clampedPosSec, progress) = calculateClampedProgress(positionMs)
                 _mediaTrackInfo.value = _mediaTrackInfo.value.copy(
                     progress = progress, currentPosition = formatSeconds(clampedPosSec)
                 )
@@ -492,38 +477,35 @@ class MediaStateListener(context: Context) {
         am.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0))
     }
 
+    private fun dispatchTransportAction(
+        action: MediaController.TransportControls.() -> Unit, fallbackKeyCode: Int
+    ) {
+        val controller = activeController
+        if (controller != null) {
+            try {
+                controller.transportControls.action()
+            } catch (_: Exception) {
+                sendGlobalMediaKey(fallbackKeyCode)
+            }
+        } else {
+            sendGlobalMediaKey(fallbackKeyCode)
+        }
+        handler.postDelayed({ syncMetadata() }, 300L)
+    }
+
     fun handleHandlebarEvent(ev: PulsarProtocol.HandlebarEvent?) {
         ev ?: return
         Log.i(
             TAG,
-            "handleHandlebarEvent: play=${ev.musicPlay} pause=${ev.musicPause} " + "next=${ev.musicNext} prev=${ev.musicPrev} stop=${ev.musicStop} " + "vol=${ev.volumeLevel} volChanged=${ev.volumeChanged}"
+            "handleHandlebarEvent: play=${ev.musicPlay} pause=${ev.musicPause} next=${ev.musicNext} prev=${ev.musicPrev} stop=${ev.musicStop} vol=${ev.volumeLevel} volChanged=${ev.volumeChanged}"
         )
 
         if (ev.volumeChanged) {
             val newNibble = ev.volumeLevel
-            val curVol = getCurrentVolumeTenths()
-
-            if (newNibble == 0) {
-                val isRecentUp =
-                    lastVolumeDirectionIsUp && (System.currentTimeMillis() - lastVolumeUpTimestamp < 1500L)
-                if (isRecentUp || curVol > 1) {
-                    Log.i(
-                        TAG,
-                        "Ignoring cluster volume=0 idle pulse (phone vol=$curVol/10, recentUp=$isRecentUp)"
-                    )
-                    return
-                }
+            if (newNibble != volumeToSet) {
+                volumeToSet = newNibble
+                setVolumeFromCluster(newNibble)
             }
-
-            if (lastVolumeNibble >= 0) {
-                lastVolumeDirectionIsUp = newNibble > lastVolumeNibble
-                if (lastVolumeDirectionIsUp) {
-                    lastVolumeUpTimestamp = System.currentTimeMillis()
-                }
-            }
-            lastVolumeNibble = newNibble
-
-            setVolumeFromCluster(newNibble)
         }
 
         if (activeController == null) {
@@ -533,47 +515,9 @@ class MediaStateListener(context: Context) {
         when {
             ev.musicNext -> skipNext()
             ev.musicPrev -> skipPrevious()
-            ev.musicPlay -> {
-                val controller = activeController
-                if (controller != null) {
-                    try {
-                        controller.transportControls.play()
-                    } catch (_: Exception) {
-                        sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
-                    }
-                } else {
-                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
-                }
-                handler.postDelayed({ syncMetadata() }, 300L)
-            }
-
-            ev.musicPause -> {
-                val controller = activeController
-                if (controller != null) {
-                    try {
-                        controller.transportControls.pause()
-                    } catch (_: Exception) {
-                        sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
-                    }
-                } else {
-                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
-                }
-                handler.postDelayed({ syncMetadata() }, 300L)
-            }
-
-            ev.musicStop -> {
-                val controller = activeController
-                if (controller != null) {
-                    try {
-                        controller.transportControls.stop()
-                    } catch (_: Exception) {
-                        sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_STOP)
-                    }
-                } else {
-                    sendGlobalMediaKey(KeyEvent.KEYCODE_MEDIA_STOP)
-                }
-                handler.postDelayed({ syncMetadata() }, 300L)
-            }
+            ev.musicPlay -> dispatchTransportAction({ play() }, KeyEvent.KEYCODE_MEDIA_PLAY)
+            ev.musicPause -> dispatchTransportAction({ pause() }, KeyEvent.KEYCODE_MEDIA_PAUSE)
+            ev.musicStop -> dispatchTransportAction({ stop() }, KeyEvent.KEYCODE_MEDIA_STOP)
         }
     }
 
@@ -620,9 +564,7 @@ class MediaStateListener(context: Context) {
         }
         activeController = null
         bleMediaSender = null
-        lastVolumeNibble = -1
-        lastVolumeDirectionIsUp = false
-        lastVolumeUpTimestamp = 0L
+        volumeToSet = -1
 
         sessionsChangedListener?.let { listener ->
             try {
@@ -656,19 +598,20 @@ class MediaStateListener(context: Context) {
 
         private fun formatSourceLabel(context: Context, packageName: String?): String {
             if (packageName.isNullOrEmpty()) return ""
-            return when (packageName) {
-                PKG_YT_MUSIC_MORPHE, PKG_YT_MUSIC_OFFICIAL -> context.getString(R.string.media_source_yt_music)
-                PKG_METROLIST -> context.getString(R.string.media_source_metrolist)
-                else -> {
-                    val lower = packageName.lowercase()
-                    if (lower.contains("youtube.music")) {
-                        context.getString(R.string.media_source_yt_music)
-                    } else if (lower.contains("metrolist")) {
-                        context.getString(R.string.media_source_metrolist)
-                    } else {
-                        context.getString(R.string.media_source_generic)
-                    }
+            return when {
+                packageName == PKG_YT_MUSIC_MORPHE || packageName == PKG_YT_MUSIC_OFFICIAL || packageName.contains(
+                    "youtube.music", ignoreCase = true
+                ) -> {
+                    context.getString(R.string.media_source_yt_music)
                 }
+
+                packageName == PKG_METROLIST || packageName.contains(
+                    "metrolist", ignoreCase = true
+                ) -> {
+                    context.getString(R.string.media_source_metrolist)
+                }
+
+                else -> context.getString(R.string.media_source_generic)
             }
         }
     }

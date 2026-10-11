@@ -4,113 +4,123 @@ import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-import com.bajaj.rideconnect.re.ui.cockpit.CockpitHud
-import com.bajaj.rideconnect.re.ui.theme.CockpitBlack
-import com.bajaj.rideconnect.re.ui.theme.MyPulsarTheme
 
 class MainActivity : ComponentActivity() {
 
     private var hasLaunchedCoPilot = false
+    private var hasRequestedPermissions = false
+    private var isRequestingOverlay = false
+    private var hasRequestedOverlay = false
 
-    private val btPermissionLauncher = registerForActivityResult(
+    private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
         checkPermissionsAndProceed()
     }
 
+    private val overlayPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        isRequestingOverlay = false
+        checkPermissionsAndProceed()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-
         checkPermissionsAndProceed()
-
-        setContent {
-            MyPulsarTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(), color = CockpitBlack
-                ) {
-                    CockpitHud(onRequestNotificationPermission = {
-                        openNotificationListenerSettings()
-                    })
-                }
-            }
-        }
     }
 
     override fun onResume() {
         super.onResume()
+        PulsarNotificationService.requestRebindIfGranted(this)
         if (!isFinishing && !hasLaunchedCoPilot) {
             checkPermissionsAndProceed()
         }
     }
 
-    private fun hasBluetoothPermissions(): Boolean {
+    private fun isGranted(permission: String): Boolean =
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+
+    private fun hasBluetoothPermissions(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || (isGranted(Manifest.permission.BLUETOOTH_CONNECT) && isGranted(
+            Manifest.permission.BLUETOOTH_SCAN
+        ))
+
+    private fun getMissingPermissions(): List<String> {
+        val missing = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val connectGranted = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.BLUETOOTH_CONNECT
-            ) == PackageManager.PERMISSION_GRANTED
-            val scanGranted = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.BLUETOOTH_SCAN
-            ) == PackageManager.PERMISSION_GRANTED
-            return connectGranted && scanGranted
+            if (!isGranted(Manifest.permission.BLUETOOTH_CONNECT)) missing.add(Manifest.permission.BLUETOOTH_CONNECT)
+            if (!isGranted(Manifest.permission.BLUETOOTH_SCAN)) missing.add(Manifest.permission.BLUETOOTH_SCAN)
         }
-        return true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (!isGranted(Manifest.permission.POST_NOTIFICATIONS)) missing.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        return missing
     }
 
     private fun checkPermissionsAndProceed() {
-        if (!hasBluetoothPermissions()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                btPermissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN
-                    )
-                )
-            }
+        if (isRequestingOverlay) return
+
+        val missing = getMissingPermissions()
+        if (missing.isNotEmpty() && !hasRequestedPermissions) {
+            hasRequestedPermissions = true
+            permissionLauncher.launch(missing.toTypedArray())
             return
         }
 
-        if (Settings.canDrawOverlays(this)) {
-            launchCoPilotAndMaps()
-        } else {
-            requestOverlayPermission()
+        if (!hasBluetoothPermissions()) {
+            Toast.makeText(
+                this, getString(R.string.permission_bluetooth_required), Toast.LENGTH_LONG
+            ).show()
+            finish()
+            return
         }
+
+        if (!Settings.canDrawOverlays(this)) {
+            if (hasRequestedOverlay) {
+                Toast.makeText(
+                    this, getString(R.string.permission_overlay_required), Toast.LENGTH_LONG
+                ).show()
+                finish()
+                return
+            }
+            requestOverlayPermission()
+            return
+        }
+
+        launchCoPilotAndMaps()
     }
 
     private fun launchCoPilotAndMaps() {
         if (hasLaunchedCoPilot) return
         hasLaunchedCoPilot = true
-        if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
-            Toast.makeText(this, getString(R.string.toast_rotate_landscape), Toast.LENGTH_SHORT)
-                .show()
-        }
         FloatingHudService.start(this)
         launchGoogleMaps()
         finish()
     }
 
     private fun requestOverlayPermission() {
-        if (!Settings.canDrawOverlays(this)) {
+        if (isRequestingOverlay || Settings.canDrawOverlays(this)) return
+        isRequestingOverlay = true
+        hasRequestedOverlay = true
+        try {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$packageName".toUri()
+            )
+            overlayPermissionLauncher.launch(intent)
+        } catch (_: Exception) {
             try {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$packageName".toUri()
-                )
-                startActivity(intent)
+                overlayPermissionLauncher.launch(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
             } catch (_: Exception) {
-                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION))
+                isRequestingOverlay = false
             }
         }
     }
@@ -124,16 +134,6 @@ class MainActivity : ComponentActivity() {
             startActivity(intent)
         } catch (_: ActivityNotFoundException) {
             Toast.makeText(this, getString(R.string.maps_not_installed), Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun openNotificationListenerSettings() {
-        try {
-            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-        } catch (_: Exception) {
-            Toast.makeText(
-                this, getString(R.string.notification_settings_not_found), Toast.LENGTH_SHORT
-            ).show()
         }
     }
 }

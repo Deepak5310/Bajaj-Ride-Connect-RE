@@ -40,17 +40,22 @@ class PhoneStateMonitor(
                 Intent.ACTION_BATTERY_CHANGED -> {
                     val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                     val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                    if (level >= 0 && scale > 0) {
-                        batteryPercent = ((level / scale.toFloat()) * 100).toInt().coerceIn(0, 100)
-                    }
+                    val parsed = parseBatteryPercent(level, scale)
+                    if (parsed >= 0) batteryPercent = parsed
                 }
 
-                Intent.ACTION_AIRPLANE_MODE_CHANGED, "android.intent.action.SIM_STATE_CHANGED" -> {
+                Intent.ACTION_AIRPLANE_MODE_CHANGED, ACTION_SIM_STATE_CHANGED -> {
                     signalBars = readCurrentSignalBars()
                 }
             }
             triggerImmediateUpdate()
         }
+    }
+
+    private fun parseBatteryPercent(level: Int, scale: Int): Int = if (level >= 0 && scale > 0) {
+        ((level / scale.toFloat()) * 100).toInt().coerceIn(0, 100)
+    } else {
+        -1
     }
 
     private fun readDirectBatteryPercent(): Int {
@@ -97,53 +102,13 @@ class PhoneStateMonitor(
             val am =
                 context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return false
             val devices = am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-            val headsetTypes = setOf(
-                AudioDeviceInfo.TYPE_WIRED_HEADSET,
-                AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
-                AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
-                AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
-                AudioDeviceInfo.TYPE_USB_HEADSET,
-                TYPE_BLE_HEADSET,
-                TYPE_BLE_SPEAKER
-            )
-            return devices.any { it.type in headsetTypes }
+            return devices.any { it.type in HEADSET_TYPES }
         } catch (_: Exception) {
             return false
         }
     }
 
-    private val heartbeatRunnable: Runnable = object : Runnable {
-        override fun run() {
-            if (isRunning) {
-                if (bleManager.connectionState.value.isConnected) {
-                    val currentBattery =
-                        if (batteryPercent >= 0) batteryPercent else readDirectBatteryPercent()
-                    signalBars = readCurrentSignalBars()
-                    val vol = mediaStateListener.getCurrentVolumeTenths()
-                    val isHeadset = isHeadsetConnected()
-
-                    bleManager.sendTelemetry(
-                        batteryPercent = currentBattery,
-                        signalBars = signalBars,
-                        callState = 0,
-                        callerNameOrNumber = null,
-                        missedCalls = 0,
-                        unreadSms = 0,
-                        volumeLevel = vol,
-                        isHeadset = isHeadset
-                    )
-                }
-                handler.postDelayed(this, 4000L)
-            }
-        }
-    }
-
-    fun triggerImmediateUpdate() {
-        handler.removeCallbacks(heartbeatRunnable)
-        handler.post(heartbeatRunnable)
-    }
-
-    fun sendImmediateVolumeTelemetry(volLevel: Int) {
+    private fun dispatchTelemetry(volumeLevel: Int = mediaStateListener.getCurrentVolumeTenths()) {
         if (!bleManager.connectionState.value.isConnected) return
         val currentBattery = if (batteryPercent >= 0) batteryPercent else readDirectBatteryPercent()
         signalBars = readCurrentSignalBars()
@@ -156,9 +121,27 @@ class PhoneStateMonitor(
             callerNameOrNumber = null,
             missedCalls = 0,
             unreadSms = 0,
-            volumeLevel = volLevel.coerceIn(0, 10),
+            volumeLevel = volumeLevel.coerceIn(0, 10),
             isHeadset = isHeadset
         )
+    }
+
+    private val heartbeatRunnable: Runnable = object : Runnable {
+        override fun run() {
+            if (isRunning) {
+                dispatchTelemetry()
+                handler.postDelayed(this, 4000L)
+            }
+        }
+    }
+
+    fun triggerImmediateUpdate() {
+        handler.removeCallbacks(heartbeatRunnable)
+        handler.post(heartbeatRunnable)
+    }
+
+    fun sendImmediateVolumeTelemetry(volLevel: Int) {
+        dispatchTelemetry(volLevel)
     }
 
     init {
@@ -172,7 +155,7 @@ class PhoneStateMonitor(
             val filter = IntentFilter().apply {
                 addAction(Intent.ACTION_BATTERY_CHANGED)
                 addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
-                addAction("android.intent.action.SIM_STATE_CHANGED")
+                addAction(ACTION_SIM_STATE_CHANGED)
             }
             val sticky = ContextCompat.registerReceiver(
                 context, stateReceiver, filter, ContextCompat.RECEIVER_EXPORTED
@@ -181,9 +164,8 @@ class PhoneStateMonitor(
             if (sticky != null) {
                 val level = sticky.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                 val scale = sticky.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                if (level >= 0 && scale > 0) {
-                    batteryPercent = ((level / scale.toFloat()) * 100).toInt().coerceIn(0, 100)
-                }
+                val parsed = parseBatteryPercent(level, scale)
+                if (parsed >= 0) batteryPercent = parsed
             }
             if (batteryPercent < 0) {
                 batteryPercent = readDirectBatteryPercent()
@@ -194,15 +176,16 @@ class PhoneStateMonitor(
 
     private fun registerVolumeObserver() {
         if (volumeObserver == null) {
-            volumeObserver = object : ContentObserver(handler) {
+            val observer = object : ContentObserver(handler) {
                 override fun onChange(selfChange: Boolean) {
                     super.onChange(selfChange)
                     triggerImmediateUpdate()
                 }
             }
+            volumeObserver = observer
             try {
                 context.contentResolver.registerContentObserver(
-                    Settings.System.CONTENT_URI, true, volumeObserver as ContentObserver
+                    Settings.System.CONTENT_URI, true, observer
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "Could not register volume ContentObserver: ${e.message}")
@@ -215,6 +198,7 @@ class PhoneStateMonitor(
         if (!isRunning) {
             isRunning = true
             initStateReceiver()
+            registerVolumeObserver()
             signalBars = readCurrentSignalBars()
             triggerImmediateUpdate()
             Log.i(TAG, "PhoneStateMonitor started (battery=$batteryPercent%, signal=$signalBars)")
@@ -244,7 +228,18 @@ class PhoneStateMonitor(
 
     companion object {
         private const val TAG = "PhoneStateMonitor"
+        private const val ACTION_SIM_STATE_CHANGED = "android.intent.action.SIM_STATE_CHANGED"
         private const val TYPE_BLE_HEADSET = 26
         private const val TYPE_BLE_SPEAKER = 27
+
+        private val HEADSET_TYPES = setOf(
+            AudioDeviceInfo.TYPE_WIRED_HEADSET,
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+            AudioDeviceInfo.TYPE_USB_HEADSET,
+            TYPE_BLE_HEADSET,
+            TYPE_BLE_SPEAKER
+        )
     }
 }

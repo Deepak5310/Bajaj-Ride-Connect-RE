@@ -1,6 +1,5 @@
 package com.bajaj.rideconnect.re.ui.cockpit
 
-import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.widget.Toast
@@ -34,10 +33,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -63,15 +61,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import com.bajaj.rideconnect.re.R
 import com.bajaj.rideconnect.re.ui.theme.CockpitAccent
 import com.bajaj.rideconnect.re.ui.theme.CockpitAction
@@ -90,8 +85,6 @@ import com.bajaj.rideconnect.re.ui.theme.TextTertiary
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.ChevronLeft
 import compose.icons.feathericons.ChevronRight
-import compose.icons.feathericons.Github
-import compose.icons.feathericons.Info
 import compose.icons.feathericons.Lock
 import compose.icons.feathericons.Music
 import compose.icons.feathericons.Pause
@@ -99,8 +92,6 @@ import compose.icons.feathericons.Play
 import compose.icons.feathericons.Power
 import compose.icons.feathericons.SkipBack
 import compose.icons.feathericons.SkipForward
-import compose.icons.feathericons.Volume2
-import compose.icons.feathericons.X
 
 @Immutable
 data class MediaTrackInfo(
@@ -201,103 +192,87 @@ private fun RiderDock(
     onExitApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showGuide by remember { mutableStateOf(false) }
-
-    Box(modifier = modifier) {
-        Card(
-            modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = CockpitBlack.copy(alpha = 0.95f)),
-            border = BorderStroke(1.dp, CockpitBorder)
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+        color = CockpitBlack.copy(alpha = 0.95f),
+        border = BorderStroke(1.dp, CockpitBorder)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+            // Header: Bike Status & Collapse Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // 1. Header: Bike Status & Collapse Button
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onBikeClick() }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        val dotColor = when {
-                            isBleConnected -> PulsarGreen
-                            bikeStatus == stringResource(R.string.status_connecting) -> PulsarAmber
-                            else -> TextTertiary
-                        }
-                        PulsingDot(color = dotColor)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = bikeName,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = bikeStatus,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontFamily = FontFamily.Monospace,
-                                color = if (isBleConnected) PulsarGreen else TextSecondary,
-                                fontSize = 9.sp
-                            )
-                        }
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onBikeClick() }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    val dotColor = when {
+                        isBleConnected -> PulsarGreen
+                        bikeStatus == stringResource(R.string.status_connecting) -> PulsarAmber
+                        else -> TextTertiary
                     }
-
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    HudCircleButton(
-                        onClick = onCollapse,
-                        contentDescription = stringResource(R.string.cd_collapse_hud),
-                        size = 36.dp,
-                        containerColor = CockpitSurfaceElevated,
-                        borderColor = CockpitBorder
-                    ) {
-                        Icon(
-                            imageVector = FeatherIcons.ChevronLeft,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = TextSecondary
+                    PulsingDot(color = dotColor)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = bikeName,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = bikeStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isBleConnected) PulsarGreen else TextSecondary
                         )
                     }
                 }
 
-                // 2. Media Control Card (Track info, Seekbar & Large Transport Controls)
-                MediaControlCard(
-                    mediaInfo = mediaInfo,
-                    onPlayPauseToggle = onPlayPauseToggle,
-                    onSkipNext = onSkipNext,
-                    onSkipPrevious = onSkipPrevious,
-                    onSeek = onSeek,
-                    onRequestNotificationPermission = onRequestNotificationPermission
-                )
+                Spacer(modifier = Modifier.width(6.dp))
 
-                // 3. Cockpit Footer Deck: Connection / Handlebar Guide & Exit
-                CockpitFooterDeck(
-                    isBleConnected = isBleConnected,
-                    onBikeClick = onBikeClick,
-                    onShowGuide = { showGuide = true },
-                    onExitApp = onExitApp
-                )
+                HudCircleButton(
+                    onClick = onCollapse,
+                    contentDescription = stringResource(R.string.cd_collapse_hud),
+                    size = 36.dp
+                ) {
+                    Icon(
+                        imageVector = FeatherIcons.ChevronLeft,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = TextSecondary
+                    )
+                }
             }
-        }
 
-        if (showGuide) {
-            HandlebarGuideOverlay(
-                onDismiss = { showGuide = false }, modifier = Modifier.fillMaxSize()
+            // Media Control Card (Expands to occupy vertical space evenly)
+            MediaControlCard(
+                mediaInfo = mediaInfo,
+                onPlayPauseToggle = onPlayPauseToggle,
+                onSkipNext = onSkipNext,
+                onSkipPrevious = onSkipPrevious,
+                onSeek = onSeek,
+                onRequestNotificationPermission = onRequestNotificationPermission,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            )
+
+            // Cockpit Footer Deck
+            CockpitFooterDeck(
+                isBleConnected = isBleConnected, onBikeClick = onBikeClick, onExitApp = onExitApp
             )
         }
     }
@@ -314,18 +289,19 @@ private fun MediaControlCard(
     modifier: Modifier = Modifier
 ) {
     if (!mediaInfo.hasPermission) {
-        Card(
+        Surface(
             onClick = onRequestNotificationPermission,
             modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = CockpitSurface),
+            color = CockpitSurface,
             border = BorderStroke(1.dp, PulsarAmber.copy(alpha = 0.5f))
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -337,11 +313,8 @@ private fun MediaControlCard(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = stringResource(R.string.media_access_required),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = PulsarAmber,
-                        fontSize = 11.sp
+                        style = MaterialTheme.typography.labelLarge,
+                        color = PulsarAmber
                     )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -349,21 +322,19 @@ private fun MediaControlCard(
                     text = stringResource(R.string.media_grant_access_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
-                    fontSize = 10.sp,
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
+                    onClick = onRequestNotificationPermission,
                     shape = RoundedCornerShape(8.dp),
                     color = CockpitSurfaceElevated,
                     border = BorderStroke(1.dp, CockpitBorder)
                 ) {
                     Text(
                         text = stringResource(R.string.media_enable_access),
+                        style = MaterialTheme.typography.labelMedium,
                         color = TextPrimary,
-                        fontSize = 10.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
@@ -376,16 +347,17 @@ private fun MediaControlCard(
     val displayArtist = mediaInfo.artist.ifEmpty { stringResource(R.string.media_open_player) }
     val displaySource = mediaInfo.source.ifEmpty { stringResource(R.string.media_source_default) }
 
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CockpitSurface),
+        color = CockpitSurface,
         border = BorderStroke(1.dp, CockpitBorder)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp)
+                .fillMaxSize()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Source Badge & Live Status Pill
             Row(
@@ -400,10 +372,8 @@ private fun MediaControlCard(
                 ) {
                     Text(
                         text = displaySource,
+                        style = MaterialTheme.typography.labelSmall,
                         color = TextSecondary,
-                        fontSize = 9.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
@@ -423,15 +393,11 @@ private fun MediaControlCard(
                             stringResource(R.string.media_status_paused)
                         },
                         style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = if (mediaInfo.isPlaying) PulsarGreen else TextSecondary,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = if (mediaInfo.isPlaying) PulsarGreen else TextSecondary
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
 
             // Album Artwork & Track Info
             val albumBitmap = remember(mediaInfo.albumArt) { mediaInfo.albumArt?.asImageBitmap() }
@@ -444,7 +410,7 @@ private fun MediaControlCard(
                         contentDescription = stringResource(R.string.cd_album_art),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .border(1.dp, CockpitBorder, RoundedCornerShape(8.dp))
                     )
@@ -453,13 +419,13 @@ private fun MediaControlCard(
                         shape = RoundedCornerShape(8.dp),
                         color = CockpitSurfaceElevated,
                         border = BorderStroke(1.dp, CockpitBorder),
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = FeatherIcons.Music,
                                 contentDescription = null,
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(22.dp),
                                 tint = TextSecondary
                             )
                         }
@@ -471,8 +437,7 @@ private fun MediaControlCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = displayTitle,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = TextPrimary,
                         maxLines = 1,
                         modifier = Modifier.basicMarquee()
@@ -480,116 +445,111 @@ private fun MediaControlCard(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = displayArtist,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
-                        fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            // Responsive Seekbar & Duration Counters Section
+            Column(modifier = Modifier.fillMaxWidth()) {
+                var isDragging by remember { mutableStateOf(false) }
+                var dragProgress by remember { mutableFloatStateOf(0f) }
+                val currentProgress = if (isDragging) dragProgress else mediaInfo.progress
 
-            // Responsive Seekbar
-            var isDragging by remember { mutableStateOf(false) }
-            var dragProgress by remember { mutableFloatStateOf(0f) }
-            val currentProgress = if (isDragging) dragProgress else mediaInfo.progress
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 6.dp)
-                    .height(18.dp)
-                    .pointerInput(mediaInfo.totalDuration) {
-                        detectTapGestures { offset ->
-                            val width = size.width
-                            if (width > 0) {
-                                val ratio = (offset.x / width).coerceIn(0f, 1f)
-                                onSeek(ratio)
-                            }
-                        }
-                    }
-                    .pointerInput(mediaInfo.totalDuration) {
-                        detectHorizontalDragGestures(onDragStart = { offset ->
-                            isDragging = true
-                            val width = size.width
-                            if (width > 0) {
-                                dragProgress = (offset.x / width).coerceIn(0f, 1f)
-                            }
-                        }, onDragEnd = {
-                            isDragging = false
-                            onSeek(dragProgress)
-                        }, onDragCancel = {
-                            isDragging = false
-                        }, onHorizontalDrag = { change, _ ->
-                            change.consume()
-                            val width = size.width
-                            if (width > 0) {
-                                dragProgress = (change.position.x / width).coerceIn(0f, 1f)
-                            }
-                        })
-                    }, contentAlignment = Alignment.CenterStart
-            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(3.5.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(CockpitBorder)
+                        .padding(horizontal = 4.dp)
+                        .height(20.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures { offset ->
+                                val width = size.width
+                                if (width > 0) {
+                                    val ratio = (offset.x / width).coerceIn(0f, 1f)
+                                    onSeek(ratio)
+                                }
+                            }
+                        }
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(onDragStart = { offset ->
+                                isDragging = true
+                                val width = size.width
+                                if (width > 0) {
+                                    dragProgress = (offset.x / width).coerceIn(0f, 1f)
+                                }
+                            }, onDragEnd = {
+                                isDragging = false
+                                onSeek(dragProgress)
+                            }, onDragCancel = {
+                                isDragging = false
+                            }, onHorizontalDrag = { change, _ ->
+                                change.consume()
+                                val width = size.width
+                                if (width > 0) {
+                                    dragProgress = (change.position.x / width).coerceIn(0f, 1f)
+                                }
+                            })
+                        }, contentAlignment = Alignment.CenterStart
                 ) {
-                    if (currentProgress > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(currentProgress.coerceIn(0.001f, 1f))
-                                .fillMaxHeight()
-                                .background(CockpitAccent)
-                        )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(CockpitBorder)
+                    ) {
+                        if (currentProgress > 0f) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(
+                                        currentProgress.coerceIn(
+                                            0.001f, 1f
+                                        )
+                                    )
+                                    .fillMaxHeight()
+                                    .background(CockpitAccent)
+                            )
+                        }
                     }
-                }
 
-                if (currentProgress > 0f) {
                     Box(
                         modifier = Modifier.fillMaxWidth(currentProgress.coerceIn(0.001f, 1f)),
                         contentAlignment = Alignment.CenterEnd
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(if (isDragging) 12.dp else 8.dp)
+                                .size(if (isDragging) 12.dp else 9.dp)
                                 .clip(CircleShape)
                                 .background(CockpitAction)
                                 .border(1.dp, CockpitAccent, CircleShape)
                         )
                     }
                 }
+
+                // Duration Counters
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = mediaInfo.currentPosition,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = mediaInfo.totalDuration,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
+                }
             }
 
-            // Duration Counters
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = mediaInfo.currentPosition,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = TextSecondary,
-                    fontSize = 9.sp
-                )
-                Text(
-                    text = mediaInfo.totalDuration,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = TextSecondary,
-                    fontSize = 9.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Large Ergonomic Media Controls (44dp - 52dp hit targets)
+            // Large Ergonomic Media Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
@@ -598,9 +558,7 @@ private fun MediaControlCard(
                 HudCircleButton(
                     onClick = onSkipPrevious,
                     contentDescription = stringResource(R.string.media_action_prev),
-                    size = 44.dp,
-                    containerColor = CockpitSurfaceElevated,
-                    borderColor = CockpitBorder
+                    size = 46.dp
                 ) {
                     Icon(
                         imageVector = FeatherIcons.SkipBack,
@@ -613,33 +571,22 @@ private fun MediaControlCard(
                 HudCircleButton(
                     onClick = onPlayPauseToggle,
                     contentDescription = stringResource(R.string.media_action_play_pause),
-                    size = 52.dp,
+                    size = 56.dp,
                     containerColor = if (mediaInfo.isPlaying) CockpitAction else CockpitSurfaceElevated,
                     borderColor = if (mediaInfo.isPlaying) Color.Transparent else CockpitBorder
                 ) {
-                    if (mediaInfo.isPlaying) {
-                        Icon(
-                            imageVector = FeatherIcons.Pause,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp),
-                            tint = CockpitActionOn
-                        )
-                    } else {
-                        Icon(
-                            imageVector = FeatherIcons.Play,
-                            contentDescription = null,
-                            modifier = Modifier.size(22.dp),
-                            tint = CockpitAction
-                        )
-                    }
+                    Icon(
+                        imageVector = if (mediaInfo.isPlaying) FeatherIcons.Pause else FeatherIcons.Play,
+                        contentDescription = null,
+                        modifier = Modifier.size(if (mediaInfo.isPlaying) 22.dp else 24.dp),
+                        tint = if (mediaInfo.isPlaying) CockpitActionOn else CockpitAction
+                    )
                 }
 
                 HudCircleButton(
                     onClick = onSkipNext,
                     contentDescription = stringResource(R.string.media_action_next),
-                    size = 44.dp,
-                    containerColor = CockpitSurfaceElevated,
-                    borderColor = CockpitBorder
+                    size = 46.dp
                 ) {
                     Icon(
                         imageVector = FeatherIcons.SkipForward,
@@ -653,12 +600,10 @@ private fun MediaControlCard(
     }
 }
 
-
 @Composable
 private fun CockpitFooterDeck(
     isBleConnected: Boolean,
     onBikeClick: () -> Unit,
-    onShowGuide: () -> Unit,
     onExitApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -668,373 +613,64 @@ private fun CockpitFooterDeck(
             .height(34.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (!isBleConnected) {
-            Surface(
-                onClick = onBikeClick,
-                shape = RoundedCornerShape(10.dp),
-                color = CockpitSurface,
-                border = BorderStroke(1.dp, CockpitBorder),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        PulsingDot(color = PulsarAmber)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.action_connect_bike),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = PulsarAmber,
-                            fontSize = 10.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Icon(
-                        imageVector = FeatherIcons.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = TextSecondary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            HudCircleButton(
-                onClick = onShowGuide,
-                contentDescription = stringResource(R.string.action_guide),
-                size = 34.dp,
-                containerColor = CockpitSurfaceElevated,
-                borderColor = CockpitBorder
-            ) {
-                Icon(
-                    imageVector = FeatherIcons.Info,
-                    contentDescription = null,
-                    modifier = Modifier.size(15.dp),
-                    tint = CockpitAccent
-                )
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            HudCircleButton(
-                onClick = onExitApp,
-                contentDescription = stringResource(R.string.action_exit),
-                size = 34.dp,
-                containerColor = CockpitSurfaceElevated,
-                borderColor = PulsarAmber.copy(alpha = 0.5f)
-            ) {
-                Icon(
-                    imageVector = FeatherIcons.Power,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = PulsarAmber
-                )
-            }
+        val bikeActionText = if (isBleConnected) {
+            stringResource(R.string.status_linked)
         } else {
-            // Connected State: Two Dedicated Buttons (Guide & Exit)
-            Surface(
-                onClick = onShowGuide,
-                shape = RoundedCornerShape(10.dp),
-                color = CockpitSurfaceElevated,
-                border = BorderStroke(1.dp, CockpitAccent.copy(alpha = 0.4f)),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = FeatherIcons.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = CockpitAccent
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.action_guide),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = CockpitAccent,
-                        fontSize = 10.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Surface(
-                onClick = onExitApp,
-                shape = RoundedCornerShape(10.dp),
-                color = CockpitSurfaceElevated,
-                border = BorderStroke(1.dp, PulsarAmber.copy(alpha = 0.4f)),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = FeatherIcons.Power,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = PulsarAmber
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.action_exit),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = PulsarAmber,
-                        fontSize = 10.sp
-                    )
-                }
-            }
+            stringResource(R.string.action_connect_bike)
         }
-    }
-}
+        val bikeActionColor = if (isBleConnected) PulsarGreen else PulsarAmber
 
-@Composable
-private fun HandlebarGuideOverlay(
-    onDismiss: () -> Unit, modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxSize(),
-        shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = CockpitBlack.copy(alpha = 0.98f)),
-        border = BorderStroke(1.dp, CockpitBorder)
-    ) {
-        Column(
+        Surface(
+            onClick = onBikeClick,
+            shape = RoundedCornerShape(10.dp),
+            color = CockpitSurface,
+            border = BorderStroke(1.dp, CockpitBorder),
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .weight(1f)
+                .fillMaxHeight()
         ) {
-            // Header
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = FeatherIcons.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp),
-                        tint = CockpitAccent
-                    )
+                    PulsingDot(color = bikeActionColor)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = stringResource(R.string.guide_title),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
-                            fontSize = 11.sp
-                        )
-                        Text(
-                            text = stringResource(R.string.guide_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontFamily = FontFamily.Monospace,
-                            color = TextSecondary,
-                            fontSize = 9.sp
-                        )
-                    }
-                }
-                HudCircleButton(
-                    onClick = onDismiss,
-                    contentDescription = stringResource(R.string.guide_action_close),
-                    size = 32.dp,
-                    containerColor = CockpitSurfaceElevated,
-                    borderColor = CockpitBorder
-                ) {
-                    Icon(
-                        imageVector = FeatherIcons.X,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = TextSecondary
-                    )
-                }
-            }
-
-            // Guide Rows (4 Switchgear Controls)
-            Column(
-                modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                GuideRow(
-                    icon = {
-                        Icon(
-                            imageVector = FeatherIcons.Play,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = PulsarGreen
-                        )
-                    },
-                    badgeColor = PulsarGreen,
-                    action = stringResource(R.string.guide_action_play_pause),
-                    instruction = stringResource(R.string.guide_inst_set)
-                )
-                GuideRow(
-                    icon = {
-                        Icon(
-                            imageVector = FeatherIcons.SkipForward,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = CockpitAccent
-                        )
-                    },
-                    badgeColor = CockpitAccent,
-                    action = stringResource(R.string.guide_action_next),
-                    instruction = stringResource(R.string.guide_inst_next)
-                )
-                GuideRow(
-                    icon = {
-                        Icon(
-                            imageVector = FeatherIcons.SkipBack,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = CockpitAccent
-                        )
-                    },
-                    badgeColor = CockpitAccent,
-                    action = stringResource(R.string.guide_action_prev),
-                    instruction = stringResource(R.string.guide_inst_prev)
-                )
-                GuideRow(
-                    icon = {
-                        Icon(
-                            imageVector = FeatherIcons.Volume2,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = PulsarAmber
-                        )
-                    },
-                    badgeColor = PulsarAmber,
-                    action = stringResource(R.string.guide_action_volume),
-                    instruction = stringResource(R.string.guide_inst_volume)
-                )
-            }
-
-            // Developer GitHub Handle / Link
-            val context = LocalContext.current
-            Surface(
-                onClick = {
-                    try {
-                        val browserIntent = Intent(
-                            Intent.ACTION_VIEW, "https://github.com/Deepak5310".toUri()
-                        ).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(browserIntent)
-                    } catch (_: Exception) {
-                    }
-                    onDismiss()
-                },
-                shape = RoundedCornerShape(10.dp),
-                color = CockpitSurfaceElevated,
-                border = BorderStroke(1.dp, CockpitBorder),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(34.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = FeatherIcons.Github,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = CockpitAccent
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = stringResource(R.string.guide_github_handle),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        fontSize = 10.sp
+                        text = bikeActionText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = bikeActionColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+                Icon(
+                    imageVector = FeatherIcons.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = TextSecondary
+                )
             }
         }
-    }
-}
 
-@Composable
-private fun GuideRow(
-    icon: @Composable () -> Unit,
-    badgeColor: Color,
-    action: String,
-    instruction: String,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(CockpitSurface)
-            .border(BorderStroke(0.5.dp, CockpitBorder), RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)
+        Spacer(modifier = Modifier.width(6.dp))
+
+        HudCircleButton(
+            onClick = onExitApp,
+            contentDescription = stringResource(R.string.action_exit),
+            size = 34.dp,
+            borderColor = PulsarAmber.copy(alpha = 0.5f)
         ) {
-            Surface(
-                shape = RoundedCornerShape(5.dp),
-                color = badgeColor.copy(alpha = 0.15f),
-                border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f)),
-                modifier = Modifier.size(22.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    icon()
-                }
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = action,
-                color = TextPrimary,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                maxLines = 1
+            Icon(
+                imageVector = FeatherIcons.Power,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = PulsarAmber
             )
         }
-        Text(
-            text = instruction,
-            color = TextSecondary,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 9.5.sp,
-            maxLines = 1
-        )
     }
 }
 
@@ -1100,7 +736,8 @@ private fun RiderEdgeTab(
             PulsingDot(color = pillDotColor)
             Spacer(modifier = Modifier.width(6.dp))
 
-            if (mediaInfo.isPlaying && mediaInfo.title.isNotEmpty()) {
+            val isTrackShown = mediaInfo.isPlaying && mediaInfo.title.isNotEmpty()
+            if (isTrackShown) {
                 Icon(
                     imageVector = FeatherIcons.Music,
                     contentDescription = null,
@@ -1108,24 +745,15 @@ private fun RiderEdgeTab(
                     tint = CockpitAccent
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = mediaInfo.title.take(12),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Medium,
-                    color = TextPrimary,
-                    maxLines = 1
-                )
-            } else {
-                Text(
-                    text = bikeName,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Medium,
-                    color = TextPrimary,
-                    maxLines = 1
-                )
             }
+            Text(
+                text = if (isTrackShown) mediaInfo.title else bikeName,
+                style = MaterialTheme.typography.labelSmall,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 160.dp)
+            )
 
             Spacer(modifier = Modifier.width(6.dp))
             Icon(

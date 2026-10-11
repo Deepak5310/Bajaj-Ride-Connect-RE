@@ -1,7 +1,6 @@
 package com.bajaj.rideconnect.re
 
 import java.nio.charset.StandardCharsets
-import kotlin.math.min
 
 object PulsarProtocol {
 
@@ -10,6 +9,9 @@ object PulsarProtocol {
     const val CHAR_MEDIA_UUID: String = "0610676e-6972-6565-6e69-676e4543544f"
     const val CHAR_CONTROLS_UUID: String = "0a10676e-6972-6565-6e69-676e4543544f"
     const val CCCD_DESCRIPTOR_UUID: String = "00002902-0000-1000-8000-00805f9b34fb"
+
+    private const val MAX_MEDIA_FIELD_BYTES = 32
+    private val CALLER_CLEANUP_REGEX = Regex("[^a-zA-Z0-9 +.\\-]")
 
     fun getBatteryLevel(percent: Int): Int {
         if (percent < 20) return 0
@@ -46,29 +48,21 @@ object PulsarProtocol {
         frame[15] = (unreadSms and 0xFF).toByte()
 
         if ((callState == 1 || callState == 2 || callState == 3) && !callerNameOrNumber.isNullOrEmpty()) {
-            var clean = callerNameOrNumber.replace(Regex("[^a-zA-Z0-9 +.\\-]"), "").trim()
+            var clean = callerNameOrNumber.replace(CALLER_CLEANUP_REGEX, "").trim()
             if (clean.isNotEmpty()) {
                 frame[18] = 1.toByte()
                 if (clean.length > 30) clean = clean.substring(0, 30)
                 val bytes = clean.toByteArray(StandardCharsets.UTF_8)
-                val len = min(bytes.size, 30)
+                val len = bytes.size.coerceAtMost(30)
                 frame[20] = len.toByte()
                 System.arraycopy(bytes, 0, frame, 21, len)
-            } else {
-                frame[18] = 0.toByte()
-                frame[20] = 0.toByte()
             }
-        } else {
-            frame[18] = 0.toByte()
-            frame[20] = 0.toByte()
         }
 
         frame[53] = seqCounter
         frame[54] = seqCounter
         return frame
     }
-
-    private const val MAX_MEDIA_FIELD_BYTES = 31
 
     fun buildMediaFrame(
         title: String?,
@@ -101,7 +95,7 @@ object PulsarProtocol {
     ) {
         if (text.isNullOrEmpty()) return
         val rawBytes = text.toByteArray(StandardCharsets.UTF_8)
-        var len = min(rawBytes.size, MAX_MEDIA_FIELD_BYTES)
+        var len = rawBytes.size.coerceAtMost(MAX_MEDIA_FIELD_BYTES)
         if (rawBytes.size > MAX_MEDIA_FIELD_BYTES) {
             while (len > 0 && (rawBytes[len].toInt() and 0xC0) == 0x80) {
                 len--
@@ -113,22 +107,23 @@ object PulsarProtocol {
         }
     }
 
-    class HandlebarEvent {
-        var musicPlay: Boolean = false
-        var musicPause: Boolean = false
-        var musicNext: Boolean = false
-        var musicPrev: Boolean = false
-        var musicStop: Boolean = false
-        var volumeChanged: Boolean = false
-        var volumeLevel: Int = 0
-
+    data class HandlebarEvent(
+        val callAccept: Boolean = false,
+        val callReject: Boolean = false,
+        val musicPlay: Boolean = false,
+        val musicPause: Boolean = false,
+        val musicNext: Boolean = false,
+        val musicPrev: Boolean = false,
+        val musicStop: Boolean = false,
+        val volumeChanged: Boolean = false,
+        val volumeLevel: Int = 0
+    ) {
         fun hasAction(): Boolean =
-            musicPlay || musicPause || musicNext || musicPrev || musicStop || volumeChanged
-
-        override fun toString(): String =
-            "HandlebarEvent[play=$musicPlay, pause=$musicPause, next=$musicNext, prev=$musicPrev, stop=$musicStop, vol=$volumeLevel, volChanged=$volumeChanged]"
+            callAccept || callReject || musicPlay || musicPause || musicNext || musicPrev || musicStop || volumeChanged
     }
 
+    private var lastCallAcceptCtr = 0
+    private var lastCallRejectCtr = 0
     private var lastMusicPlayCtr = 0
     private var lastMusicPauseCtr = 0
     private var lastMusicNextCtr = 0
@@ -147,6 +142,8 @@ object PulsarProtocol {
     fun parseHandlebarPacket(data: ByteArray?): HandlebarEvent? {
         if (data == null || data.size < 11) return null
 
+        val callAccept = data[1].toInt() and 0xFF
+        val callReject = data[2].toInt() and 0xFF
         val musicPlay = data[6].toInt() and 0xFF
         val musicPause = data[7].toInt() and 0xFF
         val musicNext = data[8].toInt() and 0xFF
@@ -155,6 +152,8 @@ object PulsarProtocol {
         val volNibble = data[0].toInt() and 0x0F
 
         if (!handlebarInitialized) {
+            lastCallAcceptCtr = callAccept
+            lastCallRejectCtr = callReject
             lastMusicPlayCtr = musicPlay
             lastMusicPauseCtr = musicPause
             lastMusicNextCtr = musicNext
@@ -165,34 +164,63 @@ object PulsarProtocol {
             return null
         }
 
-        val ev = HandlebarEvent()
-        ev.volumeLevel = volNibble
+        val accept = callAccept != lastCallAcceptCtr
+        if (accept) {
+            lastCallAcceptCtr = callAccept
+        }
 
-        if (volNibble != lastVolumeNibble) {
-            ev.volumeChanged = true
+        val reject = callReject != lastCallRejectCtr
+        if (reject) {
+            lastCallRejectCtr = callReject
+        }
+
+        val volChanged = volNibble != lastVolumeNibble
+        if (volChanged) {
             lastVolumeNibble = volNibble
         }
-        if (musicPlay != lastMusicPlayCtr) {
-            ev.musicPlay = true
+
+        val play = musicPlay != lastMusicPlayCtr
+        if (play) {
             lastMusicPlayCtr = musicPlay
         }
-        if (musicPause != lastMusicPauseCtr) {
-            ev.musicPause = true
+
+        val pause = musicPause != lastMusicPauseCtr
+        if (pause) {
             lastMusicPauseCtr = musicPause
         }
-        if (musicNext != lastMusicNextCtr) {
-            ev.musicNext = true
+
+        val nextChanged = musicNext != lastMusicNextCtr
+        val prevChanged = musicPrev != lastMusicPrevCtr
+        val next: Boolean
+        val prev: Boolean
+
+        if (nextChanged && prevChanged) {
+            next = true
+            prev = false
             lastMusicNextCtr = musicNext
-        }
-        if (musicPrev != lastMusicPrevCtr) {
-            ev.musicPrev = true
             lastMusicPrevCtr = musicPrev
+        } else {
+            next = nextChanged
+            if (next) lastMusicNextCtr = musicNext
+            prev = prevChanged
+            if (prev) lastMusicPrevCtr = musicPrev
         }
-        if (musicStop != lastMusicStopCtr) {
-            ev.musicStop = true
+
+        val stop = musicStop != lastMusicStopCtr
+        if (stop) {
             lastMusicStopCtr = musicStop
         }
 
-        return ev
+        return HandlebarEvent(
+            callAccept = accept,
+            callReject = reject,
+            musicPlay = play,
+            musicPause = pause,
+            musicNext = next,
+            musicPrev = prev,
+            musicStop = stop,
+            volumeChanged = volChanged,
+            volumeLevel = volNibble
+        )
     }
 }

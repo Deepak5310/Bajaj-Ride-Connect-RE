@@ -8,7 +8,6 @@
     <string name="status_linked">LINKED</string>
     <string name="status_connecting">CONNECTING</string>
     <string name="status_standby">STANDBY</string>
-    <string name="bike_handlebar_ready">HANDLEBAR ACTIVE</string>
 
     <!-- Now-Playing Media Track & Playback -->
     <string name="media_no_track">No Track Playing</string>
@@ -28,26 +27,15 @@
 
     <!-- Actions & Navigation -->
     <string name="action_connect_bike">CONNECT BIKE</string>
-    <string name="action_guide">GUIDE</string>
     <string name="action_exit">EXIT</string>
-    <string name="guide_title">HANDLEBAR CONTROLS</string>
-    <string name="guide_subtitle">Pulsar &amp; Dominar Switchgear</string>
-    <string name="guide_action_play_pause">Play / Pause</string>
-    <string name="guide_inst_set">Click • SET</string>
-    <string name="guide_action_next">Next Track</string>
-    <string name="guide_inst_next">Hold • ▲</string>
-    <string name="guide_action_prev">Prev Track</string>
-    <string name="guide_inst_prev">Hold • ▼</string>
-    <string name="guide_action_volume">Volume + / -</string>
-    <string name="guide_inst_volume">Click • ▲ / ▼</string>
-    <string name="guide_github_handle">github.com/Deepak5310</string>
-    <string name="guide_action_close">CLOSE</string>
     <string name="toast_service_stopped">Ride Connect stopped</string>
 
     <!-- User Feedback & Toasts -->
     <string name="toast_connected">Connected: %1$s</string>
     <string name="toast_connecting">Connecting to Pulsar&#8230;</string>
     <string name="toast_rotate_landscape">Rotate to landscape to use Cockpit HUD</string>
+    <string name="permission_bluetooth_required">Bluetooth permission required to connect cluster</string>
+    <string name="permission_overlay_required">Overlay permission required for Cockpit HUD</string>
     <string name="maps_not_installed">Google Maps is not installed</string>
     <string name="notification_settings_not_found">Notification settings could not be opened</string>
 
