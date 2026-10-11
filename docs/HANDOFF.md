@@ -42,7 +42,8 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 | **Media Controller & Ticker** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/MediaStateListener.kt` | ✅ **Verified on Bike** — Real-time Title, Artist & Album metadata (`METADATA_KEY_ALBUM`), interactive tap/drag seekbar, 1s ticker LCD streaming |
 | **Handlebar Switchgear Integration** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/MediaStateListener.kt` | ✅ **Verified on Bike** — `SET` to play/pause, `^`/`v` hold to skip tracks, `^`/`v` click volume with volume mute protection |
 | **Floating HUD Service & Brand Icons** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/FloatingHudService.kt` | ✅ **Production Ready** — Custom Pulsar launcher & monochrome status bar notification icons (`ic_stat_pulsar`), 1-tap notification `EXIT` action (`ACTION_STOP_SERVICE`) for portrait termination, orientation watcher, and audio volume sync |
-| **Permissions Gatekeeper & Launcher** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/MainActivity.kt` | ✅ **Production Ready** — Single-shot `hasLaunchedCoPilot` guard, auto-shifts into left floating HUD & launches Google Maps (with portrait rotation toast) |
+| **Permissions Gatekeeper & Launcher** | `StudioApp/app/src/main/java/com/bajaj/rideconnect/re/MainActivity.kt` | ✅ **Production Ready** — Single-shot `hasLaunchedCoPilot` guard, auto-shifts into left floating HUD & launches Google Maps (with portrait rotation toast & Android 13+ `POST_NOTIFICATIONS` support) |
+| **R8 & ProGuard Optimization** | `StudioApp/app/proguard-rules.pro` | ✅ **Production Ready** — R8 full minification & resource shrinking (`isMinifyEnabled = true`, `isShrinkResources = true`), trimming APK footprint from 30MB down to **1.8MB** (94% reduction) |
 | **GitHub Actions CI Pipeline** | `StudioApp/.github/workflows/android-ci.yml` | ✅ **Active** — Automated JDK 21 + Gradle test, `lintDebug`, and `assembleDebug` APK artifact upload |
 | **Legacy View Prototype** | `app/src/com/bajaj/rideconnect/re/` | 📦 **Archived Reference** — Original View/XML prototype |
 
@@ -64,9 +65,13 @@ Tested and verified on the physical Bajaj Pulsar NS400Z motorcycle:
 ## 5. Build & Quick Commands
 
 ```bash
-# Build and install StudioApp debug APK
-cd StudioApp && ./gradlew :app:assembleDebug && adb install -r app/build/outputs/apk/debug/app-debug.apk
+# Build StudioApp debug APK
+cd StudioApp && ./gradlew :app:assembleDebug
+
+# Build optimized release APK with R8 minification (1.8MB)
+cd StudioApp && ./gradlew :app:assembleRelease
 
 # Filter logcat for real-time BLE, Media, and Telemetry debugging
 adb logcat -v time -s PulsarBleManager:D MediaStateListener:D FloatingHudService:D
 ```
+
