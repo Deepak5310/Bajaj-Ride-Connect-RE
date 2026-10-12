@@ -51,5 +51,6 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.compose.icons.feather)
+    testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

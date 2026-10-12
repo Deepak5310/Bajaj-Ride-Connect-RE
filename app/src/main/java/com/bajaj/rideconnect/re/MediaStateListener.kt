@@ -51,6 +51,7 @@ class MediaStateListener(context: Context) {
     private var lastHandlebarDirectionUp = false
     private var lastHandlebarActionTimestamp = 0L
     private var lastClusterSetTimestamp = 0L
+    private var lastSkipTimestamp = 0L
 
     val activeVolumeLevel: Int
         get() = if (activeVolumeTenths in 0..10) activeVolumeTenths else getCurrentVolumeTenths()
@@ -219,8 +220,8 @@ class MediaStateListener(context: Context) {
                 }
                 activeController = chosen
                 chosen.registerCallback(controllerCallback, handler)
-                syncMetadata()
             }
+            syncMetadata()
         } catch (e: SecurityException) {
             Log.w(TAG, "SecurityException in updateActiveController: ${e.message}")
             if (PulsarNotificationService.isNotificationListenerGranted(context)) {
@@ -566,9 +567,22 @@ class MediaStateListener(context: Context) {
             updateActiveController()
         }
 
+        val eventTime = System.currentTimeMillis()
         when {
-            ev.musicNext -> skipNext()
-            ev.musicPrev -> skipPrevious()
+            ev.musicNext -> {
+                if (eventTime - lastSkipTimestamp >= 250L) {
+                    lastSkipTimestamp = eventTime
+                    skipNext()
+                }
+            }
+
+            ev.musicPrev -> {
+                if (eventTime - lastSkipTimestamp >= 250L) {
+                    lastSkipTimestamp = eventTime
+                    skipPrevious()
+                }
+            }
+
             ev.musicPlay -> dispatchTransportAction({ play() }, KeyEvent.KEYCODE_MEDIA_PLAY)
             ev.musicPause -> dispatchTransportAction({ pause() }, KeyEvent.KEYCODE_MEDIA_PAUSE)
             ev.musicStop -> dispatchTransportAction({ stop() }, KeyEvent.KEYCODE_MEDIA_STOP)

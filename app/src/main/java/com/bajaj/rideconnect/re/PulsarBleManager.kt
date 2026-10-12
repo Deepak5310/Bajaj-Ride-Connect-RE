@@ -11,7 +11,9 @@ import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -89,6 +91,37 @@ class PulsarBleManager(context: Context) {
     private val writeQueue: Queue<GattWriteTask> = LinkedList()
     private var isWriting = false
     private var currentTask: GattWriteTask? = null
+    private var isConnectionPrimed = false
+
+    private val writeTimeoutRunnable = Runnable {
+        synchronized(writeQueue) {
+            if (isWriting) {
+                Log.w(
+                    TAG,
+                    "GATT write watchdog timed out after ${WRITE_TIMEOUT_MS}ms! Recovering queue..."
+                )
+                isWriting = false
+                currentTask = null
+                processNextWrite()
+            }
+        }
+    }
+
+    private val connectPrimingTimeoutRunnable = Runnable {
+        if (_connectionState.value.isConnected && !isConnectionPrimed) {
+            Log.w(TAG, "Cluster priming timeout elapsed; invoking fallback onConnected")
+            notifyConnectedIfPrimed()
+        }
+    }
+
+    private fun notifyConnectedIfPrimed() {
+        mainHandler.removeCallbacks(connectPrimingTimeoutRunnable)
+        if (!isConnectionPrimed) {
+            isConnectionPrimed = true
+            Log.i(TAG, "GATT link primed -> triggering onConnectedListener")
+            mainHandler.post { onConnectedListener?.invoke() }
+        }
+    }
 
     private val reconnectRunnable = Runnable {
         if (!_connectionState.value.isConnected && autoReconnect) {
@@ -246,7 +279,9 @@ class PulsarBleManager(context: Context) {
             isScanning = true
             Log.i(TAG, "Starting BLE scan for NS400Z peripheral...")
             try {
-                scanner.startScan(scanCallback)
+                val scanSettings =
+                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+                scanner.startScan(emptyList<ScanFilter>(), scanSettings, scanCallback)
             } catch (e: SecurityException) {
                 Log.w(TAG, "SecurityException starting BLE scan: ${e.message}")
                 isScanning = false
@@ -367,6 +402,9 @@ class PulsarBleManager(context: Context) {
     fun disconnect() {
         autoReconnect = false
         mainHandler.removeCallbacks(reconnectRunnable)
+        mainHandler.removeCallbacks(writeTimeoutRunnable)
+        mainHandler.removeCallbacks(connectPrimingTimeoutRunnable)
+        isConnectionPrimed = false
         if (isScanning) {
             stopScan()
         }
@@ -395,10 +433,7 @@ class PulsarBleManager(context: Context) {
     }
 
     fun sendTelemetry(
-        batteryPercent: Int,
-        signalBars: Int,
-        volumeLevel: Int = 5,
-        isHeadset: Boolean = false
+        batteryPercent: Int, signalBars: Int, volumeLevel: Int = 5, isHeadset: Boolean = false
     ): Boolean {
         val targetChar = charTelemetry ?: return false
         if (!_connectionState.value.isConnected) return false
@@ -430,9 +465,7 @@ class PulsarBleManager(context: Context) {
         writeType: Int = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
     ) {
         synchronized(writeQueue) {
-            if (writeType == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) {
-                writeQueue.removeIf { it.characteristic == characteristic }
-            }
+            writeQueue.removeIf { it.characteristic == characteristic }
             writeQueue.add(GattWriteTask(characteristic, data, writeType))
             if (!isWriting) {
                 processNextWrite()
@@ -445,16 +478,22 @@ class PulsarBleManager(context: Context) {
             val gatt = bluetoothGatt
             if (writeQueue.isEmpty() || gatt == null) {
                 isWriting = false
+                currentTask = null
+                mainHandler.removeCallbacks(writeTimeoutRunnable)
                 return
             }
 
             if (!hasConnectPermission()) {
                 isWriting = false
+                currentTask = null
+                mainHandler.removeCallbacks(writeTimeoutRunnable)
                 return
             }
 
             val task = writeQueue.poll() ?: run {
                 isWriting = false
+                currentTask = null
+                mainHandler.removeCallbacks(writeTimeoutRunnable)
                 return
             }
 
@@ -471,9 +510,13 @@ class PulsarBleManager(context: Context) {
                 false
             }
 
-            if (!result) {
+            if (result) {
+                mainHandler.removeCallbacks(writeTimeoutRunnable)
+                mainHandler.postDelayed(writeTimeoutRunnable, WRITE_TIMEOUT_MS)
+            } else {
                 isWriting = false
                 currentTask = null
+                mainHandler.removeCallbacks(writeTimeoutRunnable)
                 mainHandler.post { processNextWrite() }
             }
         }
@@ -530,6 +573,7 @@ class PulsarBleManager(context: Context) {
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Connected to NS400Z GATT Server. Negotiating MTU 247...")
                 mainHandler.removeCallbacks(reconnectRunnable)
+                isConnectionPrimed = false
 
                 val devName = getDeviceName(gatt.device) ?: _connectionState.value.deviceName
                 _connectionState.value = BleConnectionState(
@@ -551,6 +595,9 @@ class PulsarBleManager(context: Context) {
                 }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Disconnected from NS400Z (status=$status).")
+                mainHandler.removeCallbacks(writeTimeoutRunnable)
+                mainHandler.removeCallbacks(connectPrimingTimeoutRunnable)
+                isConnectionPrimed = false
                 charTelemetry = null
                 charMedia = null
                 charControls = null
@@ -618,20 +665,28 @@ class PulsarBleManager(context: Context) {
                         "Characteristics bound: Telemetry=${charTelemetry != null}, Media=${charMedia != null}, Controls=${charControls != null}"
                     )
 
+                    var cccdWriteInitiated = false
                     charControls?.let { controls ->
                         try {
                             gatt.setCharacteristicNotification(controls, true)
                             val cccd = controls.getDescriptor(CCCD_UUID)
                             if (cccd != null) {
-                                enableCccdNotification(gatt, cccd)
-                                Log.i(TAG, "Subscribed to Handlebar Controls CCCD (0a10)")
+                                cccdWriteInitiated = enableCccdNotification(gatt, cccd)
+                                Log.i(
+                                    TAG,
+                                    "Subscribed to Handlebar Controls CCCD (0a10), initiated=$cccdWriteInitiated"
+                                )
                             }
                         } catch (e: SecurityException) {
                             Log.w(TAG, "SecurityException setting notification: ${e.message}")
                         }
                     }
 
-                    mainHandler.post { onConnectedListener?.invoke() }
+                    if (!cccdWriteInitiated) {
+                        notifyConnectedIfPrimed()
+                    } else {
+                        mainHandler.postDelayed(connectPrimingTimeoutRunnable, 2000L)
+                    }
                 } else {
                     Log.e(TAG, "Primary Service $SERVICE_UUID not found!")
                 }
@@ -643,14 +698,23 @@ class PulsarBleManager(context: Context) {
         ) {
             Log.i(TAG, "onDescriptorWrite: ${descriptor.uuid} | status=$status")
             if (status == BluetoothGatt.GATT_SUCCESS && descriptor.characteristic.uuid == CHAR_CONTROLS_UUID) {
+                var readInitiated = false
                 if (hasConnectPermission()) {
                     try {
-                        gatt.readCharacteristic(descriptor.characteristic)
-                        Log.i(TAG, "Primed baseline handlebar controls via initial read")
+                        readInitiated = gatt.readCharacteristic(descriptor.characteristic)
+                        Log.i(
+                            TAG,
+                            "Priming baseline handlebar controls via initial read (initiated=$readInitiated)"
+                        )
                     } catch (e: SecurityException) {
                         Log.w(TAG, "SecurityException reading initial controls: ${e.message}")
                     }
                 }
+                if (!readInitiated) {
+                    notifyConnectedIfPrimed()
+                }
+            } else {
+                notifyConnectedIfPrimed()
             }
         }
 
@@ -663,6 +727,9 @@ class PulsarBleManager(context: Context) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 handleCharacteristicData(characteristic, value)
             }
+            if (characteristic.uuid == CHAR_CONTROLS_UUID) {
+                notifyConnectedIfPrimed()
+            }
         }
 
         @Deprecated("Deprecated in Java")
@@ -673,11 +740,15 @@ class PulsarBleManager(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && status == BluetoothGatt.GATT_SUCCESS) {
                 characteristic.value?.let { handleCharacteristicData(characteristic, it) }
             }
+            if (characteristic.uuid == CHAR_CONTROLS_UUID) {
+                notifyConnectedIfPrimed()
+            }
         }
 
         override fun onCharacteristicWrite(
             gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int
         ) {
+            mainHandler.removeCallbacks(writeTimeoutRunnable)
             synchronized(writeQueue) {
                 isWriting = false
                 currentTask = null
@@ -731,6 +802,7 @@ class PulsarBleManager(context: Context) {
         private const val TAG = "PulsarBleManager"
         private const val PREFS_NAME = "pulsar_ble_prefs"
         private const val KEY_LAST_MAC = "last_cluster_mac"
+        private const val WRITE_TIMEOUT_MS = 1000L
 
         val SERVICE_UUID: UUID = UUID.fromString(PulsarProtocol.SERVICE_UUID)
         val CHAR_TELEMETRY_UUID: UUID = UUID.fromString(PulsarProtocol.CHAR_TELEMETRY_UUID)

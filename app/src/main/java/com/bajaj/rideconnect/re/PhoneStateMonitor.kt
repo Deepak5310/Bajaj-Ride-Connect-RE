@@ -103,11 +103,6 @@ class PhoneStateMonitor(
         dispatchTelemetry(volLevel)
     }
 
-    init {
-        initStateReceiver()
-        registerVolumeObserver()
-    }
-
     @Synchronized
     private fun initStateReceiver() {
         if (!stateReceiverRegistered) {
@@ -154,7 +149,10 @@ class PhoneStateMonitor(
             initStateReceiver()
             registerVolumeObserver()
             triggerImmediateUpdate()
-            Log.i(TAG, "PhoneStateMonitor started (battery=$batteryPercent%, dummySignal=$DUMMY_SIGNAL_BARS)")
+            Log.i(
+                TAG,
+                "PhoneStateMonitor started (battery=$batteryPercent%, dummySignal=$DUMMY_SIGNAL_BARS)"
+            )
         }
     }
 

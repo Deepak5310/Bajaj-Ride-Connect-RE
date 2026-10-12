@@ -786,10 +786,11 @@ private fun PulsingDot(
         ), label = "dotAlpha"
     )
 
-    Box(modifier = modifier
-        .size(size)
-        .graphicsLayer { this.alpha = alpha }
-        .background(color, CircleShape))
+    Box(
+        modifier = modifier
+            .size(size)
+            .graphicsLayer { this.alpha = alpha }
+            .background(color, CircleShape))
 }
 
 @Preview(
