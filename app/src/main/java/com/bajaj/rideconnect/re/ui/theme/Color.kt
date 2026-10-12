@@ -2,26 +2,27 @@ package com.bajaj.rideconnect.re.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-const val CockpitBlackArgb = 0xFF090B10L
+const val CockpitBlackArgb = 0xFF080B12L
 
-// Minimal Clean Automotive Palette
+// Automotive Cockpit FUI Palette
 val CockpitBlack = Color(CockpitBlackArgb)
-val CockpitSurface = Color(0xFF131722)
-val CockpitSurfaceElevated = Color(0xFF1A202E)
-val CockpitBorder = Color(0xFF222938)
+val CockpitSurface = Color(0xFF0E1420)
+val CockpitSurfaceElevated = Color(0xFF161E2E)
+val CockpitBorder = Color(0xFF232D40)
+val CockpitBorderSubtle = Color(0xFF1A2232)
 
-// Functional Accent & Action Colors
-val CockpitAccent = Color(0xFF3B82F6)
-val CockpitAccentDim = Color(0xFF2563EB)
+// Functional Accent & Action Tokens
+val CockpitAccent = Color(0xFF38BDF8)
+val CockpitAccentDim = Color(0xFF0284C7)
 val CockpitAction = Color(0xFFF8FAFC)
-val CockpitActionOn = Color(0xFF090B10)
+val CockpitActionOn = Color(0xFF080B12)
 
-// Status Indicators
+// Automotive Telemetry & Status Indicators
 val PulsarGreen = Color(0xFF10B981)
 val PulsarAmber = Color(0xFFF59E0B)
 val PulsarRed = Color(0xFFEF4444)
 
-// High-contrast Typography
+// High-Contrast Automotive Typography
 val TextPrimary = Color(0xFFF8FAFC)
 val TextSecondary = Color(0xFF94A3B8)
 val TextTertiary = Color(0xFF64748B)

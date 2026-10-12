@@ -33,17 +33,17 @@
     <!-- User Feedback & Toasts -->
     <string name="toast_connected">Connected: %1$s</string>
     <string name="toast_connecting">Connecting to Pulsar&#8230;</string>
-    <string name="toast_rotate_landscape">Rotate to landscape to use Cockpit HUD</string>
-    <string name="permission_bluetooth_required">Bluetooth permission required to connect cluster</string>
-    <string name="permission_overlay_required">Overlay permission required for Cockpit HUD</string>
+    <string name="toast_rotate_landscape">Rotate to landscape to view the Cockpit HUD</string>
+    <string name="permission_bluetooth_required">Bluetooth permission is required to connect to the cluster</string>
+    <string name="permission_overlay_required">Overlay permission is required for the Cockpit HUD</string>
     <string name="maps_not_installed">Google Maps is not installed</string>
     <string name="notification_settings_not_found">Notification settings could not be opened</string>
 
     <!-- Foreground Service & Notification Channels -->
     <string name="notification_cockpit_title">Pulsar Cockpit</string>
-    <string name="notification_cockpit_desc">Cockpit HUD &amp; BLE Active</string>
+    <string name="notification_cockpit_desc">Cockpit HUD and BLE active</string>
     <string name="notification_channel_name">Pulsar Cockpit Service</string>
-    <string name="notification_channel_desc">Maintains active BLE cluster and HUD overlay connection</string>
+    <string name="notification_channel_desc">Maintains an active connection to the BLE cluster and HUD overlay</string>
 
     <!-- Accessibility & Content Descriptions -->
     <string name="media_action_prev">Previous track</string>
@@ -51,6 +51,6 @@
     <string name="media_action_next">Next track</string>
     <string name="cd_collapse_hud">Collapse HUD</string>
     <string name="cd_expand_hud">Expand HUD</string>
-    <string name="cd_rotate_screen">Rotate to landscape for cockpit view</string>
+    <string name="cd_rotate_screen">Rotate to landscape for Cockpit HUD</string>
     <string name="cd_album_art">Album artwork</string>
 </resources>

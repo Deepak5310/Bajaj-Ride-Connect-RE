@@ -20,7 +20,7 @@ A lightweight, distraction-free, native Android companion app and floating Cockp
 | **Battery Impact** | Heavy (Continuous GPS & Wi-Fi pollers) | **Near-Zero** (Event-driven BLE GATT state) |
 | **Navigation Mode** | Proprietary Mappls locked inside app | **Live Google Maps** + 30% Floating Dock HUD |
 | **Handlebar Media Controls** | Prone to lag and missed button triggers | **Instant response** (Tested on physical bike) |
-| **Volume Control** | Coarse steps, feedback loop stutters | **Smooth down to full mute (0)** + synchronous sync |
+| **Volume Control** | Coarse steps, feedback loop stutters | **Smooth down to full mute (0)** + real-time synchronization |
 | **LCD Track Timer** | Elapsed playback timer frequently freezes | **Continuous 1-second progress ticker** |
 | **Connection Recovery** | Requires manual app foregrounding | **Instant auto-reconnect** via saved cluster MAC |
 
@@ -149,4 +149,4 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Disclaimer
 
-This repository is an independent reverse engineering and interoperability research project for personal use. It is not affiliated with, endorsed by, or sponsored by Bajaj Auto Ltd. Does not alter engine or safety-critical ECU parameters.
+This repository is an independent reverse engineering and interoperability research project for personal use. It is not affiliated with, endorsed by, or sponsored by Bajaj Auto Ltd. It does not alter engine or safety-critical ECU parameters.

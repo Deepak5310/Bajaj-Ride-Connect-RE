@@ -153,7 +153,8 @@ class MainActivity : ComponentActivity() {
                 }
                 startActivity(genericIntent)
             } catch (_: Exception) {
-                Toast.makeText(this, getString(R.string.maps_not_installed), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.maps_not_installed), Toast.LENGTH_SHORT)
+                    .show()
             }
         }
     }

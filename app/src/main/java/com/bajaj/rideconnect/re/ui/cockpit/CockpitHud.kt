@@ -61,7 +61,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -74,11 +73,13 @@ import com.bajaj.rideconnect.re.ui.theme.CockpitActionOn
 import com.bajaj.rideconnect.re.ui.theme.CockpitBlack
 import com.bajaj.rideconnect.re.ui.theme.CockpitBlackArgb
 import com.bajaj.rideconnect.re.ui.theme.CockpitBorder
+import com.bajaj.rideconnect.re.ui.theme.CockpitBorderSubtle
 import com.bajaj.rideconnect.re.ui.theme.CockpitSurface
 import com.bajaj.rideconnect.re.ui.theme.CockpitSurfaceElevated
 import com.bajaj.rideconnect.re.ui.theme.MyPulsarTheme
 import com.bajaj.rideconnect.re.ui.theme.PulsarAmber
 import com.bajaj.rideconnect.re.ui.theme.PulsarGreen
+import com.bajaj.rideconnect.re.ui.theme.TelemetryTimerStyle
 import com.bajaj.rideconnect.re.ui.theme.TextPrimary
 import com.bajaj.rideconnect.re.ui.theme.TextSecondary
 import com.bajaj.rideconnect.re.ui.theme.TextTertiary
@@ -195,7 +196,7 @@ private fun RiderDock(
     Surface(
         modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-        color = CockpitBlack.copy(alpha = 0.95f),
+        color = CockpitBlack.copy(alpha = 0.94f),
         border = BorderStroke(1.dp, CockpitBorder)
     ) {
         Column(
@@ -223,7 +224,7 @@ private fun RiderDock(
                         bikeStatus == stringResource(R.string.status_connecting) -> PulsarAmber
                         else -> TextTertiary
                     }
-                    PulsingDot(color = dotColor)
+                    PulsingDot(color = dotColor, size = 7.dp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -294,7 +295,7 @@ private fun MediaControlCard(
             modifier = modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             color = CockpitSurface,
-            border = BorderStroke(1.dp, PulsarAmber.copy(alpha = 0.5f))
+            border = BorderStroke(1.dp, PulsarAmber.copy(alpha = 0.4f))
         ) {
             Column(
                 modifier = Modifier
@@ -368,7 +369,7 @@ private fun MediaControlCard(
                 Surface(
                     shape = RoundedCornerShape(4.dp),
                     color = CockpitSurfaceElevated,
-                    border = BorderStroke(1.dp, CockpitBorder)
+                    border = BorderStroke(1.dp, CockpitBorderSubtle)
                 ) {
                     Text(
                         text = displaySource,
@@ -379,12 +380,16 @@ private fun MediaControlCard(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(if (mediaInfo.isPlaying) PulsarGreen else TextTertiary)
-                    )
+                    if (mediaInfo.isPlaying) {
+                        PulsingDot(color = PulsarGreen, size = 6.dp)
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(TextTertiary)
+                        )
+                    }
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (mediaInfo.isPlaying) {
@@ -393,7 +398,6 @@ private fun MediaControlCard(
                             stringResource(R.string.media_status_paused)
                         },
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
                         color = if (mediaInfo.isPlaying) PulsarGreen else TextSecondary
                     )
                 }
@@ -425,8 +429,8 @@ private fun MediaControlCard(
                             Icon(
                                 imageVector = FeatherIcons.Music,
                                 contentDescription = null,
-                                modifier = Modifier.size(22.dp),
-                                tint = TextSecondary
+                                modifier = Modifier.size(20.dp),
+                                tint = CockpitAccent
                             )
                         }
                     }
@@ -499,7 +503,7 @@ private fun MediaControlCard(
                             .fillMaxWidth()
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp))
-                            .background(CockpitBorder)
+                            .background(CockpitBorderSubtle)
                     ) {
                         if (currentProgress > 0f) {
                             Box(
@@ -521,7 +525,7 @@ private fun MediaControlCard(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(if (isDragging) 12.dp else 9.dp)
+                                .size(if (isDragging) 12.dp else 8.dp)
                                 .clip(CircleShape)
                                 .background(CockpitAction)
                                 .border(1.dp, CockpitAccent, CircleShape)
@@ -529,7 +533,7 @@ private fun MediaControlCard(
                     }
                 }
 
-                // Duration Counters
+                // Monospace Tabular Duration Counters
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -538,12 +542,12 @@ private fun MediaControlCard(
                 ) {
                     Text(
                         text = mediaInfo.currentPosition,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = TelemetryTimerStyle,
                         color = TextSecondary
                     )
                     Text(
                         text = mediaInfo.totalDuration,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = TelemetryTimerStyle,
                         color = TextSecondary
                     )
                 }
@@ -573,13 +577,13 @@ private fun MediaControlCard(
                     contentDescription = stringResource(R.string.media_action_play_pause),
                     size = 56.dp,
                     containerColor = if (mediaInfo.isPlaying) CockpitAction else CockpitSurfaceElevated,
-                    borderColor = if (mediaInfo.isPlaying) Color.Transparent else CockpitBorder
+                    borderColor = if (mediaInfo.isPlaying) Color.Transparent else CockpitAccent
                 ) {
                     Icon(
                         imageVector = if (mediaInfo.isPlaying) FeatherIcons.Pause else FeatherIcons.Play,
                         contentDescription = null,
                         modifier = Modifier.size(if (mediaInfo.isPlaying) 22.dp else 24.dp),
-                        tint = if (mediaInfo.isPlaying) CockpitActionOn else CockpitAction
+                        tint = if (mediaInfo.isPlaying) CockpitActionOn else CockpitAccent
                     )
                 }
 
@@ -637,7 +641,7 @@ private fun CockpitFooterDeck(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    PulsingDot(color = bikeActionColor)
+                    PulsingDot(color = bikeActionColor, size = 6.dp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = bikeActionText,
@@ -662,7 +666,7 @@ private fun CockpitFooterDeck(
             onClick = onExitApp,
             contentDescription = stringResource(R.string.action_exit),
             size = 34.dp,
-            borderColor = PulsarAmber.copy(alpha = 0.5f)
+            borderColor = PulsarAmber.copy(alpha = 0.4f)
         ) {
             Icon(
                 imageVector = FeatherIcons.Power,
@@ -716,16 +720,19 @@ private fun RiderEdgeTab(
     } else {
         stringResource(R.string.cd_rotate_screen)
     }
+    val tabHeight = if (isLandscape) 36.dp else 32.dp
+    val textMaxWidth = if (isLandscape) 80.dp else 64.dp
+
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(topEnd = 14.dp, bottomEnd = 14.dp),
+        shape = RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp),
         color = CockpitSurface.copy(alpha = 0.95f),
         border = BorderStroke(1.dp, CockpitBorder),
         modifier = modifier
-            .height(44.dp)
+            .height(tabHeight)
             .semantics { contentDescription = edgeTabDesc }) {
         Row(
-            modifier = Modifier.padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            modifier = Modifier.padding(start = 8.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val pillDotColor = when {
@@ -733,33 +740,35 @@ private fun RiderEdgeTab(
                 mediaInfo.isPlaying -> CockpitAccent
                 else -> TextTertiary
             }
-            PulsingDot(color = pillDotColor)
-            Spacer(modifier = Modifier.width(6.dp))
+            PulsingDot(color = pillDotColor, size = 6.dp)
+            Spacer(modifier = Modifier.width(5.dp))
 
             val isTrackShown = mediaInfo.isPlaying && mediaInfo.title.isNotEmpty()
             if (isTrackShown) {
                 Icon(
                     imageVector = FeatherIcons.Music,
                     contentDescription = null,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(11.dp),
                     tint = CockpitAccent
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(3.dp))
             }
             Text(
                 text = if (isTrackShown) mediaInfo.title else bikeName,
                 style = MaterialTheme.typography.labelSmall,
                 color = TextPrimary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 160.dp)
+                overflow = TextOverflow.Clip,
+                modifier = Modifier
+                    .widthIn(max = textMaxWidth)
+                    .basicMarquee()
             )
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(4.dp))
             Icon(
                 imageVector = FeatherIcons.ChevronRight,
                 contentDescription = null,
-                modifier = Modifier.size(12.dp),
+                modifier = Modifier.size(11.dp),
                 tint = TextSecondary
             )
         }
@@ -768,7 +777,7 @@ private fun RiderEdgeTab(
 
 @Composable
 private fun PulsingDot(
-    color: Color, modifier: Modifier = Modifier
+    color: Color, modifier: Modifier = Modifier, size: Dp = 8.dp
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val alpha by infiniteTransition.animateFloat(
@@ -778,7 +787,7 @@ private fun PulsingDot(
     )
 
     Box(modifier = modifier
-        .size(8.dp)
+        .size(size)
         .graphicsLayer { this.alpha = alpha }
         .background(color, CircleShape))
 }

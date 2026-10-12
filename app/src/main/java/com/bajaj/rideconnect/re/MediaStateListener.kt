@@ -5,7 +5,6 @@ import android.content.Context
 import android.database.ContentObserver
 import android.graphics.Bitmap
 import android.media.AudioManager
-import android.provider.Settings
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSession
@@ -14,6 +13,7 @@ import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import com.bajaj.rideconnect.re.ui.cockpit.MediaTrackInfo
