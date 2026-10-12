@@ -80,10 +80,6 @@ class PhoneStateMonitor(
         bleManager.sendTelemetry(
             batteryPercent = currentBattery,
             signalBars = DUMMY_SIGNAL_BARS,
-            callState = 0,
-            callerNameOrNumber = null,
-            missedCalls = 0,
-            unreadSms = 0,
             volumeLevel = volumeLevel.coerceIn(0, 10),
             isHeadset = isHeadset
         )

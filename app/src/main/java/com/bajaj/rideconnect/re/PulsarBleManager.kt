@@ -397,10 +397,6 @@ class PulsarBleManager(context: Context) {
     fun sendTelemetry(
         batteryPercent: Int,
         signalBars: Int,
-        callState: Int = 0,
-        callerNameOrNumber: String? = null,
-        missedCalls: Int = 0,
-        unreadSms: Int = 0,
         volumeLevel: Int = 5,
         isHeadset: Boolean = false
     ): Boolean {
@@ -410,13 +406,9 @@ class PulsarBleManager(context: Context) {
         val frame = PulsarProtocol.buildCompactTelemetryFrame(
             batteryPercent = batteryPercent,
             signalBars = signalBars,
-            callState = callState,
-            callerNameOrNumber = callerNameOrNumber,
-            missedCalls = missedCalls,
-            unreadSms = unreadSms,
-            seqCounter = telemetrySeq,
             volumeLevel = volumeLevel,
-            isHeadset = isHeadset
+            isHeadset = isHeadset,
+            seqCounter = telemetrySeq
         )
         enqueueWrite(targetChar, frame, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
         return true
