@@ -48,6 +48,8 @@ class MediaStateListener(context: Context) {
     var bleMediaSender: BleMediaSender? = null
     var onVolumeChangedExternally: ((Int) -> Unit)? = null
     private var volumeToSet = -1
+    private var lastVolumeDirectionIsUp = false
+    private var lastVolumeUpTimestamp = 0L
 
     private val sessionUpdateListener = PulsarNotificationService.SessionUpdateListener {
         refreshMediaSessions()
@@ -85,6 +87,7 @@ class MediaStateListener(context: Context) {
     }
 
     init {
+        volumeToSet = getCurrentVolumeTenths()
         PulsarNotificationService.setSessionUpdateListener(sessionUpdateListener)
         try {
             val uri = Settings.Secure.getUriFor("enabled_notification_listeners")
@@ -516,6 +519,26 @@ class MediaStateListener(context: Context) {
 
         if (ev.volumeChanged) {
             val newNibble = ev.volumeLevel
+            val now = System.currentTimeMillis()
+
+            if (newNibble == 0) {
+                val isRecentUp = lastVolumeDirectionIsUp && (now - lastVolumeUpTimestamp < 1200L)
+                if (volumeToSet > 1 || isRecentUp) {
+                    Log.i(
+                        TAG,
+                        "Ignoring cluster volume=0 idle pulse (target=$volumeToSet, recentUp=$isRecentUp)"
+                    )
+                    return
+                }
+            }
+
+            if (volumeToSet >= 0) {
+                lastVolumeDirectionIsUp = newNibble > volumeToSet
+                if (lastVolumeDirectionIsUp) {
+                    lastVolumeUpTimestamp = now
+                }
+            }
+
             if (newNibble != volumeToSet) {
                 volumeToSet = newNibble
                 setVolumeFromCluster(newNibble)
@@ -569,6 +592,12 @@ class MediaStateListener(context: Context) {
         return 5
     }
 
+    fun syncPhoneVolume() {
+        volumeToSet = getCurrentVolumeTenths()
+        lastVolumeDirectionIsUp = false
+        lastVolumeUpTimestamp = 0L
+    }
+
     fun destroy() {
         try {
             context.contentResolver.unregisterContentObserver(settingsObserver)
@@ -583,6 +612,8 @@ class MediaStateListener(context: Context) {
         activeController = null
         bleMediaSender = null
         volumeToSet = -1
+        lastVolumeDirectionIsUp = false
+        lastVolumeUpTimestamp = 0L
 
         sessionsChangedListener?.let { listener ->
             try {

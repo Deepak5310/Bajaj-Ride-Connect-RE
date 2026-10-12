@@ -70,6 +70,7 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
         }
 
         bleManager.onConnectedListener = {
+            mediaStateListener.syncPhoneVolume()
             phoneStateMonitor.triggerImmediateUpdate()
         }
 

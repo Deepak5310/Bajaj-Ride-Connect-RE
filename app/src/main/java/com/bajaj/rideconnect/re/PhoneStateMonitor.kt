@@ -179,6 +179,7 @@ class PhoneStateMonitor(
             val observer = object : ContentObserver(handler) {
                 override fun onChange(selfChange: Boolean) {
                     super.onChange(selfChange)
+                    mediaStateListener.syncPhoneVolume()
                     triggerImmediateUpdate()
                 }
             }
