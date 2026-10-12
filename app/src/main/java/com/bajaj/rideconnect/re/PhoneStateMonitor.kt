@@ -72,7 +72,7 @@ class PhoneStateMonitor(
         }
     }
 
-    private fun dispatchTelemetry(volumeLevel: Int = mediaStateListener.getCurrentVolumeTenths()) {
+    private fun dispatchTelemetry(volumeLevel: Int = mediaStateListener.activeVolumeLevel) {
         if (!bleManager.connectionState.value.isConnected) return
         val currentBattery = if (batteryPercent >= 0) batteryPercent else readDirectBatteryPercent()
         val isHeadset = isHeadsetConnected()
@@ -137,8 +137,7 @@ class PhoneStateMonitor(
             val observer = object : ContentObserver(handler) {
                 override fun onChange(selfChange: Boolean) {
                     super.onChange(selfChange)
-                    mediaStateListener.syncPhoneVolume()
-                    triggerImmediateUpdate()
+                    mediaStateListener.onSystemVolumeChanged()
                 }
             }
             volumeObserver = observer

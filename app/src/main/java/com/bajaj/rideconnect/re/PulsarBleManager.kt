@@ -415,6 +415,7 @@ class PulsarBleManager(context: Context) {
             currentTask = null
         }
         _connectionState.value = BleConnectionState()
+        PulsarProtocol.resetHandlebarCounters()
     }
 
     fun sendTelemetry(

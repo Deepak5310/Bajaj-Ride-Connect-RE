@@ -131,16 +131,24 @@ object PulsarProtocol {
     private var lastMusicStopCtr = 0
     private var lastVolumeNibble = -1
     private var handlebarInitialized = false
+    private var lastRawPacket: ByteArray? = null
 
     @Synchronized
     fun resetHandlebarCounters() {
         handlebarInitialized = false
         lastVolumeNibble = -1
+        lastRawPacket = null
     }
 
     @Synchronized
     fun parseHandlebarPacket(data: ByteArray?): HandlebarEvent? {
         if (data == null || data.size < 11) return null
+
+        val prevRaw = lastRawPacket
+        if (prevRaw != null && prevRaw.contentEquals(data)) {
+            return null
+        }
+        lastRawPacket = data.clone()
 
         val callAccept = data[1].toInt() and 0xFF
         val callReject = data[2].toInt() and 0xFF

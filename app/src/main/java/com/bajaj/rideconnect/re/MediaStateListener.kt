@@ -47,9 +47,13 @@ class MediaStateListener(context: Context) {
     val mediaTrackInfo: StateFlow<MediaTrackInfo> = _mediaTrackInfo.asStateFlow()
     var bleMediaSender: BleMediaSender? = null
     var onVolumeChangedExternally: ((Int) -> Unit)? = null
-    private var volumeToSet = -1
-    private var lastVolumeDirectionIsUp = false
-    private var lastVolumeUpTimestamp = 0L
+    private var activeVolumeTenths = -1
+    private var lastHandlebarDirectionUp = false
+    private var lastHandlebarActionTimestamp = 0L
+    private var lastClusterSetTimestamp = 0L
+
+    val activeVolumeLevel: Int
+        get() = if (activeVolumeTenths in 0..10) activeVolumeTenths else getCurrentVolumeTenths()
 
     private val sessionUpdateListener = PulsarNotificationService.SessionUpdateListener {
         refreshMediaSessions()
@@ -87,7 +91,7 @@ class MediaStateListener(context: Context) {
     }
 
     init {
-        volumeToSet = getCurrentVolumeTenths()
+        activeVolumeTenths = getCurrentVolumeTenths()
         PulsarNotificationService.setSessionUpdateListener(sessionUpdateListener)
         try {
             val uri = Settings.Secure.getUriFor("enabled_notification_listeners")
@@ -520,28 +524,37 @@ class MediaStateListener(context: Context) {
         if (ev.volumeChanged) {
             val newNibble = ev.volumeLevel
             val now = System.currentTimeMillis()
+            val timeSinceLastAction = now - lastHandlebarActionTimestamp
 
             if (newNibble == 0) {
-                val isRecentUp = lastVolumeDirectionIsUp && (now - lastVolumeUpTimestamp < 1200L)
-                if (volumeToSet > 1 || isRecentUp) {
-                    Log.i(
-                        TAG,
-                        "Ignoring cluster volume=0 idle pulse (target=$volumeToSet, recentUp=$isRecentUp)"
-                    )
-                    return
-                }
-            }
+                if (activeVolumeTenths != 0) {
+                    val isJumpFromHighVolume = activeVolumeTenths > 1
+                    val isReleaseAfterUp = lastHandlebarDirectionUp && (timeSinceLastAction < 1200L)
+                    val isImmediateRelease = timeSinceLastAction < 450L
 
-            if (volumeToSet >= 0) {
-                lastVolumeDirectionIsUp = newNibble > volumeToSet
-                if (lastVolumeDirectionIsUp) {
-                    lastVolumeUpTimestamp = now
+                    if (isJumpFromHighVolume || isReleaseAfterUp || isImmediateRelease) {
+                        Log.i(
+                            TAG,
+                            "Ignored cluster volume=0 idle pulse (active=$activeVolumeTenths, delta=${timeSinceLastAction}ms, isUp=$lastHandlebarDirectionUp)"
+                        )
+                    } else {
+                        Log.i(TAG, "Cluster volume stepped down to 0 (mute)")
+                        lastHandlebarDirectionUp = false
+                        lastHandlebarActionTimestamp = now
+                        lastClusterSetTimestamp = now
+                        activeVolumeTenths = 0
+                        setVolumeFromCluster(0)
+                    }
                 }
-            }
-
-            if (newNibble != volumeToSet) {
-                volumeToSet = newNibble
-                setVolumeFromCluster(newNibble)
+            } else {
+                if (newNibble != activeVolumeTenths) {
+                    val isUp = if (activeVolumeTenths >= 0) newNibble > activeVolumeTenths else true
+                    lastHandlebarDirectionUp = isUp
+                    lastHandlebarActionTimestamp = now
+                    lastClusterSetTimestamp = now
+                    activeVolumeTenths = newNibble
+                    setVolumeFromCluster(newNibble)
+                }
             }
         }
 
@@ -592,10 +605,22 @@ class MediaStateListener(context: Context) {
         return 5
     }
 
+    fun onSystemVolumeChanged() {
+        val now = System.currentTimeMillis()
+        if (now - lastClusterSetTimestamp < 500L) {
+            return
+        }
+        val curTenths = getCurrentVolumeTenths()
+        if (curTenths != activeVolumeTenths) {
+            activeVolumeTenths = curTenths
+            lastHandlebarDirectionUp = false
+            lastHandlebarActionTimestamp = 0L
+            onVolumeChangedExternally?.invoke(curTenths)
+        }
+    }
+
     fun syncPhoneVolume() {
-        volumeToSet = getCurrentVolumeTenths()
-        lastVolumeDirectionIsUp = false
-        lastVolumeUpTimestamp = 0L
+        onSystemVolumeChanged()
     }
 
     fun destroy() {
@@ -611,9 +636,10 @@ class MediaStateListener(context: Context) {
         }
         activeController = null
         bleMediaSender = null
-        volumeToSet = -1
-        lastVolumeDirectionIsUp = false
-        lastVolumeUpTimestamp = 0L
+        activeVolumeTenths = -1
+        lastHandlebarDirectionUp = false
+        lastHandlebarActionTimestamp = 0L
+        lastClusterSetTimestamp = 0L
 
         sessionsChangedListener?.let { listener ->
             try {
