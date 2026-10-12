@@ -97,29 +97,6 @@ class PulsarBleManager(context: Context) {
         }
     }
 
-    private val controlsPollRunnable: Runnable = object : Runnable {
-        override fun run() {
-            val isConn = _connectionState.value.isConnected
-            val gatt = bluetoothGatt
-            val controls = charControls
-            if (isConn && gatt != null && controls != null) {
-                if (hasConnectPermission()) {
-                    synchronized(writeQueue) {
-                        if (!isWriting) {
-                            try {
-                                gatt.readCharacteristic(controls)
-                            } catch (e: SecurityException) {
-                                Log.w(TAG, "SecurityException polling controls: ${e.message}")
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Error polling handlebar controls: ${e.message}")
-                            }
-                        }
-                    }
-                }
-                mainHandler.postDelayed(this, 350L)
-            }
-        }
-    }
 
     private val prefs = this.context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -390,7 +367,6 @@ class PulsarBleManager(context: Context) {
     fun disconnect() {
         autoReconnect = false
         mainHandler.removeCallbacks(reconnectRunnable)
-        mainHandler.removeCallbacks(controlsPollRunnable)
         if (isScanning) {
             stopScan()
         }
@@ -583,7 +559,6 @@ class PulsarBleManager(context: Context) {
                 }
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "Disconnected from NS400Z (status=$status).")
-                mainHandler.removeCallbacks(controlsPollRunnable)
                 charTelemetry = null
                 charMedia = null
                 charControls = null
@@ -664,12 +639,6 @@ class PulsarBleManager(context: Context) {
                         }
                     }
 
-                    mainHandler.removeCallbacks(controlsPollRunnable)
-                    if (charControls != null) {
-                        Log.i(TAG, "Starting periodic 350ms Handlebar Controls poller (0a10)...")
-                        mainHandler.postDelayed(controlsPollRunnable, 350L)
-                    }
-
                     mainHandler.post { onConnectedListener?.invoke() }
                 } else {
                     Log.e(TAG, "Primary Service $SERVICE_UUID not found!")
@@ -681,6 +650,16 @@ class PulsarBleManager(context: Context) {
             gatt: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int
         ) {
             Log.i(TAG, "onDescriptorWrite: ${descriptor.uuid} | status=$status")
+            if (status == BluetoothGatt.GATT_SUCCESS && descriptor.characteristic.uuid == CHAR_CONTROLS_UUID) {
+                if (hasConnectPermission()) {
+                    try {
+                        gatt.readCharacteristic(descriptor.characteristic)
+                        Log.i(TAG, "Primed baseline handlebar controls via initial read")
+                    } catch (e: SecurityException) {
+                        Log.w(TAG, "SecurityException reading initial controls: ${e.message}")
+                    }
+                }
+            }
         }
 
         override fun onCharacteristicRead(

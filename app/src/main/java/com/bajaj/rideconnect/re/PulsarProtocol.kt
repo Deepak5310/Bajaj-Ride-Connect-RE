@@ -141,6 +141,12 @@ object PulsarProtocol {
     }
 
     @Synchronized
+    fun syncAuthoritativeVolume(vol: Int) {
+        lastVolumeNibble = vol
+        lastRawPacket = null
+    }
+
+    @Synchronized
     fun parseHandlebarPacket(data: ByteArray?): HandlebarEvent? {
         if (data == null || data.size < 11) return null
 

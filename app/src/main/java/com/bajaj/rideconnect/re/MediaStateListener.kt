@@ -92,6 +92,7 @@ class MediaStateListener(context: Context) {
 
     init {
         activeVolumeTenths = getCurrentVolumeTenths()
+        PulsarProtocol.syncAuthoritativeVolume(activeVolumeTenths)
         PulsarNotificationService.setSessionUpdateListener(sessionUpdateListener)
         try {
             val uri = Settings.Secure.getUriFor("enabled_notification_listeners")
@@ -530,13 +531,14 @@ class MediaStateListener(context: Context) {
                 if (activeVolumeTenths != 0) {
                     val isJumpFromHighVolume = activeVolumeTenths > 1
                     val isReleaseAfterUp = lastHandlebarDirectionUp && (timeSinceLastAction < 1200L)
-                    val isImmediateRelease = timeSinceLastAction < 450L
+                    val isImmediateRelease = timeSinceLastAction < 250L
 
                     if (isJumpFromHighVolume || isReleaseAfterUp || isImmediateRelease) {
                         Log.i(
                             TAG,
                             "Ignored cluster volume=0 idle pulse (active=$activeVolumeTenths, delta=${timeSinceLastAction}ms, isUp=$lastHandlebarDirectionUp)"
                         )
+                        PulsarProtocol.syncAuthoritativeVolume(activeVolumeTenths)
                     } else {
                         Log.i(TAG, "Cluster volume stepped down to 0 (mute)")
                         lastHandlebarDirectionUp = false
@@ -544,6 +546,7 @@ class MediaStateListener(context: Context) {
                         lastClusterSetTimestamp = now
                         activeVolumeTenths = 0
                         setVolumeFromCluster(0)
+                        PulsarProtocol.syncAuthoritativeVolume(0)
                     }
                 }
             } else {
@@ -554,6 +557,7 @@ class MediaStateListener(context: Context) {
                     lastClusterSetTimestamp = now
                     activeVolumeTenths = newNibble
                     setVolumeFromCluster(newNibble)
+                    PulsarProtocol.syncAuthoritativeVolume(newNibble)
                 }
             }
         }
@@ -615,6 +619,7 @@ class MediaStateListener(context: Context) {
             activeVolumeTenths = curTenths
             lastHandlebarDirectionUp = false
             lastHandlebarActionTimestamp = 0L
+            PulsarProtocol.syncAuthoritativeVolume(curTenths)
             onVolumeChangedExternally?.invoke(curTenths)
         }
     }
