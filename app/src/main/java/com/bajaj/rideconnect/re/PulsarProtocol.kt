@@ -91,12 +91,12 @@ object PulsarProtocol {
     }
 
     private fun writeUtf8Field(
-        frame: ByteArray, lengthOffset: Int, dataOffset: Int, text: String?
+        frame: ByteArray, lengthOffset: Int, dataOffset: Int, text: String?, maxBytes: Int = MAX_MEDIA_FIELD_BYTES
     ) {
         if (text.isNullOrEmpty()) return
         val rawBytes = text.toByteArray(StandardCharsets.UTF_8)
-        var len = rawBytes.size.coerceAtMost(MAX_MEDIA_FIELD_BYTES)
-        if (rawBytes.size > MAX_MEDIA_FIELD_BYTES) {
+        var len = rawBytes.size.coerceAtMost(maxBytes)
+        if (rawBytes.size > maxBytes) {
             while (len > 0 && (rawBytes[len].toInt() and 0xC0) == 0x80) {
                 len--
             }

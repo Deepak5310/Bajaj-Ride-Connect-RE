@@ -11,7 +11,6 @@ import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 
@@ -26,8 +25,8 @@ class PhoneStateMonitor(
 
     var batteryPercent: Int = -1
         private set
-    var signalBars: Int = 0
-        private set
+
+    val signalBars: Int = DUMMY_SIGNAL_BARS
 
     private var isRunning = false
     private var stateReceiverRegistered = false
@@ -36,19 +35,13 @@ class PhoneStateMonitor(
     private val stateReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             intent ?: return
-            when (intent.action) {
-                Intent.ACTION_BATTERY_CHANGED -> {
-                    val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-                    val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                    val parsed = parseBatteryPercent(level, scale)
-                    if (parsed >= 0) batteryPercent = parsed
-                }
-
-                Intent.ACTION_AIRPLANE_MODE_CHANGED, ACTION_SIM_STATE_CHANGED -> {
-                    signalBars = readCurrentSignalBars()
-                }
+            if (intent.action == Intent.ACTION_BATTERY_CHANGED) {
+                val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                val parsed = parseBatteryPercent(level, scale)
+                if (parsed >= 0) batteryPercent = parsed
+                triggerImmediateUpdate()
             }
-            triggerImmediateUpdate()
         }
     }
 
@@ -68,35 +61,6 @@ class PhoneStateMonitor(
         return 85
     }
 
-    private fun readCurrentSignalBars(): Int {
-        try {
-            val isAirplaneMode = Settings.Global.getInt(
-                context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0
-            ) != 0
-            if (isAirplaneMode) return 0
-
-            val tm =
-                context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager ?: return 0
-            val state = tm.simState
-            if (state != TelephonyManager.SIM_STATE_READY) {
-                return 0
-            }
-
-            try {
-                val signalStrength = tm.signalStrength
-                if (signalStrength != null) {
-                    val level = signalStrength.level
-                    if (level in 0..4) return level
-                }
-            } catch (_: Exception) {
-            }
-
-            return 3
-        } catch (_: Exception) {
-            return 0
-        }
-    }
-
     private fun isHeadsetConnected(): Boolean {
         try {
             val am =
@@ -111,12 +75,11 @@ class PhoneStateMonitor(
     private fun dispatchTelemetry(volumeLevel: Int = mediaStateListener.getCurrentVolumeTenths()) {
         if (!bleManager.connectionState.value.isConnected) return
         val currentBattery = if (batteryPercent >= 0) batteryPercent else readDirectBatteryPercent()
-        signalBars = readCurrentSignalBars()
         val isHeadset = isHeadsetConnected()
 
         bleManager.sendTelemetry(
             batteryPercent = currentBattery,
-            signalBars = signalBars,
+            signalBars = DUMMY_SIGNAL_BARS,
             callState = 0,
             callerNameOrNumber = null,
             missedCalls = 0,
@@ -152,11 +115,7 @@ class PhoneStateMonitor(
     @Synchronized
     private fun initStateReceiver() {
         if (!stateReceiverRegistered) {
-            val filter = IntentFilter().apply {
-                addAction(Intent.ACTION_BATTERY_CHANGED)
-                addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED)
-                addAction(ACTION_SIM_STATE_CHANGED)
-            }
+            val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
             val sticky = ContextCompat.registerReceiver(
                 context, stateReceiver, filter, ContextCompat.RECEIVER_EXPORTED
             )
@@ -170,7 +129,6 @@ class PhoneStateMonitor(
             if (batteryPercent < 0) {
                 batteryPercent = readDirectBatteryPercent()
             }
-            signalBars = readCurrentSignalBars()
         }
     }
 
@@ -200,9 +158,8 @@ class PhoneStateMonitor(
             isRunning = true
             initStateReceiver()
             registerVolumeObserver()
-            signalBars = readCurrentSignalBars()
             triggerImmediateUpdate()
-            Log.i(TAG, "PhoneStateMonitor started (battery=$batteryPercent%, signal=$signalBars)")
+            Log.i(TAG, "PhoneStateMonitor started (battery=$batteryPercent%, dummySignal=$DUMMY_SIGNAL_BARS)")
         }
     }
 
@@ -229,7 +186,8 @@ class PhoneStateMonitor(
 
     companion object {
         private const val TAG = "PhoneStateMonitor"
-        private const val ACTION_SIM_STATE_CHANGED = "android.intent.action.SIM_STATE_CHANGED"
+        const val DUMMY_SIGNAL_BARS = 4
+
         private const val TYPE_BLE_HEADSET = 26
         private const val TYPE_BLE_SPEAKER = 27
 
