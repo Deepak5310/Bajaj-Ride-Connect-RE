@@ -17,12 +17,14 @@ class MainActivity : ComponentActivity() {
 
     private var hasLaunchedCoPilot = false
     private var hasRequestedPermissions = false
-    private var isRequestingOverlay = false
+    private var isRequestingPermissions = false
     private var hasRequestedOverlay = false
+    private var isRequestingOverlay = false
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
+        isRequestingPermissions = false
         checkPermissionsAndProceed()
     }
 
@@ -41,7 +43,15 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         PulsarNotificationService.requestRebindIfGranted(this)
-        if (!isFinishing && !hasLaunchedCoPilot) {
+        if (isFinishing || hasLaunchedCoPilot) return
+
+        if (isRequestingOverlay && Settings.canDrawOverlays(this)) {
+            isRequestingOverlay = false
+            checkPermissionsAndProceed()
+            return
+        }
+
+        if (!isRequestingPermissions && !isRequestingOverlay) {
             checkPermissionsAndProceed()
         }
     }
@@ -67,13 +77,17 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkPermissionsAndProceed() {
-        if (isRequestingOverlay) return
+        if (isFinishing || hasLaunchedCoPilot || isRequestingPermissions || isRequestingOverlay) return
 
-        val missing = getMissingPermissions()
-        if (missing.isNotEmpty() && !hasRequestedPermissions) {
+        if (!hasRequestedPermissions) {
+            val missing = getMissingPermissions()
+            if (missing.isNotEmpty()) {
+                hasRequestedPermissions = true
+                isRequestingPermissions = true
+                permissionLauncher.launch(missing.toTypedArray())
+                return
+            }
             hasRequestedPermissions = true
-            permissionLauncher.launch(missing.toTypedArray())
-            return
         }
 
         if (!hasBluetoothPermissions()) {
@@ -133,7 +147,14 @@ class MainActivity : ComponentActivity() {
             }
             startActivity(intent)
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, getString(R.string.maps_not_installed), Toast.LENGTH_SHORT).show()
+            try {
+                val genericIntent = Intent(Intent.ACTION_VIEW, "geo:0,0?q=".toUri()).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(genericIntent)
+            } catch (_: Exception) {
+                Toast.makeText(this, getString(R.string.maps_not_installed), Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

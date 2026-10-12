@@ -200,6 +200,9 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
                         onExpandedChanged = { expanded ->
                             isExpanded = expanded
                             updateOverlayDimensions(expanded)
+                            if (expanded && !mediaStateListener.mediaTrackInfo.value.hasPermission) {
+                                mediaStateListener.refreshMediaSessions()
+                            }
                         },
                         onPlayPauseToggle = { mediaStateListener.togglePlayPause() },
                         onSkipNext = { mediaStateListener.skipNext() },
@@ -280,6 +283,10 @@ class FloatingHudService : Service(), LifecycleOwner, ViewModelStoreOwner, Saved
     }
 
     private fun openNotificationListenerSettings() {
+        if (PulsarNotificationService.isNotificationListenerGranted(this)) {
+            mediaStateListener.refreshMediaSessions()
+            return
+        }
         try {
             val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

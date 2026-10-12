@@ -2,8 +2,10 @@ package com.bajaj.rideconnect.re
 
 import android.content.ComponentName
 import android.content.Context
+import android.database.ContentObserver
 import android.graphics.Bitmap
 import android.media.AudioManager
+import android.provider.Settings
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSession
@@ -76,8 +78,19 @@ class MediaStateListener(context: Context) {
         }
     }
 
+    private val settingsObserver = object : ContentObserver(handler) {
+        override fun onChange(selfChange: Boolean) {
+            refreshMediaSessions()
+        }
+    }
+
     init {
         PulsarNotificationService.setSessionUpdateListener(sessionUpdateListener)
+        try {
+            val uri = Settings.Secure.getUriFor("enabled_notification_listeners")
+            context.contentResolver.registerContentObserver(uri, false, settingsObserver)
+        } catch (_: Exception) {
+        }
         initMediaSessions()
     }
 
@@ -115,11 +128,12 @@ class MediaStateListener(context: Context) {
 
             updateActiveController()
         } catch (e: SecurityException) {
+            sessionsChangedListener = null
             Log.w(TAG, "SecurityException initializing MediaSessionManager: ${e.message}")
             if (PulsarNotificationService.isNotificationListenerGranted(context)) {
                 _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = true)
                 PulsarNotificationService.requestRebindIfGranted(context)
-                handler.postDelayed({ updateActiveController() }, 1000L)
+                handler.postDelayed({ initMediaSessions() }, 1000L)
             } else {
                 _mediaTrackInfo.value = _mediaTrackInfo.value.copy(hasPermission = false)
             }
@@ -556,6 +570,10 @@ class MediaStateListener(context: Context) {
     }
 
     fun destroy() {
+        try {
+            context.contentResolver.unregisterContentObserver(settingsObserver)
+        } catch (_: Exception) {
+        }
         PulsarNotificationService.setSessionUpdateListener(null)
         handler.removeCallbacksAndMessages(null)
         try {
